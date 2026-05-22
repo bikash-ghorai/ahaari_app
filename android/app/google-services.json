@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "466386389074",
+    "project_id": "ahaari",
+    "storage_bucket": "ahaari.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:466386389074:android:499e6bf8483aae3e00378b",
+        "android_client_info": {
+          "package_name": "com.ahaari"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDwQHV6fYnS2bCXOstfvqtnfp6Zh3YR2jg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
