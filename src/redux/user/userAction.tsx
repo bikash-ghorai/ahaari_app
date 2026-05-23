@@ -1,28 +1,32 @@
-import {createAsyncThunk} from '@reduxjs/toolkit';
-import {showToaster} from '../../utils/toaster';
-import axios from '../../utils/axios';
+import { createAsyncThunk } from '@reduxjs/toolkit';
 import {
-  IActivityListReq,
-  IAddComplaintReq,
-  IBannerViewCountReq,
-  IChangePasswordReq,
-  IPhoneOTPReq,
-  ISendSupportMsgReq,
-  IUpdateCurrentLocationReq,
-  IUserInstallCountReq,
-  IUserSettingReq,
-  IUserUpdateReq,
-  IVerifyPhoneOTPReq,
-} from '../../../types';
+  deleteAuthTokenFromAsyncStore,
+  deleteUserDetailsFromAsyncStore,
+  setAuthTokenToAsyncStore,
+  setUserDetailsToAsyncStore,
+} from '../../utils/storage';
+import axios, { removeApiToken, setApiToken } from '../../utils/axios';
+import { navigate, reset } from '../../utils/navigationRef';
+import {
+  IAddress,
+  IAddressAddReq,
+  ILoginReq,
+  ISendOtpReq,
+  IUpdateLocationReq,
+  IVerifyUserReq,
+} from '../../types';
+import { showToaster } from '../../utils/toaster';
 
-//For user details update
-export const userDetailsUpdate = createAsyncThunk(
-  'user/updateUser',
-  async (params: IUserUpdateReq, thunkAPI) => {
+//For login
+export const login = createAsyncThunk(
+  'user/login',
+  async (params: ILoginReq, thunkAPI) => {
     try {
-      const {data, message}: any = await axios.put('user/updateUser', params);
+      const { data, message }: any = await axios.post('user/login', params);
       showToaster(message);
-      return data;
+      console.log('data', data);
+      navigate('OtpAuth', { phone: data?.phone });
+      return { data, message };
     } catch (error: any) {
       showToaster(error);
       return thunkAPI.rejectWithValue(error);
@@ -30,49 +34,18 @@ export const userDetailsUpdate = createAsyncThunk(
   },
 );
 
-//For user Image upload
-export const userImageUpload = createAsyncThunk(
-  'user/uploadImage',
-  async (params: any, thunkAPI) => {
+//For resendOtp
+export const resendOtp = createAsyncThunk(
+  'user/resendOtp',
+  async (params: ISendOtpReq, thunkAPI) => {
     try {
-      const {data}: any = await axios.post('upload/upload', params, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      // showToaster(message);
-      return data;
-    } catch (error: any) {
-      showToaster(error);
-      return thunkAPI.rejectWithValue(error);
-    }
-  },
-);
-
-//For user City List
-export const getCityList = createAsyncThunk(
-  'user/getCityList',
-  async (_, thunkAPI) => {
-    try {
-      const {data}: any = await axios.get('common/state-and-city');
-      return data;
-    } catch (error: any) {
-      return thunkAPI.rejectWithValue(error);
-    }
-  },
-);
-
-//For user password change
-export const changePassword = createAsyncThunk(
-  'user/passwordChange',
-  async (params: IChangePasswordReq, thunkAPI) => {
-    try {
-      const {data, message}: any = await axios.post(
-        'user/change-password',
+      const { data, message }: any = await axios.post(
+        'user/resend-otp',
         params,
       );
       showToaster(message);
-      return data;
+      console.log('data', data);
+      return { data, message };
     } catch (error: any) {
       showToaster(error);
       return thunkAPI.rejectWithValue(error);
@@ -80,124 +53,23 @@ export const changePassword = createAsyncThunk(
   },
 );
 
-//Get Activity History
-export const getActivityHistory = createAsyncThunk(
-  'user/getActivityHistory',
-  async (params: IActivityListReq, thunkAPI) => {
+//For verify OTP
+export const verifyOTP = createAsyncThunk(
+  'user/verifyOtp',
+  async (params: IVerifyUserReq, thunkAPI) => {
     try {
-      const {data, count}: any = await axios.get('user/get-activity-logs', {
-        params: params,
-      });
-      // showToaster(message);
-      return {data, count};
-    } catch (error: any) {
-      // showToaster(error);
-      return thunkAPI.rejectWithValue(error);
-    }
-  },
-);
-
-//Get Complaints
-export const getComplaints = createAsyncThunk(
-  'user/getComplaints',
-  async (_, thunkAPI) => {
-    try {
-      const {data}: any = await axios.get('complaints/get-all-complaints');
-      // showToaster(message);
-      return data;
-    } catch (error: any) {
-      // showToaster(error);
-      return thunkAPI.rejectWithValue(error);
-    }
-  },
-);
-
-//Get Complaint Details
-export const getComplaintDetails = createAsyncThunk(
-  'user/getComplaintDetails',
-  async (_id: string, thunkAPI) => {
-    try {
-      const {data}: any = await axios.get(`complaints/?id=${_id}`);
-      // showToaster(message);
-      return data;
-    } catch (error: any) {
-      showToaster(error);
-      return thunkAPI.rejectWithValue(error);
-    }
-  },
-);
-
-//Add Complaint
-export const addComplaint = createAsyncThunk(
-  'user/addComplaint',
-  async (params: IAddComplaintReq, thunkAPI) => {
-    try {
-      const {data, message}: any = await axios.post('complaints', params);
-      showToaster(message);
-      return data;
-    } catch (error: any) {
-      showToaster(error);
-      return thunkAPI.rejectWithValue(error);
-    }
-  },
-);
-
-//Get CMS Content
-export const getCMSContent = createAsyncThunk(
-  'user/getCMSContent',
-  async (slug: string, thunkAPI) => {
-    try {
-      const {data}: any = await axios.get(`cms/?slug=${slug}`);
-      // showToaster(message);
-      return data;
-    } catch (error: any) {
-      // showToaster(error);
-      return thunkAPI.rejectWithValue(error);
-    }
-  },
-);
-
-//Get FAQ Content
-export const getFAQContent = createAsyncThunk(
-  'user/getFAQContent',
-  async (_, thunkAPI) => {
-    try {
-      const {data}: any = await axios.get('faq/get-all-faq');
-      // showToaster(message);
-      return data;
-    } catch (error: any) {
-      // showToaster(error);
-      return thunkAPI.rejectWithValue(error);
-    }
-  },
-);
-
-//Get Support email and mobile
-export const getSupportCred = createAsyncThunk(
-  'user/getSupportCred',
-  async (_, thunkAPI) => {
-    try {
-      const {data}: any = await axios.get('support-message/support-details');
-      // showToaster(message);
-      return data;
-    } catch (error: any) {
-      // showToaster(error);
-      return thunkAPI.rejectWithValue(error);
-    }
-  },
-);
-
-//Send Support Message
-export const sendSupportMsg = createAsyncThunk(
-  'user/sendSupportMsg',
-  async (params: ISendSupportMsgReq, thunkAPI) => {
-    try {
-      const {data, message}: any = await axios.post(
-        'support-message/send-support-msg',
+      const { data, message }: any = await axios.post(
+        'user/verify-otp',
         params,
       );
       showToaster(message);
-      return data;
+      if (data) {
+        setApiToken(data.token);
+        await setAuthTokenToAsyncStore(data.token);
+        await setUserDetailsToAsyncStore(data.user);
+      }
+      reset('Tabs');
+      return { data, message };
     } catch (error: any) {
       showToaster(error);
       return thunkAPI.rejectWithValue(error);
@@ -205,42 +77,30 @@ export const sendSupportMsg = createAsyncThunk(
   },
 );
 
-//Get checkin /rating /alert count
-export const getActivityCount = createAsyncThunk(
-  'user/getActivityCount',
+//For fetching user addresses
+export const getAddressList = createAsyncThunk(
+  'user/getAddressList',
   async (_, thunkAPI) => {
     try {
-      const {data}: any = await axios.get('user/get-activity-count');
-      return data;
-    } catch (error: any) {
-      return thunkAPI.rejectWithValue(error);
-    }
-  },
-);
-//Get user setting
-export const getUserSetting = createAsyncThunk(
-  'user/getUserSetting',
-  async (_, thunkAPI) => {
-    try {
-      const {data}: any = await axios.get('user/get-user-settings');
-      return data;
+      const { data, message }: { data: IAddress[]; message: string } =
+        await axios.get('user/addresses');
+      console.log('data1', data);
+      return { data, message };
     } catch (error: any) {
       return thunkAPI.rejectWithValue(error);
     }
   },
 );
 
-//Update user setting
-export const updateUserSetting = createAsyncThunk(
-  'user/updateUserSetting',
-  async (params: IUserSettingReq, thunkAPI) => {
+//For adding user address
+export const addAddress = createAsyncThunk(
+  'user/addAddress',
+  async (params: IAddressAddReq, thunkAPI) => {
     try {
-      const {data, message}: any = await axios.put(
-        'user/update-user-settings',
-        params,
-      );
+      const { data, message }: { data: IAddress; message: string } =
+        await axios.post('user/add-address', params);
       showToaster(message);
-      return data;
+      return { data, message };
     } catch (error: any) {
       showToaster(error);
       return thunkAPI.rejectWithValue(error);
@@ -248,49 +108,14 @@ export const updateUserSetting = createAsyncThunk(
   },
 );
 
-//Send OTP to mobile no
-export const sendOTPToPhone = createAsyncThunk(
-  'user/sendOTPToPhone',
-  async (params: IPhoneOTPReq, thunkAPI) => {
+//For setting default address
+export const setDefaultAddress = createAsyncThunk(
+  'user/setDefaultAddress',
+  async (params: { address_id: string }, thunkAPI) => {
     try {
-      const {data, message}: any = await axios.post(
-        'user/send-mobile-verification-otp',
-        params,
-      );
-      showToaster(message);
-      return data;
-    } catch (error: any) {
-      showToaster(error);
-      return thunkAPI.rejectWithValue(error);
-    }
-  },
-);
-//verify phone OTP
-export const verifyPhoneOTP = createAsyncThunk(
-  'user/verifyPhoneOTP',
-  async (params: IVerifyPhoneOTPReq, thunkAPI) => {
-    try {
-      const {data, message}: any = await axios.post(
-        'user/verify-mobile-verification-otp',
-        params,
-      );
-      showToaster(message);
-      return data;
-    } catch (error: any) {
-      showToaster(error);
-      return thunkAPI.rejectWithValue(error);
-    }
-  },
-);
-
-//For user current location update
-export const updateCurrentLocation = createAsyncThunk(
-  'user/updateCurrentLocation',
-  async (params: IUpdateCurrentLocationReq, thunkAPI) => {
-    try {
-      const {data}: any = await axios.post('userLocation', params);
-      // showToaster(message);
-      return data;
+      const { data, message }: { data: IAddress; message: string } =
+        await axios.post('user/set-default-address', params);
+      return { data, message };
     } catch (error: any) {
       // showToaster(error);
       return thunkAPI.rejectWithValue(error);
@@ -298,31 +123,16 @@ export const updateCurrentLocation = createAsyncThunk(
   },
 );
 
-//For count user install
-export const userInstallCount = createAsyncThunk(
-  'user/userInstallCount',
-  async (params: IUserInstallCountReq, thunkAPI) => {
-    console.log(params);
+//For updating user location
+export const updateLocation = createAsyncThunk(
+  'user/updateLocation',
+  async (params: IUpdateLocationReq, thunkAPI) => {
     try {
-      const {data}: any = await axios.post(
-        'app-reporting/ios-data-add',
+      const { data, message }: any = await axios.post(
+        'user/update-location',
         params,
       );
-      return data;
-    } catch (error: any) {
-      return thunkAPI.rejectWithValue(error);
-    }
-  },
-);
-
-//For Get Banner List
-export const getBannerList = createAsyncThunk(
-  'user/getBannerList',
-  async (_, thunkAPI) => {
-    try {
-      const {data}: any = await axios.get('adv-module/adv-baners-user');
-      // showToaster(message);
-      return data;
+      return { data, message };
     } catch (error: any) {
       // showToaster(error);
       return thunkAPI.rejectWithValue(error);
@@ -330,17 +140,44 @@ export const getBannerList = createAsyncThunk(
   },
 );
 
-//For Banner View Count
-export const updateBannerViewCount = createAsyncThunk(
-  'user/updateBannerViewCount',
-  async (Params: IBannerViewCountReq, thunkAPI) => {
+//For user logout
+export const logout = createAsyncThunk(
+  'user/logout',
+  async (
+    { msg = '', type }: { msg?: string; type: 'manual' | 'auto' },
+    thunkAPI,
+  ) => {
     try {
-      const {data}: any = await axios.post(
-        'adv-module/banner-add-view',
-        Params,
-      );
+      let message = msg;
+      if (type === 'manual') {
+        const res: any = await axios.get('user/logout');
+        message = res?.message || msg;
+      }
+      removeApiToken();
+      await deleteAuthTokenFromAsyncStore();
+      await deleteUserDetailsFromAsyncStore();
+      reset('Login');
+      showToaster(message);
+      return null;
+    } catch (error: any) {
+      // showToaster(error);
+      return thunkAPI.rejectWithValue(error);
+    }
+  },
+);
+
+//For user Delete
+export const deleteAccount = createAsyncThunk(
+  'user/deleteAccount',
+  async (_, thunkAPI) => {
+    try {
+      const { data, message }: any = await axios.post('user/delete-account');
+      removeApiToken();
+      await deleteUserDetailsFromAsyncStore();
+      await deleteAuthTokenFromAsyncStore();
+      reset('Login');
       // showToaster(message);
-      return data;
+      return { data, message };
     } catch (error: any) {
       // showToaster(error);
       return thunkAPI.rejectWithValue(error);

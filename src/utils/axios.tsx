@@ -1,10 +1,10 @@
 import axios from 'axios';
-import {deleteAuthToken} from './storage';
-import * as navigation from './navigationRef';
-import {Constant} from './constants';
+import { Constant } from '../constants/Constant';
+import { store } from '../redux/store';
+import { logout } from '../redux/user/userAction';
 
 const axiosInstance = axios.create({
-  baseURL: Constant.BASE_URL,
+  baseURL: Constant.BaseURL,
   headers: {
     'Content-Type': 'application/json',
     app_type: 'user',
@@ -14,7 +14,7 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.response.use(
   function (response) {
     console.log(response.config.url + ': axios-response', response);
-    if (response.data?.success) {
+    if (response.data?.status || response.data?.success) {
       return response.data;
     } else {
       const message = response.data?.message;
@@ -26,9 +26,12 @@ axiosInstance.interceptors.response.use(
     let message = '';
     if (error.response) {
       if (error.response.status === 401) {
-        removeApiToken();
-        await deleteAuthToken();
-        navigation.reset('Auth');
+        store.dispatch(
+          logout({
+            msg: error.response.data?.message || error?.message,
+            type: 'auto',
+          }),
+        );
       }
       message = error.response.data?.message || error?.message;
     } else {

@@ -1,3 +1,4 @@
 export const Constant = {
-  BaseURL: 'https://devrpi.idrive.sg/',
+  BaseURL: 'https://bixmis.space/api/v1',
+  ImageURL: 'https://bixmis.space/uploads/',
 };

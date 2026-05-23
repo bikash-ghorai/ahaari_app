@@ -1,16 +1,14 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import {
+  KeyboardAvoidingView,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
-import {
-  ArrowUpDown,
-  MapPin,
-  Search,
-} from 'lucide-react-native';
+import { ArrowUpDown, MapPin, Search } from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
@@ -18,18 +16,72 @@ import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 import { colors, layout, typography } from '../constants/theme';
 import GlassLayer from '../components/GlassLayer';
 import Header from '../components/Header';
+import { useDispatch } from '../redux/store';
+import { addAddress } from '../redux/user/userAction';
+import { IAddressAddReq } from '../types';
+import { showToaster } from '../utils/toaster';
+import { goBack } from '../utils/navigationRef';
 
 const surfaceColors = {
   map: '#A7A7A9',
   searchText: '#B9BEC7',
 };
 
+const AddressType: any = [
+  { label: 'Home', value: 'Home' },
+  { label: 'Work', value: 'Work' },
+  { label: 'Other', value: 'Other' },
+];
 const AddAddressScreen = () => {
-  const snapPoints = React.useMemo(() => ['40%', '82%'], []);
+  const snapPoints = useMemo(() => ['45%', '45%'], []);
+
+  const dispatch = useDispatch();
+
+  const [type, setType] = useState<IAddressAddReq['type']>(
+    AddressType[0].value,
+  );
+  const [first_name, setFirstName] = useState<IAddressAddReq['first_name']>('');
+  const [last_name, setLastName] = useState<IAddressAddReq['last_name']>('');
+  const [address, setAddress] = useState<IAddressAddReq['address']>('');
+  const [landmark, setLandmark] = useState<IAddressAddReq['landmark']>('');
+  const [pincode, setPincode] = useState<IAddressAddReq['pincode']>('');
+  const [phone_no, setPhoneNo] = useState<IAddressAddReq['phone_no']>('');
+
+  const handleSaveAddress = () => {
+    if (!address || !address.trim()) {
+      showToaster('Please enter the address');
+      return;
+    }
+    if (!first_name || !first_name.trim()) {
+      showToaster('Please enter the first name');
+      return;
+    }
+    if (!last_name || !last_name.trim()) {
+      showToaster('Please enter the last name');
+      return;
+    }
+    if (!pincode || !pincode.trim()) {
+      showToaster('Please enter the ZIP code');
+      return;
+    }
+    const params: IAddressAddReq = {
+      type,
+      first_name,
+      last_name,
+      address,
+      landmark,
+      pincode,
+      phone_no,
+      latitude: '22.3912558',
+      longitude: '87.7531036',
+    };
+    dispatch(addAddress(params)).then(() => {
+      goBack();
+    });
+  };
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
-
       <Header
         title="Add Address"
         showBackButton={true}
@@ -40,12 +92,19 @@ const AddAddressScreen = () => {
         <View style={styles.searchBar}>
           <GlassLayer radius={28} tint="rgba(12, 14, 18, 0.55)" />
           <Search size={18} color={colors.primary} strokeWidth={2.4} />
-          <Text style={styles.searchPlaceholder}>Search for new or enter a manual address</Text>
+          <Text style={styles.searchPlaceholder}>
+            Search for new or enter a manual address
+          </Text>
           <ArrowUpDown size={15} color={colors.primary} strokeWidth={2.2} />
         </View>
 
         <View style={styles.pinWrap}>
-          <MapPin size={52} color={colors.primary} fill={colors.primary} strokeWidth={1.8} />
+          <MapPin
+            size={52}
+            color={colors.primary}
+            fill={colors.primary}
+            strokeWidth={1.8}
+          />
           <View style={styles.pinBadge}>
             <Text style={styles.pinBadgeText}>PIN LOCATION</Text>
           </View>
@@ -73,81 +132,141 @@ const AddAddressScreen = () => {
             contentContainerStyle={styles.formContent}
             showsVerticalScrollIndicator={false}
           >
-            <Text style={styles.formTitle}>Delivery Address</Text>
-            <Text style={styles.formSubtitle}>
-              Where should we drop your gourmet dining experience?
-            </Text>
+            <KeyboardAvoidingView behavior="padding">
+              <Text style={styles.formTitle}>Delivery Address</Text>
+              <Text style={styles.formSubtitle}>
+                Where should we drop your gourmet dining experience?
+              </Text>
 
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>ADDRESS TAG</Text>
-              <View style={styles.tagRow}>
-                <TouchableOpacity activeOpacity={0.9} style={[styles.tagChip, styles.tagChipActive]}>
-                  <Text style={[styles.tagText, styles.tagTextActive]}>Home</Text>
-                </TouchableOpacity>
-                <TouchableOpacity activeOpacity={0.9} style={styles.tagChip}>
-                  <Text style={styles.tagText}>Office</Text>
-                </TouchableOpacity>
-                <TouchableOpacity activeOpacity={0.9} style={styles.tagChip}>
-                  <Text style={styles.tagText}>Other</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>STREET ADDRESS</Text>
-              <View style={styles.inputBox}>
-                <GlassLayer radius={10} tint="rgba(12, 14, 18, 0.68)" />
-                <Text style={styles.inputText}>456 West 72nd Street</Text>
-              </View>
-            </View>
-
-            <View style={styles.rowFields}>
-              <View style={styles.halfField}>
-                <Text style={styles.fieldLabel}>APARTMENT/SUITE</Text>
-                <View style={styles.inputBox}>
-                  <GlassLayer radius={10} tint="rgba(12, 14, 18, 0.68)" />
-                  <Text style={styles.inputText}>5C, Apt #5</Text>
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>ADDRESS TAG</Text>
+                <View style={styles.tagRow}>
+                  {AddressType.map((item: any) => (
+                    <TouchableOpacity
+                      key={item.value}
+                      activeOpacity={0.9}
+                      style={[
+                        styles.tagChip,
+                        type === item.value && styles.tagChipActive,
+                      ]}
+                      onPress={() => setType(item.value)}
+                    >
+                      <Text
+                        style={[
+                          styles.tagText,
+                          type === item.value && styles.tagTextActive,
+                        ]}
+                      >
+                        {item.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
                 </View>
               </View>
 
-              <View style={styles.halfField}>
-                <Text style={styles.fieldLabel}>ZIP CODE</Text>
-                <View style={styles.inputBox}>
-                  <GlassLayer radius={10} tint="rgba(12, 14, 18, 0.68)" />
-                  <Text style={styles.inputText}>10017</Text>
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>STREET ADDRESS *</Text>
+                <View style={[styles.inputShell, styles.inputTall]}>
+                  <TextInput
+                    value={address}
+                    onChangeText={setAddress}
+                    placeholder="House number, street name, area, colony, etc."
+                    placeholderTextColor={colors.textMuted}
+                    multiline={true}
+                    style={[styles.inputText, styles.inputMultiline]}
+                  />
                 </View>
               </View>
-            </View>
 
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>CITY</Text>
-              <View style={styles.inputBox}>
-                <GlassLayer radius={10} tint="rgba(12, 14, 18, 0.68)" />
-                <Text style={styles.inputText}>New York</Text>
+              <View style={styles.rowFields}>
+                <View style={styles.halfField}>
+                  <Text style={styles.fieldLabel}>First Name *</Text>
+                  <View style={styles.inputShell}>
+                    <TextInput
+                      value={first_name}
+                      onChangeText={setFirstName}
+                      placeholder="First name"
+                      placeholderTextColor={colors.textMuted}
+                      style={styles.inputText}
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.halfField}>
+                  <Text style={styles.fieldLabel}>Last Name *</Text>
+                  <View style={styles.inputShell}>
+                    <TextInput
+                      value={last_name}
+                      onChangeText={setLastName}
+                      placeholder="Last name"
+                      placeholderTextColor={colors.textMuted}
+                      style={styles.inputText}
+                    />
+                  </View>
+                </View>
               </View>
-            </View>
 
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>DELIVERY NOTES</Text>
-              <View style={[styles.inputBox, styles.notesBox]}>
-                <GlassLayer radius={12} tint="rgba(12, 14, 18, 0.68)" />
-                <Text style={styles.inputHint}>Gate code, landmarks, or drop-off preferences</Text>
+              <View style={styles.rowFields}>
+                <View style={styles.halfField}>
+                  <Text style={styles.fieldLabel}>Phone Number</Text>
+                  <View style={styles.inputShell}>
+                    <TextInput
+                      value={phone_no}
+                      onChangeText={setPhoneNo}
+                      placeholder="Phone number"
+                      placeholderTextColor={colors.textMuted}
+                      style={styles.inputText}
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.halfField}>
+                  <Text style={styles.fieldLabel}>ZIP CODE *</Text>
+                  <View style={styles.inputShell}>
+                    <TextInput
+                      value={pincode}
+                      onChangeText={setPincode}
+                      placeholder="ZIP CODE"
+                      placeholderTextColor={colors.textMuted}
+                      style={styles.inputText}
+                    />
+                  </View>
+                </View>
               </View>
-            </View>
 
-            <View style={styles.actionArea}>
-              <TouchableOpacity activeOpacity={0.95} style={styles.primaryButton}>
-                <LinearGradient
-                  colors={[colors.primary, '#FFC94D']}
-                  start={{ x: 0.47, y: 1 }}
-                  end={{ x: 0.53, y: 0 }}
-                  style={styles.primaryButtonGradient}
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>Landmark</Text>
+                <View style={styles.inputShell}>
+                  <TextInput
+                    value={landmark}
+                    onChangeText={setLandmark}
+                    placeholder="Landmark"
+                    placeholderTextColor={colors.textMuted}
+                    style={styles.inputText}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.actionArea}>
+                <TouchableOpacity
+                  activeOpacity={0.95}
+                  style={styles.primaryButton}
+                  onPress={handleSaveAddress}
                 >
-                  <Text style={styles.primaryButtonText}>Save Address</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-              <Text style={styles.actionHint}>You can edit this anytime from Address List.</Text>
-            </View>
+                  <LinearGradient
+                    colors={[colors.primary, '#FFC94D']}
+                    start={{ x: 0.47, y: 1 }}
+                    end={{ x: 0.53, y: 0 }}
+                    style={styles.primaryButtonGradient}
+                  >
+                    <Text style={styles.primaryButtonText}>Save Address</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+                <Text style={styles.actionHint}>
+                  You can edit this anytime from Address List.
+                </Text>
+              </View>
+            </KeyboardAvoidingView>
           </ScrollView>
         </BottomSheetView>
       </BottomSheet>
@@ -300,10 +419,10 @@ const styles = StyleSheet.create({
   rowFields: {
     marginTop: 14,
     flexDirection: 'row',
-    gap: 16,
+    justifyContent: 'space-between',
   },
   halfField: {
-    flex: 1,
+    width: '47%',
   },
   fieldLabel: {
     color: colors.primary,
@@ -314,15 +433,23 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     marginBottom: 8,
   },
-  inputBox: {
-    height: 44,
-    borderRadius: 10,
-    backgroundColor: colors.glass,
+  inputShell: {
+    minHeight: 48,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
-    justifyContent: 'center',
+    backgroundColor: 'rgba(12, 14, 18, 0.6)',
     paddingHorizontal: 14,
-    overflow: 'hidden',
+    justifyContent: 'center',
+  },
+  inputTall: {
+    minHeight: 68,
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+  inputMultiline: {
+    minHeight: 48,
+    textAlignVertical: 'top',
   },
   inputText: {
     color: colors.textSecondary,

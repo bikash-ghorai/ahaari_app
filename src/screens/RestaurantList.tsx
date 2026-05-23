@@ -1,4 +1,5 @@
-import React from 'react';
+/* eslint-disable react-native/no-inline-styles */
+import React, { useEffect, useState } from 'react';
 import {
   Image,
   ScrollView,
@@ -14,9 +15,13 @@ import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, layout, typography } from '../constants/theme';
-import { useNavigation } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 import WeatherAlertTooltip from '../components/WeatherAlertTooltip';
 import { useWeatherAlert } from '../contexts/WeatherAlertContext';
+import { useDispatch } from '../redux/store';
+import { IRestaurant } from '../types';
+import { getRestaurants } from '../redux/app/appAction';
+import { Constant } from '../constants/Constant';
 
 type RestaurantCard = {
   id: string;
@@ -30,14 +35,19 @@ type RestaurantCard = {
   leftFooterText?: string;
 };
 
-const cuisineChips = ['All Cuisines', 'Michelin Star', 'Artisanal Bakery', 'Japanese Fusion'];
+const cuisineChips = [
+  'All Cuisines',
+  'Michelin Star',
+  'Artisanal Bakery',
+  'Japanese Fusion',
+];
 
 const crowdAvatars = [
   'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=80&q=60',
   'https://images.unsplash.com/photo-1542206395-9feb3edaa68d?auto=format&fit=crop&w=80&q=60',
 ];
 
-const restaurants: RestaurantCard[] = [
+const _restaurants: RestaurantCard[] = [
   {
     id: 'obsidian-table',
     name: 'The Obsidian Table',
@@ -85,39 +95,73 @@ const restaurants: RestaurantCard[] = [
 ];
 
 const RestaurantList = () => {
+  const dispatch = useDispatch();
   const navigation = useNavigation<any>();
+  const isFocused = useIsFocused();
   const { isBadWeather, show } = useWeatherAlert();
+
+  const [restaurants, setRestaurants] = useState<Array<IRestaurant>>([]);
+
+  useEffect(() => {
+    if (isFocused) {
+      getShopHandler();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isFocused]);
+
+  const getShopHandler = () => {
+    dispatch(getRestaurants())
+      .unwrap()
+      .then(({ data }: any) => {
+        setRestaurants(data);
+      })
+      .catch((error: any) => {
+        console.log('Error fetching restaurants:', error);
+      });
+  };
   return (
     <SafeAreaView style={styles.container}>
       <WeatherAlertTooltip />
 
-      <View style={{
-        paddingHorizontal: layout.screenPadding,
-        paddingTop: 8,
-        paddingBottom: 12,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between'
-      }}>
+      <View
+        style={{
+          paddingHorizontal: layout.screenPadding,
+          paddingTop: 8,
+          paddingBottom: 12,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
         <View style={{ gap: 4 }}>
-          <Text style={{
-            color: colors.textMuted,
-            fontSize: typography.caption,
-            letterSpacing: 1,
-            textTransform: 'uppercase'
-          }}>Today's picks</Text>
-          <Text style={{
-            color: colors.textPrimary,
-            fontSize: typography.xl,
-            fontWeight: '700',
-            letterSpacing: -0.3
-          }}>Restaurants Near You</Text>
+          <Text
+            style={{
+              color: colors.textMuted,
+              fontSize: typography.caption,
+              letterSpacing: 1,
+              textTransform: 'uppercase',
+            }}
+          >
+            Today's picks
+          </Text>
+          <Text
+            style={{
+              color: colors.textPrimary,
+              fontSize: typography.xl,
+              fontWeight: '700',
+              letterSpacing: -0.3,
+            }}
+          >
+            Restaurants Near You
+          </Text>
         </View>
 
-        <View style={{
-          flexDirection: 'row',
-          gap: 12
-        }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            gap: 12,
+          }}
+        >
           <TouchableOpacity
             style={{
               width: 44,
@@ -128,7 +172,7 @@ const RestaurantList = () => {
               alignItems: 'center',
               borderWidth: 1,
               borderColor: colors.glassBorder,
-              overflow: 'hidden'
+              overflow: 'hidden',
             }}
             onPress={() => navigation.navigate('Search')}
           >
@@ -144,7 +188,7 @@ const RestaurantList = () => {
               alignItems: 'center',
               borderWidth: 1,
               borderColor: colors.glassBorder,
-              overflow: 'hidden'
+              overflow: 'hidden',
             }}
             onPress={() => {
               if (isBadWeather) {
@@ -158,15 +202,17 @@ const RestaurantList = () => {
             ) : (
               <>
                 <Bell size={20} color="#FFF" />
-                <View style={{
-                  position: 'absolute',
-                  top: 10,
-                  right: 10,
-                  width: 8,
-                  height: 8,
-                  backgroundColor: colors.primary,
-                  borderRadius: 4
-                }} />
+                <View
+                  style={{
+                    position: 'absolute',
+                    top: 10,
+                    right: 10,
+                    width: 8,
+                    height: 8,
+                    backgroundColor: colors.primary,
+                    borderRadius: 4,
+                  }}
+                />
               </>
             )}
           </TouchableOpacity>
@@ -178,7 +224,6 @@ const RestaurantList = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-
         {/* -- Cuisine chips -- */}
         <ScrollView
           horizontal
@@ -194,7 +239,13 @@ const RestaurantList = () => {
                 activeOpacity={0.88}
                 style={active ? styles.chipActive : styles.chipInactive}
               >
-                <Text style={active ? styles.chipTextActive : styles.chipTextInactive}>{chip}</Text>
+                <Text
+                  style={
+                    active ? styles.chipTextActive : styles.chipTextInactive
+                  }
+                >
+                  {chip}
+                </Text>
               </TouchableOpacity>
             );
           })}
@@ -203,12 +254,26 @@ const RestaurantList = () => {
         {/* -- Restaurant cards -- */}
         <View style={styles.cardsList}>
           {restaurants.map(restaurant => (
-            <TouchableOpacity key={restaurant.id} activeOpacity={0.9} style={styles.card} onPress={() => navigation.navigate('RestaurantDetails', { id: restaurant.id })}>
+            <TouchableOpacity
+              key={restaurant?.id}
+              activeOpacity={0.9}
+              style={styles.card}
+              onPress={() =>
+                navigation.navigate('RestaurantDetails', { id: restaurant?.id })
+              }
+            >
               {/* Hero image area */}
               <View style={styles.cardHero}>
-                <Image source={{ uri: restaurant.image }} style={styles.cardImage} />
+                <Image
+                  source={{ uri: Constant?.ImageURL + restaurant?.image }}
+                  style={styles.cardImage}
+                />
                 <LinearGradient
-                  colors={['rgba(18, 20, 24, 0.8)', 'rgba(18, 20, 24, 0)', 'rgba(18, 20, 24, 0)']}
+                  colors={[
+                    'rgba(18, 20, 24, 0.8)',
+                    'rgba(18, 20, 24, 0)',
+                    'rgba(18, 20, 24, 0)',
+                  ]}
                   start={{ x: 0.5, y: 0 }}
                   end={{ x: 0.5, y: 1 }}
                   style={styles.cardImageGradient}
@@ -216,16 +281,21 @@ const RestaurantList = () => {
                 <View
                   style={[
                     styles.cardTopRow,
-                    restaurant.hasVip === false ? styles.cardTopRowNoBadge : null,
+                    restaurant?.hasVip === false
+                      ? styles.cardTopRowNoBadge
+                      : null,
                   ]}
                 >
-                  {restaurant.hasVip !== false ? (
+                  {restaurant?.hasVip !== false ? (
                     <View style={styles.vipBadge}>
                       <View style={styles.vipDot} />
                       <Text style={styles.vipText}>VIP Delivery Available</Text>
                     </View>
                   ) : null}
-                  <TouchableOpacity style={styles.likeButton} activeOpacity={0.85}>
+                  <TouchableOpacity
+                    style={styles.likeButton}
+                    activeOpacity={0.85}
+                  >
                     <Heart size={20} color="#FFFFFF" strokeWidth={2} />
                   </TouchableOpacity>
                 </View>
@@ -234,18 +304,25 @@ const RestaurantList = () => {
               {/* Card body */}
               <View style={styles.cardBody}>
                 <View style={styles.cardTitleRow}>
-                  <Text style={styles.cardTitle}>{restaurant.name}</Text>
+                  <Text style={styles.cardTitle}>{restaurant?.name}</Text>
                   <View style={styles.ratingBadge}>
-                    <Star size={12} color={colors.primary} fill={colors.primary} strokeWidth={1.8} />
-                    <Text style={styles.ratingText}>{restaurant.rating}</Text>
+                    <Star
+                      size={12}
+                      color={colors.primary}
+                      fill={colors.primary}
+                      strokeWidth={1.8}
+                    />
+                    <Text style={styles.ratingText}>{restaurant?.rating}</Text>
                   </View>
                 </View>
 
-                <Text style={styles.cardDetails}>{restaurant.details}</Text>
+                <Text style={styles.cardDetails}>{restaurant?.details}</Text>
 
-                <View style={styles.cardFooter}>
+                {/* <View style={styles.cardFooter}>
                   {restaurant.leftFooterText ? (
-                    <Text style={styles.leftFooterText}>{restaurant.leftFooterText}</Text>
+                    <Text style={styles.leftFooterText}>
+                      {restaurant.leftFooterText}
+                    </Text>
                   ) : (
                     <View style={styles.avatarsRow}>
                       {crowdAvatars.map((uri, index) => (
@@ -259,17 +336,22 @@ const RestaurantList = () => {
                             },
                           ]}
                         >
-                          <Image source={{ uri }} style={styles.avatarStackImage} />
+                          <Image
+                            source={{ uri }}
+                            style={styles.avatarStackImage}
+                          />
                         </View>
                       ))}
                       <View style={styles.countBubble}>
-                        <Text style={styles.countBubbleText}>{restaurant.crowdCount}</Text>
+                        <Text style={styles.countBubbleText}>
+                          {restaurant.crowdCount}
+                        </Text>
                       </View>
                     </View>
                   )}
 
                   <Text style={styles.insightText}>{restaurant.insight}</Text>
-                </View>
+                </View> */}
               </View>
             </TouchableOpacity>
           ))}

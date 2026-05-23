@@ -3,16 +3,13 @@ import {
   useSelector as useAppSelector,
   useDispatch as useAppDispatch,
 } from 'react-redux';
-import logger from 'redux-logger';
 import { configureStore } from '@reduxjs/toolkit';
 import appSlice from './app/appSlice';
-import authSlice from './auth/authSlice';
 import userSlice from './user/userSlice';
 
 export const store = configureStore({
   reducer: {
     app: appSlice,
-    auth: authSlice,
     user: userSlice,
   },
   // middleware: getDefaultMiddleware => getDefaultMiddleware().concat(logger),

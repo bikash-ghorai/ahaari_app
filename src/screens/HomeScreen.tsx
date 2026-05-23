@@ -1,3 +1,4 @@
+/* eslint-disable react-native/no-inline-styles */
 import React from 'react';
 import {
   Animated,
@@ -16,9 +17,20 @@ import {
 import { BlurView } from '@react-native-community/blur';
 import Geolocation from '@react-native-community/geolocation';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import { CompositeNavigationProp, useNavigation } from '@react-navigation/native';
+import {
+  CompositeNavigationProp,
+  useNavigation,
+} from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { AlertTriangle, Bell, Calendar, CheckCircle2, ChevronDown, Search, Star } from 'lucide-react-native';
+import {
+  AlertTriangle,
+  Bell,
+  Calendar,
+  CheckCircle2,
+  ChevronDown,
+  Search,
+  Star,
+} from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -27,9 +39,11 @@ import { featuredRestaurants, specials, promotions } from '../data/homeData';
 import WeatherAlertTooltip from '../components/WeatherAlertTooltip';
 import { useWeatherAlert } from '../contexts/WeatherAlertContext';
 import type { RootStackParamList, RootTabParamList } from '../types/navigation';
+import { navigate } from '../utils/navigationRef';
+import { useDispatch, useSelector } from '../redux/store';
+import { getAddressList, updateLocation } from '../redux/user/userAction';
 
-
-const GlassLayer = () => (
+const GlassLayer = () =>
   Platform.OS === 'ios' ? (
     <BlurView
       pointerEvents="none"
@@ -38,8 +52,7 @@ const GlassLayer = () => (
       blurAmount={25}
       reducedTransparencyFallbackColor="rgba(18, 20, 24, 0.18)"
     />
-  ) : null
-);
+  ) : null;
 
 type AddressOption = {
   id: string;
@@ -92,15 +105,17 @@ const heroSlides: HeroSlide[] = [
     id: 'fresh-bites',
     tag: 'Fresh Picks',
     title: 'Lunch that feels a little more special',
-    subtitle: 'Swipe through hand-picked meals, fast delivery, and limited-time offers.',
+    subtitle:
+      'Swipe through hand-picked meals, fast delivery, and limited-time offers.',
     image:
       'https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=80',
   },
   {
     id: 'specials',
-    tag: 'Today\'s Specials',
+    tag: "Today's Specials",
     title: 'Seasonal dishes from local favorites',
-    subtitle: 'Explore standout dishes curated for the current mood and weather.',
+    subtitle:
+      'Explore standout dishes curated for the current mood and weather.',
     image:
       'https://images.unsplash.com/photo-1482049016688-2d3e1b311543?auto=format&fit=crop&w=900&q=80',
   },
@@ -123,20 +138,29 @@ type HomeScreenNavigationProp = CompositeNavigationProp<
 
 const HomeScreen = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
+  const dispatch = useDispatch();
+  const { addresses } = useSelector(state => state.user);
   const { isBadWeather, show } = useWeatherAlert();
   const heroSlideCount = heroSlides.length;
   const [activeHeroIndex, setActiveHeroIndex] = React.useState(0);
   const heroFadeAnim = React.useRef(new Animated.Value(0)).current;
   const heroSlideAnim = React.useRef(new Animated.Value(24)).current;
   const [upcomingEvent] = React.useState<UpcomingEvent | null>(null);
-  const [selectedAddressId, setSelectedAddressId] = React.useState(addressOptions[0]?.id ?? '');
+  const [selectedAddressId, setSelectedAddressId] = React.useState(
+    addressOptions[0]?.id ?? '',
+  );
   const [isAddressSheetOpen, setIsAddressSheetOpen] = React.useState(false);
-  const [currentCoords, setCurrentCoords] = React.useState<{ latitude: number; longitude: number } | null>(null);
+  const [currentCoords, setCurrentCoords] = React.useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
   const [currentPlace, setCurrentPlace] = React.useState<string | null>(null);
   const [isLocating, setIsLocating] = React.useState(false);
   const selectedAddress = React.useMemo(
-    () => addressOptions.find(option => option.id === selectedAddressId) ?? addressOptions[0],
-    [selectedAddressId]
+    () =>
+      addressOptions.find(option => option.id === selectedAddressId) ??
+      addressOptions[0],
+    [selectedAddressId],
   );
   const locationLabel = selectedAddress
     ? `${selectedAddress.tag} · ${selectedAddress.shortLabel}`
@@ -150,7 +174,9 @@ const HomeScreen = () => {
       return currentPlace;
     }
 
-    return `Current location · ${currentCoords.latitude.toFixed(3)}, ${currentCoords.longitude.toFixed(3)}`;
+    return `Current location · ${currentCoords.latitude.toFixed(
+      3,
+    )}, ${currentCoords.longitude.toFixed(3)}`;
   }, [currentCoords, currentPlace]);
   const resolvedLocationLabel = isLocating
     ? 'Locating current position...'
@@ -166,14 +192,16 @@ const HomeScreen = () => {
         PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
         {
           title: 'Location permission',
-          message: 'We use your location to show nearby restaurants and delivery options.',
+          message:
+            'We use your location to show nearby restaurants and delivery options.',
           buttonPositive: 'Allow',
           buttonNegative: 'Not now',
-        }
+        },
       );
 
       return result === PermissionsAndroid.RESULTS.GRANTED;
     } catch (error) {
+      console.error('Location permission error:', error);
       return false;
     }
   }, []);
@@ -195,6 +223,12 @@ const HomeScreen = () => {
           longitude: position.coords.longitude,
         });
         setIsLocating(false);
+        dispatch(
+          updateLocation({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          }),
+        );
       },
       () => {
         setCurrentCoords(null);
@@ -204,8 +238,9 @@ const HomeScreen = () => {
         enableHighAccuracy: true,
         timeout: 15000,
         maximumAge: 10000,
-      }
+      },
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requestLocationPermission]);
 
   React.useEffect(() => {
@@ -257,7 +292,7 @@ const HomeScreen = () => {
         }
 
         const response = await fetch(
-          `https://maps.googleapis.com/maps/api/geocode/json?latlng=${currentCoords.latitude},${currentCoords.longitude}&key=${GOOGLE_MAPS_API_KEY}&language=en`
+          `https://maps.googleapis.com/maps/api/geocode/json?latlng=${currentCoords.latitude},${currentCoords.longitude}&key=${GOOGLE_MAPS_API_KEY}&language=en`,
         );
 
         if (!response.ok) {
@@ -266,7 +301,9 @@ const HomeScreen = () => {
 
         const data = await response.json();
         console.log('Reverse geocoding result:', data);
-        const bestResult = Array.isArray(data?.results) ? data.results[0] : null;
+        const bestResult = Array.isArray(data?.results)
+          ? data.results[0]
+          : null;
         const plusCodeCompound = data?.plus_code?.compound_code;
         const place = plusCodeCompound || bestResult?.formatted_address;
 
@@ -274,6 +311,7 @@ const HomeScreen = () => {
           setCurrentPlace(place);
         }
       } catch (error) {
+        console.log('reverse geocoding error:', error);
         if (isActive) {
           setCurrentPlace(null);
         }
@@ -287,6 +325,10 @@ const HomeScreen = () => {
     };
   }, [currentCoords]);
 
+  const handleGetAddress = () => {
+    dispatch(getAddressList());
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
@@ -295,26 +337,37 @@ const HomeScreen = () => {
         <View style={styles.userInfo}>
           <View style={styles.avatarContainer}>
             <Image
-              source={{ uri: "https://lh3.googleusercontent.com/aida-public/AB6AXuCXLAZpp1C5cMSy2_JHLk3TeaArbYCqDpiJOg3E7XeqYA8-s9sXC43O1upoTYYHPgUucBt0gg5jauS5_upvK4n9BlUY4Ui8aNOC_8juc3ZmjChJigqWdfxWhzGw2SEYhhOd3FaujfSau09-FXMwxEifgkJJtZLHRhMU9a7oQRqvZ6LqXhH8Tuvs_bmlyeAfwyZtYM_FIeGNw4E3LxzIfyb926TPNJbLi_QDKPqn1A2yd-Y544saFiSoAZtsQJkS98ZAr9pVm0NiFwE" }}
+              source={{
+                uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCXLAZpp1C5cMSy2_JHLk3TeaArbYCqDpiJOg3E7XeqYA8-s9sXC43O1upoTYYHPgUucBt0gg5jauS5_upvK4n9BlUY4Ui8aNOC_8juc3ZmjChJigqWdfxWhzGw2SEYhhOd3FaujfSau09-FXMwxEifgkJJtZLHRhMU9a7oQRqvZ6LqXhH8Tuvs_bmlyeAfwyZtYM_FIeGNw4E3LxzIfyb926TPNJbLi_QDKPqn1A2yd-Y544saFiSoAZtsQJkS98ZAr9pVm0NiFwE',
+              }}
               style={styles.avatar}
             />
           </View>
-          <View style={{ width: "55%" }}>
-            <Text style={styles.welcomeText} numberOfLines={1}>Welcome, Sarah!</Text>
+          <View style={{ width: '55%' }}>
+            <Text style={styles.welcomeText} numberOfLines={1}>
+              Welcome, Sarah!
+            </Text>
             <TouchableOpacity
               activeOpacity={0.8}
               style={styles.locationRow}
-              onPress={() => setIsAddressSheetOpen(true)}
+              onPress={() => {
+                setIsAddressSheetOpen(true);
+                handleGetAddress();
+              }}
             >
-              <Text style={styles.locationText} numberOfLines={1}>{resolvedLocationLabel}</Text>
+              <Text style={styles.locationText} numberOfLines={1}>
+                {resolvedLocationLabel}
+              </Text>
               <ChevronDown size={14} color={colors.textMuted} />
             </TouchableOpacity>
           </View>
         </View>
-        <View style={{
-          flexDirection: 'row',
-          gap: 12
-        }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            gap: 12,
+          }}
+        >
           <TouchableOpacity
             style={{
               width: 44,
@@ -325,7 +378,7 @@ const HomeScreen = () => {
               alignItems: 'center',
               borderWidth: 1,
               borderColor: colors.glassBorder,
-              overflow: 'hidden'
+              overflow: 'hidden',
             }}
             onPress={() => navigation.navigate('Search')}
           >
@@ -342,7 +395,7 @@ const HomeScreen = () => {
               alignItems: 'center',
               borderWidth: 1,
               borderColor: colors.glassBorder,
-              overflow: 'hidden'
+              overflow: 'hidden',
             }}
             onPress={() => {
               if (isBadWeather) {
@@ -357,15 +410,17 @@ const HomeScreen = () => {
             ) : (
               <>
                 <Bell size={20} color="#FFF" />
-                <View style={{
-                  position: 'absolute',
-                  top: 10,
-                  right: 10,
-                  width: 8,
-                  height: 8,
-                  backgroundColor: colors.primary,
-                  borderRadius: 4
-                }} />
+                <View
+                  style={{
+                    position: 'absolute',
+                    top: 10,
+                    right: 10,
+                    width: 8,
+                    height: 8,
+                    backgroundColor: colors.primary,
+                    borderRadius: 4,
+                  }}
+                />
               </>
             )}
           </TouchableOpacity>
@@ -377,75 +432,90 @@ const HomeScreen = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-      {upcomingEvent ? (
-        <View style={styles.heroCard}>
-          <GlassLayer />
-          <View style={styles.heroImageContainer}>
-            <Image
-              source={{ uri: "https://lh3.googleusercontent.com/aida-public/AB6AXuAxGNL0DERG9T_7taHIeOdBtSkXq8JXFF91p8Ku5vFG2nq9Fp4D9CzarNep_RZao1ui5qQGiBjarEGJd2rNGW8mHo9sx1EDTXKlgo8jBBlmXibf6gO2ps9lBe3bmUF_J2X0JTjIXNG4YbjscmB_hpnU-zlDA4s3QBWJwz-IkaZ85CCtAuFd0opEClyacyiZgMCcrvmDNDiacCEkHHz9mx6M-eQm8mKJeVN72a4x3J6-8upK89Je--LYh0-LvsFgARxE-Ee75BXFM5Q" }}
-              style={styles.heroImage}
-            />
-            <LinearGradient
-              colors={['transparent', 'rgba(0, 0, 0, 0.62)']}
-              start={{ x: 0.5, y: 0.25 }}
-              end={{ x: 0.5, y: 1 }}
-              style={styles.heroOverlay}
-            />
-          </View>
-          <View style={styles.heroContent}>
-            <View style={styles.eventBadge}>
-              <Calendar size={12} color="#FFB000" />
-              <Text style={styles.eventBadgeText}>UPCOMING EVENT</Text>
+        {upcomingEvent ? (
+          <View style={styles.heroCard}>
+            <GlassLayer />
+            <View style={styles.heroImageContainer}>
+              <Image
+                source={{
+                  uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAxGNL0DERG9T_7taHIeOdBtSkXq8JXFF91p8Ku5vFG2nq9Fp4D9CzarNep_RZao1ui5qQGiBjarEGJd2rNGW8mHo9sx1EDTXKlgo8jBBlmXibf6gO2ps9lBe3bmUF_J2X0JTjIXNG4YbjscmB_hpnU-zlDA4s3QBWJwz-IkaZ85CCtAuFd0opEClyacyiZgMCcrvmDNDiacCEkHHz9mx6M-eQm8mKJeVN72a4x3J6-8upK89Je--LYh0-LvsFgARxE-Ee75BXFM5Q',
+                }}
+                style={styles.heroImage}
+              />
+              <LinearGradient
+                colors={['transparent', 'rgba(0, 0, 0, 0.62)']}
+                start={{ x: 0.5, y: 0.25 }}
+                end={{ x: 0.5, y: 1 }}
+                style={styles.heroOverlay}
+              />
             </View>
-            <Text style={styles.heroTitle}>Celebrate Chloe's Birthday Soon!</Text>
-            <Text style={styles.heroSubtitle}>Make her day special with her favorite artisanal treats and desserts from the best bakeries.</Text>
-            <TouchableOpacity style={styles.planButton}>
-              <Text style={styles.planButtonText}>Plan Party</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      ) : (
-        <View style={styles.heroCard}>
-          <GlassLayer />
-          <View style={styles.heroImageContainer}>
-            {heroSlides[activeHeroIndex] ? (
-              <Animated.View
-                style={[
-                  styles.heroImageMotion,
-                  {
-                    opacity: heroFadeAnim,
-                    transform: [{ translateX: heroSlideAnim }],
-                  },
-                ]}
-              >
-                <Image
-                  source={{ uri: heroSlides[activeHeroIndex].image }}
-                  style={styles.heroImage}
-                />
-              </Animated.View>
-            ) : null}
-            <View style={styles.heroDots}>
-              {heroSlides.map((slide, index) => (
-                <View
-                  key={slide.id}
-                  style={[styles.heroDot, index === activeHeroIndex ? styles.heroDotActive : null]}
-                />
-              ))}
+            <View style={styles.heroContent}>
+              <View style={styles.eventBadge}>
+                <Calendar size={12} color="#FFB000" />
+                <Text style={styles.eventBadgeText}>UPCOMING EVENT</Text>
+              </View>
+              <Text style={styles.heroTitle}>
+                Celebrate Chloe's Birthday Soon!
+              </Text>
+              <Text style={styles.heroSubtitle}>
+                Make her day special with her favorite artisanal treats and
+                desserts from the best bakeries.
+              </Text>
+              <TouchableOpacity style={styles.planButton}>
+                <Text style={styles.planButtonText}>Plan Party</Text>
+              </TouchableOpacity>
             </View>
           </View>
-          <View style={styles.heroContent}>
-            <View style={styles.eventBadge}>
-              <Calendar size={12} color="#FFB000" />
-              <Text style={styles.eventBadgeText}>UPCOMING EVENT</Text>
+        ) : (
+          <View style={styles.heroCard}>
+            <GlassLayer />
+            <View style={styles.heroImageContainer}>
+              {heroSlides[activeHeroIndex] ? (
+                <Animated.View
+                  style={[
+                    styles.heroImageMotion,
+                    {
+                      opacity: heroFadeAnim,
+                      transform: [{ translateX: heroSlideAnim }],
+                    },
+                  ]}
+                >
+                  <Image
+                    source={{ uri: heroSlides[activeHeroIndex].image }}
+                    style={styles.heroImage}
+                  />
+                </Animated.View>
+              ) : null}
+              <View style={styles.heroDots}>
+                {heroSlides.map((slide, index) => (
+                  <View
+                    key={slide.id}
+                    style={[
+                      styles.heroDot,
+                      index === activeHeroIndex ? styles.heroDotActive : null,
+                    ]}
+                  />
+                ))}
+              </View>
             </View>
-            <Text style={styles.heroTitle}>Celebrate Chloe's Birthday Soon!</Text>
-            <Text style={styles.heroSubtitle}>Make her day special with her favorite artisanal treats and desserts from the best bakeries.</Text>
-            <TouchableOpacity style={styles.planButton}>
-              <Text style={styles.planButtonText}>Plan Party</Text>
-            </TouchableOpacity>
+            <View style={styles.heroContent}>
+              <View style={styles.eventBadge}>
+                <Calendar size={12} color="#FFB000" />
+                <Text style={styles.eventBadgeText}>UPCOMING EVENT</Text>
+              </View>
+              <Text style={styles.heroTitle}>
+                Celebrate Chloe's Birthday Soon!
+              </Text>
+              <Text style={styles.heroSubtitle}>
+                Make her day special with her favorite artisanal treats and
+                desserts from the best bakeries.
+              </Text>
+              <TouchableOpacity style={styles.planButton}>
+                <Text style={styles.planButtonText}>Plan Party</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      )}
+        )}
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Today's Specials</Text>
@@ -463,7 +533,10 @@ const HomeScreen = () => {
             <TouchableOpacity key={item.id} style={styles.specialCard}>
               <View style={styles.specialImageContainer}>
                 <GlassLayer />
-                <Image source={{ uri: item.image }} style={styles.specialImage} />
+                <Image
+                  source={{ uri: item.image }}
+                  style={styles.specialImage}
+                />
                 <View style={styles.priceBadge}>
                   <GlassLayer />
                   <Text style={styles.priceText}>{item.price}</Text>
@@ -472,7 +545,9 @@ const HomeScreen = () => {
               <Text style={styles.specialTitle}>{item.title}</Text>
               <View style={styles.ratingContainer}>
                 <Star size={14} color="#FFB000" fill="#FFB000" />
-                <Text style={styles.ratingText}>{item.rating} ({item.reviews} reviews)</Text>
+                <Text style={styles.ratingText}>
+                  {item.rating} ({item.reviews} reviews)
+                </Text>
               </View>
             </TouchableOpacity>
           ))}
@@ -487,8 +562,7 @@ const HomeScreen = () => {
           style={styles.horizontalScroll}
           contentContainerStyle={styles.horizontalScrollContent}
         >
-          {promotions.map((promo, index) => {
-            const isAlternate = index % 2 === 1;
+          {promotions.map(promo => {
             return (
               <TouchableOpacity key={promo.id} style={styles.promoBanner}>
                 <View style={styles.promoBannerContent}>
@@ -500,14 +574,20 @@ const HomeScreen = () => {
                         end={{ x: 1, y: 1 }}
                         style={styles.discountGradient}
                       >
-                        <Text style={styles.discountValue}>{promo.discount}</Text>
+                        <Text style={styles.discountValue}>
+                          {promo.discount}
+                        </Text>
                         <Text style={styles.discountLabel}>OFF</Text>
                       </LinearGradient>
                     </View>
                     <View style={styles.promoBannerText}>
-                      <Text style={styles.promoBannerTitle} numberOfLines={2}>{promo.title}</Text>
+                      <Text style={styles.promoBannerTitle} numberOfLines={2}>
+                        {promo.title}
+                      </Text>
                       <View style={styles.promoCodeChip}>
-                        <Text style={styles.promoCodeChipText}>{promo.code}</Text>
+                        <Text style={styles.promoCodeChipText}>
+                          {promo.code}
+                        </Text>
                       </View>
                       <Text style={styles.promoExpiry}>{promo.expiresIn}</Text>
                     </View>
@@ -525,14 +605,17 @@ const HomeScreen = () => {
           {featuredRestaurants.map(restaurant => (
             <TouchableOpacity key={restaurant.id} style={styles.restaurantCard}>
               <GlassLayer />
-              <Image source={{ uri: restaurant.image }} style={styles.restaurantImage} />
+              <Image
+                source={{ uri: restaurant.image }}
+                style={styles.restaurantImage}
+              />
               <View style={styles.restaurantInfo}>
                 <View style={styles.restaurantHeader}>
                   <Text style={styles.restaurantName}>{restaurant.name}</Text>
                   <CheckCircle2 size={18} color={colors.primary} />
                 </View>
                 <Text style={styles.restaurantDetails}>
-                  {restaurant.type}  -  {restaurant.time}
+                  {restaurant.type} - {restaurant.time}
                 </Text>
                 <View style={styles.restaurantBadges}>
                   <View style={styles.badge}>
@@ -564,43 +647,75 @@ const HomeScreen = () => {
             <View style={styles.sheetHandle} />
             <Text style={styles.sheetTitle}>Choose delivery address</Text>
             <View style={styles.sheetList}>
-              {addressOptions.map(option => {
-                const isSelected = option.id === selectedAddressId;
+              {addresses && addresses.length > 0 ? (
+                addresses.map(option => {
+                  const isSelected = option?.address_id === selectedAddressId;
 
-                return (
-                  <TouchableOpacity
-                    key={option.id}
-                    activeOpacity={0.9}
-                    style={[styles.addressOption, isSelected ? styles.addressOptionActive : null]}
-                    onPress={() => {
-                      setSelectedAddressId(option.id);
-                      setIsAddressSheetOpen(false);
-                    }}
-                  >
-                    <GlassLayer />
-                    <View style={styles.addressOptionHeader}>
-                      <Text style={styles.addressTag}>{option.tag}</Text>
-                      {isSelected ? (
-                        <View style={styles.addressSelectedBadge}>
-                          <Text style={styles.addressSelectedBadgeText}>Selected</Text>
-                        </View>
-                      ) : null}
-                    </View>
-                    <Text style={styles.addressLine}>{option.line1}</Text>
-                    <Text style={styles.addressLine}>{option.line2}</Text>
-                  </TouchableOpacity>
-                );
-              })}
+                  return (
+                    <TouchableOpacity
+                      key={option?.address_id}
+                      activeOpacity={0.9}
+                      style={[
+                        styles.addressOption,
+                        isSelected ? styles.addressOptionActive : null,
+                      ]}
+                      onPress={() => {
+                        setSelectedAddressId(option?.address_id);
+                        setIsAddressSheetOpen(false);
+                        dispatch(
+                          updateLocation({
+                            latitude: option?.latitude,
+                            longitude: option?.longitude,
+                            address_id: option?.address_id,
+                          }),
+                        );
+                      }}
+                    >
+                      <GlassLayer />
+                      <View style={styles.addressOptionHeader}>
+                        <Text style={styles.addressTag}>{option?.type}</Text>
+                        {isSelected ? (
+                          <View style={styles.addressSelectedBadge}>
+                            <Text style={styles.addressSelectedBadgeText}>
+                              Selected
+                            </Text>
+                          </View>
+                        ) : null}
+                      </View>
+                      <Text style={styles.addressLine}>{option?.address}</Text>
+                      <Text style={styles.addressLine}>
+                        {(option?.landmark ? option?.landmark + ',' : '') +
+                          ' ' +
+                          option?.pincode}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })
+              ) : (
+                <Text
+                  style={{
+                    color: colors.textTertiary,
+                    fontSize: typography.body,
+                    fontWeight: '500',
+                    textAlign: 'center',
+                    marginTop: 10,
+                    marginBottom: 24,
+                  }}
+                >
+                  No saved addresses found. Please add a new address to get
+                  started.
+                </Text>
+              )}
             </View>
             <TouchableOpacity
               style={styles.manageAddressButton}
               activeOpacity={0.9}
               onPress={() => {
                 setIsAddressSheetOpen(false);
-                navigation.navigate('SelectAddress');
+                navigate('AddAddress');
               }}
             >
-              <Text style={styles.manageAddressText}>Manage addresses</Text>
+              <Text style={styles.manageAddressText}>+ Add new addresses</Text>
             </TouchableOpacity>
           </View>
         </View>

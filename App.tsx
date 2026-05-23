@@ -1,12 +1,13 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { StatusBar, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { DefaultTheme, NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
+import { DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import AppBackground from './src/components/AppBackground';
 import BottomNav from './src/components/BottomNav';
+import NoInternetToast from './src/components/NoInternetToast';
 import { colors } from './src/constants/theme';
 import { WeatherAlertProvider } from './src/contexts/WeatherAlertContext';
 import CartScreen from './src/screens/CartScreen';
@@ -14,7 +15,10 @@ import HomeScreen from './src/screens/HomeScreen';
 import OrdersScreen from './src/screens/OrdersScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import SearchScreen from './src/screens/SearchScreen';
-import type { RootStackParamList, RootTabParamList } from './src/types/navigation';
+import type {
+  RootStackParamList,
+  RootTabParamList,
+} from './src/types/navigation';
 import RestaurantList from './src/screens/RestaurantList';
 import RestaurantDetails from './src/screens/RestaurantDetails';
 import OrderDetailsScreen from './src/screens/OrderDetailsScreen';
@@ -35,10 +39,14 @@ import PersonalInfoScreen from './src/screens/PersonalInfoScreen';
 import AboutScreen from './src/screens/AboutScreen';
 import HelpCenterScreen from './src/screens/HelpCenterScreen';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import SplashScreen from './src/screens/SplashScreen';
+import { navigationRef } from './src/utils/navigationRef';
+import { Provider } from 'react-redux';
+import { store } from './src/redux/store';
+import NetInfo from '@react-native-community/netinfo';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 const Stack = createNativeStackNavigator<RootStackParamList>();
-const navigationRef = createNavigationContainerRef<RootStackParamList>();
 const navigationTheme = {
   ...DefaultTheme,
   colors: {
@@ -62,10 +70,19 @@ const MainTabs = () => {
       <Tab.Screen name="Orders" component={OrdersScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
-  )
-}
+  );
+};
 function App() {
-  const [currentRouteName, setCurrentRouteName] = React.useState('Login');
+  const [currentRouteName, setCurrentRouteName] = React.useState('Splash');
+  const [isConnected, setIsConnected] = useState<boolean>(true);
+
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener(state => {
+      setIsConnected(!!state.isConnected);
+      console.log('state', state);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const updateCurrentRoute = () => {
     const routeName = navigationRef.getCurrentRoute()?.name;
@@ -77,48 +94,147 @@ function App() {
   return (
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
-        <WeatherAlertProvider>
-          <StatusBar barStyle="light-content" backgroundColor={colors.background} />
-          <View style={styles.container}>
-            {currentRouteName !== 'Login' && currentRouteName !== 'OtpAuth' ? <AppBackground /> : null}
-            <View style={styles.mobileCanvas}>
-              <NavigationContainer
-                ref={navigationRef}
-                theme={navigationTheme}
-                onReady={updateCurrentRoute}
-                onStateChange={updateCurrentRoute}
-              >
-                <Stack.Navigator
-                  screenOptions={{
-                    headerShown: false,
-                    contentStyle: { backgroundColor: 'transparent' },
-                  }}
+        <Provider store={store}>
+          <WeatherAlertProvider>
+            <StatusBar
+              barStyle="light-content"
+              backgroundColor={colors.background}
+            />
+            <View style={styles.container}>
+              {currentRouteName !== 'Login' &&
+              currentRouteName !== 'OtpAuth' ? (
+                <AppBackground />
+              ) : null}
+
+              <View style={styles.mobileCanvas}>
+                <NavigationContainer
+                  ref={navigationRef}
+                  theme={navigationTheme}
+                  onReady={updateCurrentRoute}
+                  onStateChange={updateCurrentRoute}
                 >
-                  <Stack.Screen name="Tabs" component={MainTabs} />
-                  <Stack.Screen name="Login" component={LoginScreen} />
-                  <Stack.Screen name="OtpAuth" component={OtpAuthScreen} />
-                  <Stack.Screen name="Search" component={SearchScreen} />
-                  <Stack.Screen name="MyCircle" component={MyCircleScreen} />
-                  <Stack.Screen name="RateExperience" component={RatingScreen} />
-                  <Stack.Screen name="ReferEarn" component={ReferEarnScreen} />
-                  <Stack.Screen name="RestaurantDetails" component={RestaurantDetails} />
-                  <Stack.Screen name="OrderConfirmed" component={OrderConfirmedScreen} />
-                  <Stack.Screen name="OrderFailed" component={OrderFailedScreen} />
-                  <Stack.Screen name="OrderDetails" component={OrderDetailsScreen} />
-                  <Stack.Screen name="WalletHistory" component={WalletHistoryScreen} />
-                  <Stack.Screen name="Plan" component={PlanScreen} />
-                  <Stack.Screen name="PersonalInfo" component={PersonalInfoScreen} />
-                  <Stack.Screen name="About" component={AboutScreen} />
-                  <Stack.Screen name="HelpCenter" component={HelpCenterScreen} />
-                  <Stack.Screen name="AddressList" component={AddressListScreen} />
-                  <Stack.Screen name="CouponList" component={CouponListScreen} />
-                  <Stack.Screen name="SelectAddress" component={SelectAddressScreen} />
-                  <Stack.Screen name="AddAddress" component={AddAddressScreen} />
-                </Stack.Navigator>
-              </NavigationContainer>
+                  <Stack.Navigator
+                    screenOptions={{
+                      headerShown: false,
+                      contentStyle: { backgroundColor: 'transparent' },
+                    }}
+                  >
+                    <Stack.Screen
+                      options={{ freezeOnBlur: true, animation: 'none' }}
+                      name="Splash"
+                      component={SplashScreen}
+                    />
+                    <Stack.Screen
+                      options={{ freezeOnBlur: true, animation: 'none' }}
+                      name="Tabs"
+                      component={MainTabs}
+                    />
+                    <Stack.Screen
+                      options={{ freezeOnBlur: true, animation: 'none' }}
+                      name="Login"
+                      component={LoginScreen}
+                    />
+                    <Stack.Screen
+                      options={{ freezeOnBlur: true, animation: 'none' }}
+                      name="OtpAuth"
+                      component={OtpAuthScreen}
+                    />
+                    <Stack.Screen
+                      options={{ freezeOnBlur: true, animation: 'none' }}
+                      name="Search"
+                      component={SearchScreen}
+                    />
+                    <Stack.Screen
+                      options={{ freezeOnBlur: true, animation: 'none' }}
+                      name="MyCircle"
+                      component={MyCircleScreen}
+                    />
+                    <Stack.Screen
+                      options={{ freezeOnBlur: true, animation: 'none' }}
+                      name="RateExperience"
+                      component={RatingScreen}
+                    />
+                    <Stack.Screen
+                      options={{ freezeOnBlur: true, animation: 'none' }}
+                      name="ReferEarn"
+                      component={ReferEarnScreen}
+                    />
+                    <Stack.Screen
+                      options={{
+                        freezeOnBlur: true,
+                        animation: 'none',
+                      }}
+                      name="RestaurantDetails"
+                      component={RestaurantDetails}
+                    />
+                    <Stack.Screen
+                      options={{ freezeOnBlur: true, animation: 'none' }}
+                      name="OrderConfirmed"
+                      component={OrderConfirmedScreen}
+                    />
+                    <Stack.Screen
+                      options={{ freezeOnBlur: true, animation: 'none' }}
+                      name="OrderFailed"
+                      component={OrderFailedScreen}
+                    />
+                    <Stack.Screen
+                      options={{ freezeOnBlur: true, animation: 'none' }}
+                      name="OrderDetails"
+                      component={OrderDetailsScreen}
+                    />
+                    <Stack.Screen
+                      options={{ freezeOnBlur: true, animation: 'none' }}
+                      name="WalletHistory"
+                      component={WalletHistoryScreen}
+                    />
+                    <Stack.Screen
+                      options={{ freezeOnBlur: true, animation: 'none' }}
+                      name="Plan"
+                      component={PlanScreen}
+                    />
+                    <Stack.Screen
+                      options={{ freezeOnBlur: true, animation: 'none' }}
+                      name="PersonalInfo"
+                      component={PersonalInfoScreen}
+                    />
+                    <Stack.Screen
+                      options={{ freezeOnBlur: true, animation: 'none' }}
+                      name="About"
+                      component={AboutScreen}
+                    />
+                    <Stack.Screen
+                      options={{ freezeOnBlur: true, animation: 'none' }}
+                      name="HelpCenter"
+                      component={HelpCenterScreen}
+                    />
+                    <Stack.Screen
+                      options={{ freezeOnBlur: true, animation: 'none' }}
+                      name="AddressList"
+                      component={AddressListScreen}
+                    />
+                    <Stack.Screen
+                      options={{ freezeOnBlur: true, animation: 'none' }}
+                      name="CouponList"
+                      component={CouponListScreen}
+                    />
+                    <Stack.Screen
+                      options={{ freezeOnBlur: true, animation: 'none' }}
+                      name="SelectAddress"
+                      component={SelectAddressScreen}
+                    />
+                    <Stack.Screen
+                      options={{ freezeOnBlur: true, animation: 'none' }}
+                      name="AddAddress"
+                      component={AddAddressScreen}
+                    />
+                  </Stack.Navigator>
+                </NavigationContainer>
+
+                <NoInternetToast isConnected={isConnected} />
+              </View>
             </View>
-          </View>
-        </WeatherAlertProvider>
+          </WeatherAlertProvider>
+        </Provider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

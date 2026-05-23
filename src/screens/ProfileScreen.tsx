@@ -26,6 +26,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, layout, typography } from '../constants/theme';
 import type { RootStackParamList } from '../types/navigation';
+import { logout } from '../redux/user/userAction';
+import { useDispatch } from '../redux/store';
 
 const circleMembers = [
   'https://api.dicebear.com/9.x/adventurer/png?seed=ava',
@@ -42,9 +44,13 @@ const memberAvatarOffsetStyles = [
 ];
 
 const ProfileScreen = () => {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const dispatch = useDispatch();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const hasActivePlan = false;
-  const memberBadgeText = hasActivePlan ? 'Premium\nMember' : 'Standard\nMember';
+  const memberBadgeText = hasActivePlan
+    ? 'Premium\nMember'
+    : 'Standard\nMember';
   const vipStatusText = hasActivePlan ? 'Active' : 'Inactive';
   const planButtonText = hasActivePlan ? 'Manage Plan' : 'Choose Plan';
 
@@ -62,24 +68,30 @@ const ProfileScreen = () => {
             <View style={styles.profileImageGlow}>
               <View style={styles.profileImageBorder}>
                 <Image
-                  source={{ uri: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=512&q=80' }}
+                  source={{
+                    uri: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=512&q=80',
+                  }}
                   style={styles.profileImage}
                 />
               </View>
             </View>
-              <View style={styles.memberBadge}>
-                <LinearGradient
-                  pointerEvents="none"
-                  colors={['#FFB000', '#FFB000']}
-                  start={{ x: 0.1, y: 0.2 }}
-                  end={{ x: 0.9, y: 0.8 }}
-                  style={styles.memberBadgeGradient}
+            <View style={styles.memberBadge}>
+              <LinearGradient
+                pointerEvents="none"
+                colors={['#FFB000', '#FFB000']}
+                start={{ x: 0.1, y: 0.2 }}
+                end={{ x: 0.9, y: 0.8 }}
+                style={styles.memberBadgeGradient}
+              />
+              <View style={styles.memberBadgeInner}>
+                <Star
+                  size={13}
+                  color={colors.onPrimaryDeep}
+                  fill={colors.onPrimaryDeep}
                 />
-                <View style={styles.memberBadgeInner}>
-                  <Star size={13} color={colors.onPrimaryDeep} fill={colors.onPrimaryDeep} />
-                  <Text style={styles.memberBadgeText}>{memberBadgeText}</Text>
-                </View>
+                <Text style={styles.memberBadgeText}>{memberBadgeText}</Text>
               </View>
+            </View>
           </View>
 
           <Text style={styles.profileName}>Sarah Jenkins</Text>
@@ -100,7 +112,10 @@ const ProfileScreen = () => {
                 </View>
               </View>
 
-              <TouchableOpacity style={styles.topUpButton} onPress={() => navigation.navigate('WalletHistory')}>
+              <TouchableOpacity
+                style={styles.topUpButton}
+                onPress={() => navigation.navigate('WalletHistory')}
+              >
                 <Text style={styles.topUpButtonText}>Top Up</Text>
               </TouchableOpacity>
             </View>
@@ -121,16 +136,34 @@ const ProfileScreen = () => {
                   <Text style={styles.walletVipLabel}>LUMINA VIP STATUS</Text>
 
                   <View style={styles.vipStatusRow}>
-                    <Text style={[styles.vipStatusText, !hasActivePlan ? styles.vipStatusTextInactive : null]}>
+                    <Text
+                      style={[
+                        styles.vipStatusText,
+                        !hasActivePlan ? styles.vipStatusTextInactive : null,
+                      ]}
+                    >
                       {vipStatusText}
                     </Text>
-                    <View style={[styles.vipDot, !hasActivePlan ? styles.vipDotInactive : null]} />
+                    <View
+                      style={[
+                        styles.vipDot,
+                        !hasActivePlan ? styles.vipDotInactive : null,
+                      ]}
+                    />
                   </View>
                 </View>
               </View>
 
-              <TouchableOpacity style={styles.managePlanButton} onPress={() => navigation.navigate('Plan')}>
-                <Text style={[styles.managePlanText, !hasActivePlan ? styles.managePlanTextInactive : null]}>
+              <TouchableOpacity
+                style={styles.managePlanButton}
+                onPress={() => navigation.navigate('Plan')}
+              >
+                <Text
+                  style={[
+                    styles.managePlanText,
+                    !hasActivePlan ? styles.managePlanTextInactive : null,
+                  ]}
+                >
                   {planButtonText}
                 </Text>
               </TouchableOpacity>
@@ -166,7 +199,10 @@ const ProfileScreen = () => {
 
           <View style={styles.circleDivider} />
 
-          <TouchableOpacity style={styles.inviteButton} onPress={() => navigation.navigate('MyCircle')}>
+          <TouchableOpacity
+            style={styles.inviteButton}
+            onPress={() => navigation.navigate('MyCircle')}
+          >
             <UserPlus size={17} color={colors.textMuted} />
             <Text style={styles.inviteButtonText}>Invite Friends</Text>
           </TouchableOpacity>
@@ -176,7 +212,10 @@ const ProfileScreen = () => {
           <Text style={styles.sectionTitle}>Account Settings</Text>
 
           <View style={styles.listCard}>
-            <TouchableOpacity style={styles.listRow} onPress={() => navigation.navigate('PersonalInfo')}>
+            <TouchableOpacity
+              style={styles.listRow}
+              onPress={() => navigation.navigate('PersonalInfo')}
+            >
               <View style={styles.listRowLeft}>
                 <User size={21} color={colors.textMuted} />
                 <Text style={styles.listRowLabel}>Personal Info</Text>
@@ -186,7 +225,10 @@ const ProfileScreen = () => {
 
             <View style={styles.listDivider} />
 
-            <TouchableOpacity style={styles.listRow} onPress={() => navigation.navigate('AddressList')}>
+            <TouchableOpacity
+              style={styles.listRow}
+              onPress={() => navigation.navigate('AddressList')}
+            >
               <View style={styles.listRowLeft}>
                 <MapPin size={21} color={colors.textMuted} />
                 <Text style={styles.listRowLabel}>Addresses</Text>
@@ -196,7 +238,10 @@ const ProfileScreen = () => {
 
             <View style={styles.listDivider} />
 
-            <TouchableOpacity style={styles.listRow} onPress={() => navigation.navigate('WalletHistory')}>
+            <TouchableOpacity
+              style={styles.listRow}
+              onPress={() => navigation.navigate('WalletHistory')}
+            >
               <View style={styles.listRowLeft}>
                 <Wallet size={21} color={colors.textMuted} />
                 <Text style={styles.listRowLabel}>Wallet</Text>
@@ -206,7 +251,10 @@ const ProfileScreen = () => {
 
             <View style={styles.listDivider} />
 
-            <TouchableOpacity style={styles.listRow} onPress={() => navigation.navigate('ReferEarn')}>
+            <TouchableOpacity
+              style={styles.listRow}
+              onPress={() => navigation.navigate('ReferEarn')}
+            >
               <View style={styles.listRowLeft}>
                 <Gift size={21} color={colors.textMuted} />
                 <Text style={styles.listRowLabel}>Refer & Earn</Text>
@@ -220,7 +268,10 @@ const ProfileScreen = () => {
               </View>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.listRow} onPress={() => navigation.navigate('HelpCenter')}>
+            <TouchableOpacity
+              style={styles.listRow}
+              onPress={() => navigation.navigate('HelpCenter')}
+            >
               <View style={styles.listRowLeft}>
                 <HelpCircle size={21} color={colors.textMuted} />
                 <Text style={styles.listRowLabel}>Help & Support</Text>
@@ -248,18 +299,24 @@ const ProfileScreen = () => {
 
             <View style={styles.listDivider} />
 
-            <TouchableOpacity style={styles.listRow} onPress={() => navigation.navigate('About')}>
+            <TouchableOpacity
+              style={styles.listRow}
+              onPress={() => navigation.navigate('About')}
+            >
               <Text style={styles.listRowLabelMuted}>About</Text>
               <ChevronRight size={20} color="#6C7078" />
             </TouchableOpacity>
           </View>
         </View>
 
-        <TouchableOpacity style={styles.signOutButton} onPress={() => navigation.navigate('Login')}>
+        <TouchableOpacity
+          style={styles.signOutButton}
+          onPress={() => dispatch(logout({ type: 'manual' }))}
+        >
           <Text style={styles.signOutText}>Sign Out</Text>
         </TouchableOpacity>
       </ScrollView>
-    </SafeAreaView >
+    </SafeAreaView>
   );
 };
 

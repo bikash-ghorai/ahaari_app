@@ -1,5 +1,7 @@
+/* eslint-disable react-native/no-inline-styles */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Keyboard,
   Platform,
   Pressable,
   StatusBar,
@@ -25,11 +27,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, layout, typography } from '../constants/theme';
 import type { RootStackParamList } from '../types/navigation';
+import { useDispatch } from '../redux/store';
+import { resendOtp, verifyOTP } from '../redux/user/userAction';
 
 const OTP_LENGTH = 6;
 const INITIAL_COUNTDOWN = 30;
 
-type OtpAuthNavigationProp = NativeStackNavigationProp<RootStackParamList, 'OtpAuth'>;
+type OtpAuthNavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  'OtpAuth'
+>;
 type OtpAuthRouteProp = RouteProp<RootStackParamList, 'OtpAuth'>;
 
 const FrostedLayer = ({ radius }: { radius: number }) => (
@@ -37,14 +44,16 @@ const FrostedLayer = ({ radius }: { radius: number }) => (
     {Platform.OS === 'ios' ? (
       <BlurView
         pointerEvents="none"
-        style={[{
-          position: 'absolute',
-          top: 0,
-          right: 0,
-          bottom: 0,
-          left: 0,
-          borderRadius: radius
-        }]}
+        style={[
+          {
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            bottom: 0,
+            left: 0,
+            borderRadius: radius,
+          },
+        ]}
         blurType="dark"
         blurAmount={34}
         reducedTransparencyFallbackColor="rgba(22, 26, 30, 0.82)"
@@ -61,7 +70,10 @@ const FrostedLayer = ({ radius }: { radius: number }) => (
           bottom: 0,
           left: 0,
           borderRadius: radius,
-          backgroundColor: Platform.OS === 'android' ? 'rgba(23, 26, 30, 0.76)' : 'rgba(18, 20, 24, 0.58)',
+          backgroundColor:
+            Platform.OS === 'android'
+              ? 'rgba(23, 26, 30, 0.76)'
+              : 'rgba(18, 20, 24, 0.58)',
         },
       ]}
     />
@@ -83,14 +95,16 @@ const formatPhoneLabel = (phone?: string) => {
 };
 
 const OtpAuthScreen = () => {
+  const dispatch = useDispatch();
   const navigation = useNavigation<OtpAuthNavigationProp>();
   const route = useRoute<OtpAuthRouteProp>();
   const otpInputRef = useRef<TextInput>(null);
+  const phone: string = route.params?.phone || '';
 
   const [otp, setOtp] = useState('');
   const [countdown, setCountdown] = useState(INITIAL_COUNTDOWN);
 
-  const phoneLabel = useMemo(() => formatPhoneLabel(route.params?.phone), [route.params?.phone]);
+  const phoneLabel = useMemo(() => formatPhoneLabel(phone), [phone]);
 
   useEffect(() => {
     if (countdown <= 0) {
@@ -105,30 +119,36 @@ const OtpAuthScreen = () => {
   }, [countdown]);
 
   const focusOtpInput = () => {
+    Keyboard.dismiss();
     otpInputRef.current?.focus();
   };
 
   const handleOtpChange = (value: string) => {
     const onlyDigits = value.replace(/\D/g, '').slice(0, OTP_LENGTH);
     setOtp(onlyDigits);
+    if (onlyDigits.length === OTP_LENGTH) {
+      Keyboard.dismiss();
+    }
   };
 
   const handleResend = () => {
     if (countdown > 0) {
       return;
     }
-
-    setCountdown(INITIAL_COUNTDOWN);
-    setOtp('');
-    focusOtpInput();
+    dispatch(resendOtp({ phone }))
+      .unwrap()
+      .then(() => {
+        setCountdown(INITIAL_COUNTDOWN);
+        setOtp('');
+        focusOtpInput();
+      });
   };
 
   const handleVerify = () => {
     if (otp.length < OTP_LENGTH) {
       return;
     }
-
-    navigation.replace('Tabs');
+    dispatch(verifyOTP({ phone, otp }));
   };
 
   return (
@@ -158,8 +178,20 @@ const OtpAuthScreen = () => {
           </Defs>
 
           <Rect x="0" y="0" width="100%" height="100%" fill="url(#otpBgBase)" />
-          <Rect x="0" y="0" width="100%" height="100%" fill="url(#otpBgCardHalo)" />
-          <Rect x="0" y="0" width="100%" height="100%" fill="url(#otpBgVignette)" />
+          <Rect
+            x="0"
+            y="0"
+            width="100%"
+            height="100%"
+            fill="url(#otpBgCardHalo)"
+          />
+          <Rect
+            x="0"
+            y="0"
+            width="100%"
+            height="100%"
+            fill="url(#otpBgVignette)"
+          />
         </Svg>
       </View>
 
@@ -194,12 +226,26 @@ const OtpAuthScreen = () => {
             <Pressable style={styles.otpRow} onPress={focusOtpInput}>
               {Array.from({ length: OTP_LENGTH }).map((_, index) => {
                 const digit = otp[index] ?? '';
-                const isActive = index === otp.length && otp.length < OTP_LENGTH;
+                const isActive =
+                  index === otp.length && otp.length < OTP_LENGTH;
                 const isFilled = index < otp.length;
 
                 return (
-                  <View key={`otp-${index}`} style={[styles.otpCell, isActive ? styles.otpCellActive : null]}>
-                    <Text style={[styles.otpDigit, isFilled ? styles.otpDigitFilled : null]}>{digit}</Text>
+                  <View
+                    key={`otp-${index}`}
+                    style={[
+                      styles.otpCell,
+                      isActive ? styles.otpCellActive : null,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.otpDigit,
+                        isFilled ? styles.otpDigitFilled : null,
+                      ]}
+                    >
+                      {digit}
+                    </Text>
                   </View>
                 );
               })}
@@ -219,8 +265,17 @@ const OtpAuthScreen = () => {
 
             <View style={styles.metaRow}>
               <Text style={styles.metaText}>Did not receive code?</Text>
-              <TouchableOpacity activeOpacity={0.8} onPress={handleResend} disabled={countdown > 0}>
-                <Text style={[styles.resendText, countdown > 0 ? styles.resendDisabled : null]}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={handleResend}
+                disabled={countdown > 0}
+              >
+                <Text
+                  style={[
+                    styles.resendText,
+                    countdown > 0 ? styles.resendDisabled : null,
+                  ]}
+                >
                   {countdown > 0 ? `Resend in ${countdown}s` : 'Resend OTP'}
                 </Text>
               </TouchableOpacity>
@@ -233,18 +288,30 @@ const OtpAuthScreen = () => {
               style={styles.verifyButton}
             >
               <LinearGradient
-                colors={otp.length === OTP_LENGTH ? ['#FFAD3A', '#E79400'] : ['#5C4A2A', '#4A3B22']}
+                colors={
+                  otp.length === OTP_LENGTH
+                    ? ['#FFAD3A', '#E79400']
+                    : ['#5C4A2A', '#4A3B22']
+                }
                 start={{ x: 0.1, y: 0 }}
                 end={{ x: 0.95, y: 1 }}
                 style={styles.verifyGradient}
               >
-                <Text style={[styles.verifyText, otp.length < OTP_LENGTH ? styles.verifyTextDisabled : null]}>
+                <Text
+                  style={[
+                    styles.verifyText,
+                    otp.length < OTP_LENGTH ? styles.verifyTextDisabled : null,
+                  ]}
+                >
                   Verify & Continue
                 </Text>
               </LinearGradient>
             </TouchableOpacity>
 
-            <TouchableOpacity activeOpacity={0.8} onPress={() => navigation.goBack()}>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => navigation.goBack()}
+            >
               <Text style={styles.changeNumberText}>Change mobile number</Text>
             </TouchableOpacity>
           </View>

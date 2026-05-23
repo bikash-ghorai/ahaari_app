@@ -1,3 +1,4 @@
+/* eslint-disable react-native/no-inline-styles */
 import React, { useMemo, useState } from 'react';
 import {
   Platform,
@@ -11,8 +12,6 @@ import {
 } from 'react-native';
 import { BlurView } from '@react-native-community/blur';
 import MaterialIcons from '@react-native-vector-icons/material-icons';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import LinearGradient from 'react-native-linear-gradient';
 import Svg, {
   Defs,
@@ -24,23 +23,24 @@ import Svg, {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, layout, typography } from '../constants/theme';
-import type { RootStackParamList } from '../types/navigation';
-
-type LoginNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Login'>;
+import { useDispatch } from '../redux/store';
+import { login } from '../redux/user/userAction';
 
 const FrostedLayer = ({ radius }: { radius: number }) => (
   <>
     {Platform.OS === 'ios' ? (
       <BlurView
         pointerEvents="none"
-        style={[{
-          position: 'absolute',
-          top: 0,
-          right: 0,
-          bottom: 0,
-          left: 0,
-          borderRadius: radius
-        }]}
+        style={[
+          {
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            bottom: 0,
+            left: 0,
+            borderRadius: radius,
+          },
+        ]}
         blurType="dark"
         blurAmount={34}
         reducedTransparencyFallbackColor="rgba(22, 26, 30, 0.82)"
@@ -57,7 +57,10 @@ const FrostedLayer = ({ radius }: { radius: number }) => (
           bottom: 0,
           left: 0,
           borderRadius: radius,
-          backgroundColor: Platform.OS === 'android' ? 'rgba(23, 26, 30, 0.76)' : 'rgba(18, 20, 24, 0.58)',
+          backgroundColor:
+            Platform.OS === 'android'
+              ? 'rgba(23, 26, 30, 0.76)'
+              : 'rgba(18, 20, 24, 0.58)',
         },
       ]}
     />
@@ -65,7 +68,7 @@ const FrostedLayer = ({ radius }: { radius: number }) => (
 );
 
 const LoginScreen = () => {
-  const navigation = useNavigation<LoginNavigationProp>();
+  const dispatch = useDispatch();
   const [phone, setPhone] = useState('');
 
   const phoneDigits = useMemo(() => phone.replace(/\D/g, ''), [phone]);
@@ -75,8 +78,7 @@ const LoginScreen = () => {
     if (!canRequestOtp) {
       return;
     }
-
-    navigation.navigate('OtpAuth', { phone: phoneDigits });
+    dispatch(login({ phone: phoneDigits }));
   };
 
   return (
@@ -86,7 +88,13 @@ const LoginScreen = () => {
       <View pointerEvents="none" style={styles.backgroundLayer}>
         <Svg width="100%" height="100%" style={styles.backgroundSvg}>
           <Defs>
-            <SvgLinearGradient id="loginBgBase" x1="0%" y1="0%" x2="0%" y2="100%">
+            <SvgLinearGradient
+              id="loginBgBase"
+              x1="0%"
+              y1="0%"
+              x2="0%"
+              y2="100%"
+            >
               <Stop offset="0%" stopColor="#07090D" stopOpacity={1} />
               <Stop offset="48%" stopColor="#090B10" stopOpacity={1} />
               <Stop offset="100%" stopColor="#06070A" stopOpacity={1} />
@@ -105,9 +113,27 @@ const LoginScreen = () => {
             </SvgRadialGradient>
           </Defs>
 
-          <Rect x="0" y="0" width="100%" height="100%" fill="url(#loginBgBase)" />
-          <Rect x="0" y="0" width="100%" height="100%" fill="url(#loginBgCardHalo)" />
-          <Rect x="0" y="0" width="100%" height="100%" fill="url(#loginBgVignette)" />
+          <Rect
+            x="0"
+            y="0"
+            width="100%"
+            height="100%"
+            fill="url(#loginBgBase)"
+          />
+          <Rect
+            x="0"
+            y="0"
+            width="100%"
+            height="100%"
+            fill="url(#loginBgCardHalo)"
+          />
+          <Rect
+            x="0"
+            y="0"
+            width="100%"
+            height="100%"
+            fill="url(#loginBgVignette)"
+          />
         </Svg>
       </View>
 
@@ -127,19 +153,26 @@ const LoginScreen = () => {
                   end={{ x: 1, y: 1 }}
                   style={styles.brandIconShell}
                 >
-                  <Image source={require('../assets/logo.png')} style={{ width: 80, height: 80 }} />
-
+                  <Image
+                    source={require('../assets/logo.png')}
+                    style={{ width: 80, height: 80 }}
+                  />
                 </LinearGradient>
                 {/* <Text style={styles.brandLuxe}>BiteO</Text>
                 <Text style={styles.brandEats}>Your Food, Faster.</Text> */}
               </View>
 
               <Text style={styles.heading}>Let's Get Started</Text>
-              <Text style={styles.subheading}>Enter your mobile number to continue</Text>
+              <Text style={styles.subheading}>
+                Enter your mobile number to continue
+              </Text>
             </View>
 
             <View style={styles.inputShell}>
-              <TouchableOpacity activeOpacity={0.86} style={styles.countryCodeButton}>
+              <TouchableOpacity
+                activeOpacity={0.86}
+                style={styles.countryCodeButton}
+              >
                 <Text style={styles.countryCodeText}>IN +91</Text>
                 <MaterialIcons name="expand-more" color="#AAABB0" size={20} />
               </TouchableOpacity>
@@ -150,7 +183,7 @@ const LoginScreen = () => {
                 placeholderTextColor="rgba(170, 171, 176, 0.62)"
                 style={styles.phoneInput}
                 value={phone}
-                onChangeText={(text) => setPhone(text)}
+                onChangeText={text => setPhone(text)}
                 maxLength={10}
               />
             </View>
@@ -162,12 +195,23 @@ const LoginScreen = () => {
               disabled={!canRequestOtp}
             >
               <LinearGradient
-                colors={canRequestOtp ? ['#FFAD3A', '#E79400'] : ['#5C4A2A', '#4A3B22']}
+                colors={
+                  canRequestOtp
+                    ? ['#FFAD3A', '#E79400']
+                    : ['#5C4A2A', '#4A3B22']
+                }
                 start={{ x: 0.1, y: 0 }}
                 end={{ x: 0.95, y: 1 }}
                 style={styles.otpGradient}
               >
-                <Text style={[styles.otpText, !canRequestOtp ? styles.otpTextDisabled : null]}>Get OTP</Text>
+                <Text
+                  style={[
+                    styles.otpText,
+                    !canRequestOtp ? styles.otpTextDisabled : null,
+                  ]}
+                >
+                  Get OTP
+                </Text>
               </LinearGradient>
             </TouchableOpacity>
 
