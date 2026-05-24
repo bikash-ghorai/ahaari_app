@@ -73,7 +73,7 @@ const AddAddressScreen = () => {
       pincode,
       phone_no,
       latitude: '22.3912558',
-      longitude: '87.7531036',
+      longitude: '87.5631036',
     };
     dispatch(addAddress(params)).then(() => {
       goBack();

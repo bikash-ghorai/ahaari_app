@@ -6,7 +6,7 @@ import { RootStackParamList } from '../types/navigation';
 
 export const navigationRef = createNavigationContainerRef<RootStackParamList>();
 
-export const navigate = (name: string, params?: undefined | any) => {
+export const navigate = (name: string, params?: any) => {
   if (navigationRef.isReady()) {
     navigationRef.navigate(name as any, params as any);
   }
@@ -17,7 +17,7 @@ export const goBack = () => {
   }
 };
 
-export const reset = (name: string, params?: undefined) => {
+export const reset = (name: string, params?: any) => {
   if (navigationRef.isReady()) {
     navigationRef.dispatch(
       CommonActions.reset({ index: 1, routes: [{ name, params }] }),

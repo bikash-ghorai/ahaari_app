@@ -23,6 +23,12 @@ axiosInstance.interceptors.response.use(
   },
   async function (error) {
     console.log((error.config.url || '') + ': axios-error', error);
+    if (error?.response) {
+      console.log(
+        (error.config.url || '') + ': axios-error-response',
+        error?.response,
+      );
+    }
     let message = '';
     if (error.response) {
       if (error.response.status === 401) {

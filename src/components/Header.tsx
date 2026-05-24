@@ -1,31 +1,72 @@
-import { AlertTriangle, Bell, ChevronLeft, ShoppingBag } from 'lucide-react-native';
+/* eslint-disable react-native/no-inline-styles */
+import {
+  AlertTriangle,
+  Bell,
+  ChevronLeft,
+  ShoppingBag,
+} from 'lucide-react-native';
 import React from 'react';
-import { Platform, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  Platform,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { colors, layout, typography } from '../constants/theme';
 import { useNavigation } from '@react-navigation/native';
 import { useWeatherAlert } from '../contexts/WeatherAlertContext';
 import WeatherAlertTooltip from './WeatherAlertTooltip';
+import { useCart } from '../hooks';
+import { reset } from '../utils/navigationRef';
 
-const Header = ({ title, showBackButton = true, showCartButton = false, showNotificationButton = false, containerStyle }: { title: string; showBackButton?: boolean; showCartButton?: boolean; showNotificationButton?: boolean; containerStyle?: any }) => {
+const Header = ({
+  title,
+  showBackButton = true,
+  showCartButton = false,
+  showNotificationButton = false,
+  containerStyle,
+}: {
+  title: string;
+  showBackButton?: boolean;
+  showCartButton?: boolean;
+  showNotificationButton?: boolean;
+  containerStyle?: any;
+}) => {
   const navigation = useNavigation<any>();
-  const statusBarHeight = Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 44; // Approximate for iOS
-  const { isBadWeather, show } = useWeatherAlert();
+  const statusBarHeight =
+    Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 44; // Approximate for iOS
+  const { isBadWeather } = useWeatherAlert();
+  const { getCartQtyCount } = useCart();
 
   return (
     <>
-      <View style={[styles.topBar, containerStyle, { paddingTop: statusBarHeight, height: 64 + statusBarHeight }]}>
+      <View
+        style={[
+          styles.topBar,
+          containerStyle,
+          { paddingTop: statusBarHeight, height: 64 + statusBarHeight },
+        ]}
+      >
         {showBackButton && (
-          <TouchableOpacity style={styles.topIconButton} onPress={() => navigation.goBack()}>
+          <TouchableOpacity
+            style={styles.topIconButton}
+            onPress={() => navigation.goBack()}
+          >
             <ChevronLeft size={20} color="#FFFFFF" />
           </TouchableOpacity>
         )}
 
         <Text style={styles.topBarTitle}>{title}</Text>
         {showCartButton && (
-          <TouchableOpacity style={styles.topIconButton}>
+          <TouchableOpacity
+            style={styles.topIconButton}
+            onPress={() => reset('Tabs', { screen: 'Cart' })}
+          >
             <ShoppingBag size={20} color="#FFFFFF" />
             <View style={styles.badgeDot}>
-              <Text style={styles.badgeDotText}>2</Text>
+              <Text style={styles.badgeDotText}>{getCartQtyCount({})}</Text>
             </View>
           </TouchableOpacity>
         )}
@@ -36,28 +77,28 @@ const Header = ({ title, showBackButton = true, showCartButton = false, showNoti
             ) : (
               <>
                 <Bell size={20} color="#FFFFFF" />
-                <View style={{
-                  position: 'absolute',
-                  top: 10,
-                  right: 10,
-                  width: 8,
-                  height: 8,
-                  backgroundColor: colors.primary,
-                  borderRadius: 4
-                }} />
+                <View
+                  style={{
+                    position: 'absolute',
+                    top: 10,
+                    right: 10,
+                    width: 8,
+                    height: 8,
+                    backgroundColor: colors.primary,
+                    borderRadius: 4,
+                  }}
+                />
               </>
             )}
           </TouchableOpacity>
         )}
 
         {!showCartButton && !showNotificationButton ? (
-            <View style={{ height: 40, width: 40 }} />
+          <View style={{ height: 40, width: 40 }} />
         ) : null}
       </View>
       <View style={{ height: 64 }} />
-      {showNotificationButton && (
-        <WeatherAlertTooltip />
-      )}
+      {showNotificationButton && <WeatherAlertTooltip />}
     </>
   );
 };
@@ -77,7 +118,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   topBarBlur: {
-    position: "absolute",
+    position: 'absolute',
     left: 0,
     right: 0,
     top: 0,

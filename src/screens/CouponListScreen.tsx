@@ -1,5 +1,11 @@
-import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Check, Tag } from 'lucide-react-native';
@@ -10,6 +16,9 @@ import { colors, layout, typography } from '../constants/theme';
 import type { RootStackParamList } from '../types/navigation';
 import Header from '../components/Header';
 import GlassLayer from '../components/GlassLayer';
+import { useDispatch } from '../redux/store';
+import { getCoupons } from '../redux/app/appAction';
+import { ICoupon } from '../types';
 
 type CouponItem = {
   id: string;
@@ -65,9 +74,26 @@ const lockedOffers: LockedOffer[] = [
 ];
 
 const CouponListScreen = () => {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const dispatch = useDispatch();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'CouponList'>>();
   const currentCode = route.params?.currentCode;
+
+  const [couponList, setCouponList] = useState<ICoupon[]>([]);
+
+  useEffect(() => {
+    dispatch(getCoupons())
+      .unwrap()
+      .then(({ data }) => {
+        setCouponList(data);
+      })
+      .catch(error => {
+        console.error('Failed to fetch coupons:', error);
+      });
+    setCouponList(applicableCoupons);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const applyCoupon = (coupon: CouponItem) => {
     navigation.navigate('Tabs', {
@@ -94,10 +120,11 @@ const CouponListScreen = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Applicable Coupons</Text>
-          <Text style={styles.sectionMeta}>{applicableCoupons.length} Available</Text>
+          <Text style={styles.sectionMeta}>
+            {applicableCoupons.length} Available
+          </Text>
         </View>
 
         <View style={styles.couponGrid}>
@@ -110,7 +137,10 @@ const CouponListScreen = () => {
             return (
               <View
                 key={coupon.id}
-                style={[styles.couponCard, isSelected ? styles.couponCardActive : null]}
+                style={[
+                  styles.couponCard,
+                  isSelected ? styles.couponCardActive : null,
+                ]}
               >
                 <GlassLayer radius={16} />
                 <View style={styles.couponAccent} />
@@ -132,7 +162,9 @@ const CouponListScreen = () => {
                 </View>
 
                 <Text style={styles.couponTitle}>{coupon.title}</Text>
-                <Text style={styles.couponDescription}>{coupon.description}</Text>
+                <Text style={styles.couponDescription}>
+                  {coupon.description}
+                </Text>
 
                 <TouchableOpacity
                   activeOpacity={0.9}
@@ -185,7 +217,9 @@ const CouponListScreen = () => {
               <View
                 style={[
                   styles.lockedNote,
-                  offer.noteTone === 'error' ? styles.lockedNoteError : styles.lockedNoteMuted,
+                  offer.noteTone === 'error'
+                    ? styles.lockedNoteError
+                    : styles.lockedNoteMuted,
                 ]}
               >
                 <Text

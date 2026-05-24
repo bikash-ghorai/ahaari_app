@@ -218,6 +218,7 @@ const HomeScreen = () => {
 
     Geolocation.getCurrentPosition(
       position => {
+        console.log('current position', position);
         setCurrentCoords({
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
@@ -664,8 +665,6 @@ const HomeScreen = () => {
                         setIsAddressSheetOpen(false);
                         dispatch(
                           updateLocation({
-                            latitude: option?.latitude,
-                            longitude: option?.longitude,
                             address_id: option?.address_id,
                           }),
                         );

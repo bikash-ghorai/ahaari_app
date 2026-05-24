@@ -3,7 +3,6 @@ import React, { useEffect, useState } from 'react';
 import {
   Image,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -22,76 +21,13 @@ import { useDispatch } from '../redux/store';
 import { IRestaurant } from '../types';
 import { getRestaurants } from '../redux/app/appAction';
 import { Constant } from '../constants/Constant';
-
-type RestaurantCard = {
-  id: string;
-  name: string;
-  details: string;
-  rating: string;
-  image: string;
-  insight: string;
-  hasVip?: boolean;
-  crowdCount?: string;
-  leftFooterText?: string;
-};
+import { ImagePath } from '../constants/ImagePath';
 
 const cuisineChips = [
   'All Cuisines',
   'Michelin Star',
   'Artisanal Bakery',
   'Japanese Fusion',
-];
-
-const crowdAvatars = [
-  'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=80&q=60',
-  'https://images.unsplash.com/photo-1542206395-9feb3edaa68d?auto=format&fit=crop&w=80&q=60',
-];
-
-const _restaurants: RestaurantCard[] = [
-  {
-    id: 'obsidian-table',
-    name: 'The Obsidian Table',
-    details: 'Modern European  -  Artisanal Butcher  -  25-\n35 min',
-    rating: '4.9',
-    image:
-      'https://images.unsplash.com/photo-1558030006-450675393462?auto=format&fit=crop&w=1200&q=80',
-    insight: 'Recommended by locals',
-    hasVip: true,
-    crowdCount: '+12',
-  },
-  {
-    id: 'aurelian-sushi',
-    name: 'Aurelian Sushi',
-    details: 'Omakase  -  Japanese  -  15-20 min',
-    rating: '4.8',
-    image:
-      'https://images.unsplash.com/photo-1617196038435-c55b1ff64f80?auto=format&fit=crop&w=1200&q=80',
-    insight: 'Fastest in category',
-    hasVip: true,
-    crowdCount: '+8',
-  },
-  {
-    id: 'lumiere-gardens',
-    name: 'Lumiere Gardens',
-    details: 'Organic  -  Vegan Fine Dining  -  30-45 min',
-    rating: '5.0',
-    image:
-      'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&w=1200&q=80',
-    insight: 'Michelin Nominee',
-    hasVip: true,
-    crowdCount: '+24',
-  },
-  {
-    id: 'truffle-hearth',
-    name: 'Truffle & Hearth',
-    details: 'Artisan Pizza  -  Italian  -  20-30 min',
-    rating: '4.7',
-    image:
-      'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=1200&q=80',
-    insight: 'Top Rated Locally',
-    hasVip: false,
-    leftFooterText: 'New Addition',
-  },
 ];
 
 const RestaurantList = () => {
@@ -255,17 +191,23 @@ const RestaurantList = () => {
         <View style={styles.cardsList}>
           {restaurants.map(restaurant => (
             <TouchableOpacity
-              key={restaurant?.id}
+              key={restaurant?.shop_id}
               activeOpacity={0.9}
               style={styles.card}
               onPress={() =>
-                navigation.navigate('RestaurantDetails', { id: restaurant?.id })
+                navigation.navigate('RestaurantDetails', {
+                  shopId: restaurant?.shop_id,
+                })
               }
             >
               {/* Hero image area */}
               <View style={styles.cardHero}>
                 <Image
-                  source={{ uri: Constant?.ImageURL + restaurant?.image }}
+                  source={
+                    restaurant?.image
+                      ? { uri: Constant?.ImageURL + restaurant?.image }
+                      : ImagePath.noShopPlaceholder
+                  }
                   style={styles.cardImage}
                 />
                 <LinearGradient
@@ -281,12 +223,10 @@ const RestaurantList = () => {
                 <View
                   style={[
                     styles.cardTopRow,
-                    restaurant?.hasVip === false
-                      ? styles.cardTopRowNoBadge
-                      : null,
+                    restaurant?.hasVip ? null : styles.cardTopRowNoBadge,
                   ]}
                 >
-                  {restaurant?.hasVip !== false ? (
+                  {restaurant?.hasVip ? (
                     <View style={styles.vipBadge}>
                       <View style={styles.vipDot} />
                       <Text style={styles.vipText}>VIP Delivery Available</Text>
@@ -316,7 +256,7 @@ const RestaurantList = () => {
                   </View>
                 </View>
 
-                <Text style={styles.cardDetails}>{restaurant?.details}</Text>
+                <Text style={styles.cardDetails}>{restaurant?.address}</Text>
 
                 {/* <View style={styles.cardFooter}>
                   {restaurant.leftFooterText ? (

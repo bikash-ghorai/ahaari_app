@@ -1,124 +1,116 @@
-import React from 'react';
+/* eslint-disable react-native/no-inline-styles */
+import React, { useEffect, useRef, useState } from 'react';
 import {
+  Dimensions,
   Image,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { BlurView } from '@react-native-community/blur';
-import { ArrowLeft, Clock3, Heart, Minus, Plus, Search, Star } from 'lucide-react-native';
+import { Clock3, Minus, Plus, Search, Star } from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 
 import { colors, layout, typography } from '../constants/theme';
 import Header from '../components/Header';
+import { getRestaurantDetails } from '../redux/app/appAction';
+import { useDispatch } from '../redux/store';
+import { ImagePath } from '../constants/ImagePath';
+import { IProduct, IRestaurantDetails, IVariant } from '../types';
+import { Constant } from '../constants/Constant';
+import { useCart } from '../hooks';
 
-type MenuItem = {
-  id: string;
-  title: string;
-  description: string;
-  price: string;
-  calories: string;
-  image: string;
-};
+const SCREEN_HEIGHT = Dimensions.get('window').height;
+// const signatureDishes: MenuItem[] = [
+//   {
+//     id: 'truffle-zen-garden',
+//     title: 'Truffle Zen Garden',
+//     description:
+//       'Micro-greens, black truffle shavings,\nand honey balsamic glaze.',
+//     price: '$24',
+//     calories: '180 kcal',
+//     image:
+//       'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&w=320&q=80',
+//   },
+//   {
+//     id: 'midnight-wagyu',
+//     title: 'Midnight Wagyu',
+//     description: 'A5 Grade Wagyu with a charcoal-\ninfused butter reduction.',
+//     price: '$85',
+//     calories: '420 kcal',
+//     image:
+//       'https://images.unsplash.com/photo-1558030006-450675393462?auto=format&fit=crop&w=320&q=80',
+//   },
+//   {
+//     id: 'saffron-scallops',
+//     title: 'Saffron Scallops',
+//     description: 'Hand-dived scallops with a molecular\nsaffron cloud.',
+//     price: '$42',
+//     calories: '210 kcal',
+//     image:
+//       'https://images.unsplash.com/photo-1482049016688-2d3e1b311543?auto=format&fit=crop&w=320&q=80',
+//   },
+// ];
 
-type SommelierItem = {
-  id: string;
-  title: string;
-  description: string;
-  tag: string;
-  price: string;
-  image: string;
-};
+interface IProps {
+  route: {
+    params: {
+      shopId: string;
+    };
+  };
+}
 
-type PreviewItem = {
-  id: string;
-  title: string;
-  description: string;
-  price: string;
-  image: string;
-  metaLabel: string;
-  metaCaption: string;
-};
+const RestaurantDetails = (props: IProps) => {
+  const dispatch = useDispatch();
+  const shopId = props?.route?.params?.shopId || '';
 
-const categories = ['For You', 'Appetizers', 'Main Courses', "Sommelier's Choice", 'Desserts'];
+  const { getCartQtyCount, addProduct, removeProduct } = useCart();
+  const [selectedItem, setSelectedItem] = useState<IProduct | null>(null);
+  const [selectedTempVariant, setSelectedTempVariant] =
+    useState<IVariant | null>(null);
+  const sheetRef = useRef<BottomSheet>(null);
+  const scrollRef = useRef<ScrollView>(null);
+  const heroHeightRef = useRef<number>(0);
+  // const snapPoints = useMemo(() => ['48%', '72%'], []);
 
-const signatureDishes: MenuItem[] = [
-  {
-    id: 'truffle-zen-garden',
-    title: 'Truffle Zen Garden',
-    description: 'Micro-greens, black truffle shavings,\nand honey balsamic glaze.',
-    price: '$24',
-    calories: '180 kcal',
-    image:
-      'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&w=320&q=80',
-  },
-  {
-    id: 'midnight-wagyu',
-    title: 'Midnight Wagyu',
-    description: 'A5 Grade Wagyu with a charcoal-\ninfused butter reduction.',
-    price: '$85',
-    calories: '420 kcal',
-    image:
-      'https://images.unsplash.com/photo-1558030006-450675393462?auto=format&fit=crop&w=320&q=80',
-  },
-  {
-    id: 'saffron-scallops',
-    title: 'Saffron Scallops',
-    description: 'Hand-dived scallops with a molecular\nsaffron cloud.',
-    price: '$42',
-    calories: '210 kcal',
-    image:
-      'https://images.unsplash.com/photo-1482049016688-2d3e1b311543?auto=format&fit=crop&w=320&q=80',
-  },
-];
+  const [shopDetails, setShopDetails] = useState<IRestaurantDetails | null>(
+    null,
+  );
+  const [selectedCategory, setSelectedCategory] = useState<any>(null);
 
-const sommelierSelection: SommelierItem[] = [
-  {
-    id: 'vintage-bordeaux',
-    title: 'Vintage Bordeaux 2015 - Château Margaux',
-    description: 'Full-bodied with notes of dark\ncherry and aged oak.',
-    tag: 'Glass',
-    price: '$120',
-    image:
-      'https://images.unsplash.com/photo-1516594915697-87eb3b1c14ea?auto=format&fit=crop&w=320&q=80',
-  },
-  {
-    id: 'golden-hour',
-    title: 'The Golden Hour',
-    description: 'Bourbon infused with honeycomb\nand smoked rosemary.',
-    tag: 'Craft',
-    price: '$18',
-    image:
-      'https://images.unsplash.com/photo-1527281400683-1aae777175f8?auto=format&fit=crop&w=320&q=80',
-  },
-];
+  const [searchText, setSearchText] = useState<any>(null);
+  const [filteredProducts, setFilteredProducts] = useState<Array<IProduct>>([]);
 
-const RestaurantDetails = () => {
-  const [quantities, setQuantities] = React.useState<Record<string, number>>({});
-  const [selectedItem, setSelectedItem] = React.useState<PreviewItem | null>(null);
-  const sheetRef = React.useRef<BottomSheet>(null);
-  const snapPoints = React.useMemo(() => ['48%', '72%'], []);
+  useEffect(() => {
+    if (shopId) {
+      handleGetRestaurantDetails();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shopId]);
 
-  const getQty = (id: string) => quantities[id] ?? 0;
-
-  const updateQty = (id: string, delta: number) => {
-    setQuantities(prev => {
-      const nextQty = Math.max(0, (prev[id] ?? 0) + delta);
-      if (nextQty === 0) {
-        const { [id]: _, ...rest } = prev;
-        return rest;
-      }
-      return { ...prev, [id]: nextQty };
-    });
+  const handleGetRestaurantDetails = () => {
+    dispatch(getRestaurantDetails(shopId))
+      .unwrap()
+      .then(({ data }) => {
+        if (data) {
+          setShopDetails(data);
+          setSelectedCategory(data.categories[0]);
+          setFilteredProducts(data.categories[0].products);
+        }
+      })
+      .catch((error: any) => {
+        console.error('Error fetching restaurant details:', error);
+      });
   };
 
-  const openPreview = (item: PreviewItem) => {
+  const openPreview = (item: IProduct) => {
     setSelectedItem(item);
+    setSelectedTempVariant(item.variants?.[0] || null);
     sheetRef.current?.snapToIndex(0);
   };
 
@@ -126,22 +118,47 @@ const RestaurantDetails = () => {
     sheetRef.current?.close();
   };
 
-  const selectedQty = selectedItem ? getQty(selectedItem.id) : 0;
+  const handleScrollToStickyHeader = () => {
+    scrollRef.current?.scrollTo({ y: heroHeightRef.current, animated: true });
+  };
+
+  const handleSearch = (text: string, products: IProduct[]) => {
+    if (text.trim() === '') {
+      setFilteredProducts(products || []);
+    } else {
+      const filtered = products.filter((product: IProduct) =>
+        product.name.toLowerCase().includes(text.toLowerCase()),
+      );
+      setFilteredProducts(filtered || []);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
-      <Header title="Restaurant Details" showCartButton={true} containerStyle={{ paddingHorizontal: layout.screenPadding }} />
+      <Header
+        title="Restaurant Details"
+        showCartButton={true}
+        containerStyle={{ paddingHorizontal: layout.screenPadding }}
+      />
       <ScrollView
+        ref={scrollRef}
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         stickyHeaderIndices={[1]}
       >
-        <View style={styles.heroSection}>
+        <View
+          style={styles.heroSection}
+          onLayout={e => {
+            heroHeightRef.current = e.nativeEvent.layout.height;
+          }}
+        >
           <Image
-            source={{
-              uri: 'https://images.unsplash.com/photo-1543007630-9710e4a00a20?auto=format&fit=crop&w=1200&q=80',
-            }}
+            source={
+              shopDetails?.shop?.image
+                ? { uri: Constant.ImageURL + shopDetails.shop.image }
+                : ImagePath.noShopPlaceholder
+            }
             style={styles.heroImage}
           />
 
@@ -149,19 +166,28 @@ const RestaurantDetails = () => {
           <View style={styles.heroGlowSmall} />
 
           <LinearGradient
-            colors={['rgba(12, 14, 18, 0.08)', 'rgba(12, 14, 18, 0.62)', 'rgba(12, 14, 18, 0.92)']}
+            colors={[
+              'rgba(12, 14, 18, 0.08)',
+              'rgba(12, 14, 18, 0.62)',
+              'rgba(12, 14, 18, 0.92)',
+            ]}
             start={{ x: 0.5, y: 0 }}
             end={{ x: 0.5, y: 1 }}
             style={styles.heroGradient}
           />
 
           <View style={styles.heroDetails}>
-            <Text style={styles.heroKicker}>Fine Dining  -  Michelin Star</Text>
-            <Text style={styles.heroTitle}>Lumiere Noire</Text>
+            <Text style={styles.heroKicker}>{shopDetails?.shop?.address}</Text>
+            <Text style={styles.heroTitle}>{shopDetails?.shop?.name}</Text>
 
             <View style={styles.metaRow}>
               <View style={styles.ratingRow}>
-                <Star size={14} color={colors.primary} fill={colors.primary} strokeWidth={1.9} />
+                <Star
+                  size={14}
+                  color={colors.primary}
+                  fill={colors.primary}
+                  strokeWidth={1.9}
+                />
                 <Text style={styles.metaStrong}>4.9</Text>
                 <Text style={styles.metaMuted}>(2.4k reviews)</Text>
               </View>
@@ -191,34 +217,67 @@ const RestaurantDetails = () => {
               style={styles.categoryScroll}
               contentContainerStyle={styles.categoryScrollContent}
             >
-              {categories.map((category, index) => {
-                const isActive = index === 0;
+              {shopDetails?.categories && shopDetails?.categories.length > 0
+                ? shopDetails?.categories.map((category, index) => {
+                    const isActive =
+                      selectedCategory?.category_id === category?.category_id;
 
-                return (
-                  <TouchableOpacity
-                    key={category}
-                    activeOpacity={0.9}
-                    style={isActive ? styles.categoryPillActive : styles.categoryPill}
-                  >
-                    <Text
-                      style={isActive ? styles.categoryPillTextActive : styles.categoryPillText}
-                    >
-                      {category}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+                    return (
+                      <TouchableOpacity
+                        key={index}
+                        activeOpacity={0.9}
+                        style={
+                          isActive
+                            ? styles.categoryPillActive
+                            : styles.categoryPill
+                        }
+                        onPress={() => {
+                          setSelectedCategory(category);
+                          handleSearch(
+                            searchText || '',
+                            category?.products || [],
+                          );
+                          handleScrollToStickyHeader();
+                        }}
+                      >
+                        <Text
+                          style={
+                            isActive
+                              ? styles.categoryPillTextActive
+                              : styles.categoryPillText
+                          }
+                        >
+                          {category?.name}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })
+                : null}
             </ScrollView>
 
             <View style={styles.searchBar}>
-              <Search size={18} color="rgba(170, 171, 176, 0.7)" strokeWidth={2.1} />
-              <Text style={styles.searchPlaceholder}>Search through 200+ delicacies...</Text>
+              <Search
+                size={18}
+                color="rgba(170, 171, 176, 0.7)"
+                strokeWidth={2.1}
+              />
+              <TextInput
+                value={searchText}
+                onChangeText={txt => {
+                  handleSearch(txt, selectedCategory?.products || []);
+                  setSearchText(txt);
+                }}
+                onFocus={handleScrollToStickyHeader}
+                placeholder="Search through 200+ delicacies..."
+                placeholderTextColor={colors.textMuted}
+                style={[styles.inputText]}
+              />
             </View>
           </View>
         </View>
 
         <View style={styles.menuSection}>
-          <View style={styles.sectionHeader}>
+          {/* <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Signature Dishes</Text>
             <View style={styles.sectionDivider} />
           </View>
@@ -248,7 +307,9 @@ const RestaurantDetails = () => {
                 <View style={styles.menuCardLargeContent}>
                   <View style={styles.menuCardBody}>
                     <Text style={styles.itemTitle}>{item.title}</Text>
-                    <Text style={styles.itemDescription}>{item.description}</Text>
+                    <Text style={styles.itemDescription}>
+                      {item.description}
+                    </Text>
                     <View style={styles.itemBottomRow}>
                       <View>
                         <Text style={styles.itemPrice}>{item.price}</Text>
@@ -260,7 +321,11 @@ const RestaurantDetails = () => {
                           activeOpacity={0.9}
                           onPress={() => updateQty(item.id, 1)}
                         >
-                          <Plus size={12} color={colors.primary} strokeWidth={2.6} />
+                          <Plus
+                            size={12}
+                            color={colors.primary}
+                            strokeWidth={2.6}
+                          />
                         </TouchableOpacity>
                       ) : (
                         <View style={styles.qtyPill}>
@@ -269,7 +334,11 @@ const RestaurantDetails = () => {
                             activeOpacity={0.85}
                             onPress={() => updateQty(item.id, -1)}
                           >
-                            <Minus size={14} color={colors.primary} strokeWidth={2.6} />
+                            <Minus
+                              size={14}
+                              color={colors.primary}
+                              strokeWidth={2.6}
+                            />
                           </TouchableOpacity>
                           <Text style={styles.qtyText}>{getQty(item.id)}</Text>
                           <TouchableOpacity
@@ -277,7 +346,11 @@ const RestaurantDetails = () => {
                             activeOpacity={0.85}
                             onPress={() => updateQty(item.id, 1)}
                           >
-                            <Plus size={14} color={colors.primary} strokeWidth={2.6} />
+                            <Plus
+                              size={14}
+                              color={colors.primary}
+                              strokeWidth={2.6}
+                            />
                           </TouchableOpacity>
                         </View>
                       )}
@@ -286,12 +359,15 @@ const RestaurantDetails = () => {
 
                   <View style={styles.menuImageOrbWrap}>
                     <View style={styles.menuImageOrbGlow} />
-                    <Image source={{ uri: item.image }} style={styles.menuImageOrb} />
+                    <Image
+                      source={{ uri: item.image }}
+                      style={styles.menuImageOrb}
+                    />
                   </View>
                 </View>
               </TouchableOpacity>
             ))}
-          </ScrollView>
+          </ScrollView> */}
 
           <View style={styles.sectionHeaderAlt}>
             <Text style={styles.sectionTitle}>Sommelier Selection</Text>
@@ -299,68 +375,139 @@ const RestaurantDetails = () => {
           </View>
 
           <View style={styles.sommelierList}>
-            {sommelierSelection.map(item => (
-              <TouchableOpacity
-                key={item.id}
-                style={styles.menuCardSmall}
-                activeOpacity={0.92}
-                onPress={() =>
-                  openPreview({
-                    id: item.id,
-                    title: item.title,
-                    description: item.description,
-                    price: item.price,
-                    image: item.image,
-                    metaLabel: item.tag,
-                    metaCaption: 'Serve',
-                  })
-                }
-              >
-                <View style={styles.menuCardSmallContent}>
-                  <Image source={{ uri: item.image }} style={styles.menuImageSmall} />
+            {filteredProducts && filteredProducts.length > 0 ? (
+              filteredProducts.map((item, ind) => {
+                return (
+                  <TouchableOpacity
+                    key={ind}
+                    style={styles.menuCardSmall}
+                    activeOpacity={0.92}
+                    onPress={() => openPreview(item)}
+                  >
+                    <View style={styles.menuCardSmallContent}>
+                      <Image
+                        source={
+                          item?.image
+                            ? { uri: Constant.ImageURL + item.image }
+                            : ImagePath.noProductPlaceholder
+                        }
+                        style={styles.menuImageSmall}
+                      />
 
-                  <View style={styles.smallTextArea}>
-                    <View style={styles.smallTitleRow}>
-                      <Text style={styles.smallTitle} numberOfLines={2}>
-                        {item.title}
-                      </Text>
-                      <Text style={styles.smallPrice}>{item.price}</Text>
-                    </View>
-                    <Text style={styles.smallDescription}>{item.description}</Text>
-                    <View style={styles.smallBottomRow}>
-                      <Text style={styles.smallTag}>{item.tag}</Text>
-                      {getQty(item.id) === 0 ? (
-                        <TouchableOpacity
-                          style={styles.addButtonSmall}
-                          activeOpacity={0.9}
-                          onPress={() => updateQty(item.id, 1)}
-                        >
-                          <Plus size={12} color={colors.background} strokeWidth={3} />
-                        </TouchableOpacity>
-                      ) : (
-                        <View style={styles.qtyPillSmall}>
-                          <TouchableOpacity
-                            style={styles.qtyButtonSmall}
-                            activeOpacity={0.85}
-                            onPress={() => updateQty(item.id, -1)}
-                          >
-                            <Minus size={12} color={colors.primary} strokeWidth={2.6} />
-                          </TouchableOpacity>
-                          <Text style={styles.qtyTextSmall}>{getQty(item.id)}</Text>
-                          <TouchableOpacity
-                            style={styles.qtyButtonSmall}
-                            activeOpacity={0.85}
-                            onPress={() => updateQty(item.id, 1)}
-                          >
-                            <Plus size={12} color={colors.primary} strokeWidth={2.6} />
-                          </TouchableOpacity>
+                      <View style={styles.smallTextArea}>
+                        <View style={styles.smallTitleRow}>
+                          <Text style={styles.smallTitle} numberOfLines={2}>
+                            {item?.name}
+                          </Text>
+                          <Text style={styles.smallPrice}>
+                            ₹{item.variants[0]?.price}
+                          </Text>
                         </View>
-                      )}
+                        <Text style={styles.smallDescription}>
+                          {item?.description}
+                        </Text>
+                        <View style={styles.smallBottomRow}>
+                          {/* <Text style={styles.smallTag}>{item.tag}</Text> */}
+                          <View />
+                          {getCartQtyCount({ product_id: item.product_id }) >
+                          0 ? (
+                            <View style={styles.qtyPillSmall}>
+                              <TouchableOpacity
+                                style={styles.qtyButtonSmall}
+                                activeOpacity={0.85}
+                                onPress={() => {
+                                  if (item.variants.length === 1) {
+                                    removeProduct({
+                                      product_id: item.product_id,
+                                      variant_id: item.variants[0].variant_id,
+                                      shop_id: shopDetails?.shop?.shop_id || '',
+                                      quantity: 1,
+                                    });
+                                  } else {
+                                    openPreview(item);
+                                  }
+                                }}
+                              >
+                                <Minus
+                                  size={12}
+                                  color={colors.primary}
+                                  strokeWidth={2.6}
+                                />
+                              </TouchableOpacity>
+                              <Text style={styles.qtyTextSmall}>
+                                {getCartQtyCount({
+                                  product_id: item.product_id,
+                                })}
+                              </Text>
+                              <TouchableOpacity
+                                style={styles.qtyButtonSmall}
+                                activeOpacity={0.85}
+                                onPress={() => {
+                                  if (item.variants.length === 1) {
+                                    addProduct({
+                                      product_id: item.product_id,
+                                      variant_id: item.variants[0].variant_id,
+                                      shop_id: shopDetails?.shop?.shop_id || '',
+                                      quantity: 1,
+                                    });
+                                  } else {
+                                    openPreview(item);
+                                  }
+                                }}
+                              >
+                                <Plus
+                                  size={12}
+                                  color={colors.primary}
+                                  strokeWidth={2.6}
+                                />
+                              </TouchableOpacity>
+                            </View>
+                          ) : (
+                            <TouchableOpacity
+                              style={styles.addButtonSmall}
+                              activeOpacity={0.9}
+                              onPress={() => {
+                                if (item.variants.length === 1) {
+                                  addProduct({
+                                    product_id: item.product_id,
+                                    variant_id: item.variants[0].variant_id,
+                                    shop_id: shopDetails?.shop?.shop_id || '',
+                                    quantity: 1,
+                                  });
+                                } else {
+                                  openPreview(item);
+                                }
+                              }}
+                            >
+                              <Plus
+                                size={12}
+                                color={colors.background}
+                                strokeWidth={3}
+                              />
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      </View>
                     </View>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            ))}
+                  </TouchableOpacity>
+                );
+              })
+            ) : (
+              <View style={{ padding: 24, alignItems: 'center' }}>
+                <Text
+                  style={{ color: colors.textMuted, fontSize: typography.body }}
+                >
+                  No products found matching "{searchText}"
+                </Text>
+              </View>
+            )}
+            {filteredProducts.length < 3 && (
+              <View
+                style={{
+                  height: SCREEN_HEIGHT * 0.15 * (3 - filteredProducts.length),
+                }}
+              />
+            )}
           </View>
         </View>
       </ScrollView>
@@ -368,25 +515,41 @@ const RestaurantDetails = () => {
       <BottomSheet
         ref={sheetRef}
         index={-1}
-        snapPoints={snapPoints}
+        // snapPoints={snapPoints}
         enablePanDownToClose={true}
         backgroundStyle={styles.sheetBackground}
         handleIndicatorStyle={styles.sheetHandle}
-        onClose={() => setSelectedItem(null)}
+        onClose={() => {
+          setSelectedItem(null);
+          setSelectedTempVariant(null);
+        }}
       >
         <BlurView
-            pointerEvents="none"
-            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: 10 }}
-            blurType="dark"
-            blurAmount={24}
-            reducedTransparencyFallbackColor="rgba(18, 20, 24, 0.22)"
-          />
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            borderRadius: 10,
+          }}
+          blurType="dark"
+          blurAmount={24}
+          reducedTransparencyFallbackColor="rgba(18, 20, 24, 0.22)"
+        />
         <BottomSheetView style={styles.sheetContent}>
-          
           {selectedItem ? (
             <>
               <View style={styles.sheetImageWrap}>
-                <Image source={{ uri: selectedItem.image }} style={styles.sheetImage} />
+                <Image
+                  source={
+                    selectedItem?.image
+                      ? { uri: Constant?.ImageURL + selectedItem.image }
+                      : ImagePath.noProductPlaceholder
+                  }
+                  style={styles.sheetImage}
+                />
                 <LinearGradient
                   colors={['rgba(12, 14, 18, 0.1)', 'rgba(12, 14, 18, 0.6)']}
                   start={{ x: 0.5, y: 0 }}
@@ -397,23 +560,135 @@ const RestaurantDetails = () => {
 
               <View style={styles.sheetBody}>
                 <View style={styles.sheetTitleRow}>
-                  <Text style={styles.sheetTitle}>{selectedItem.title}</Text>
-                  <Text style={styles.sheetPrice}>{selectedItem.price}</Text>
+                  <Text style={styles.sheetTitle}>{selectedItem?.name}</Text>
+                  {selectedItem?.variants &&
+                    selectedItem.variants.length === 1 && (
+                      <Text style={styles.sheetPrice}>
+                        ₹{selectedItem.variants[0].price}
+                      </Text>
+                    )}
                 </View>
-                <Text style={styles.sheetDescription}>{selectedItem.description}</Text>
+                <Text style={styles.sheetDescription}>
+                  {selectedItem?.description}
+                </Text>
 
-                <View style={styles.sheetMetaRow}>
+                {/* <View style={styles.sheetMetaRow}>
                   <View style={styles.sheetMetaPill}>
-                    <Text style={styles.sheetMetaText}>{selectedItem.metaLabel}</Text>
+                    <Text style={styles.sheetMetaText}>
+                      {selectedItem?.metaLabel}
+                    </Text>
                   </View>
-                </View>
+                </View> */}
+
+                {selectedItem?.variants && selectedItem.variants.length > 1 && (
+                  <View style={styles.variantsSection}>
+                    <View style={styles.variantsList}>
+                      {selectedItem.variants.map((variant, index) => {
+                        const isSelected =
+                          selectedTempVariant?.variant_id ===
+                          variant.variant_id;
+
+                        return (
+                          <TouchableOpacity
+                            key={index}
+                            style={styles.variantItem}
+                            activeOpacity={0.7}
+                            onPress={() => setSelectedTempVariant(variant)}
+                          >
+                            <View style={styles.variantRadio}>
+                              <View
+                                style={[
+                                  styles.radioOuter,
+                                  isSelected && styles.radioOuterActive,
+                                ]}
+                              >
+                                {isSelected && (
+                                  <View style={styles.radioInner} />
+                                )}
+                              </View>
+                            </View>
+
+                            <View style={styles.variantTextContent}>
+                              <Text style={styles.variantName}>
+                                {variant.name}
+                              </Text>
+                            </View>
+
+                            <Text style={styles.variantItemPrice}>
+                              ₹{variant.price}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+                )}
 
                 <View style={styles.sheetActions}>
-                  {selectedQty === 0 ? (
+                  {getCartQtyCount({
+                    product_id: selectedItem.product_id,
+                    variant_id: selectedTempVariant?.variant_id,
+                  }) > 0 ? (
+                    <View style={styles.sheetQtyPill}>
+                      <TouchableOpacity
+                        style={styles.sheetQtyButton}
+                        activeOpacity={0.85}
+                        onPress={() =>
+                          removeProduct({
+                            product_id: selectedItem.product_id,
+                            variant_id: selectedTempVariant?.variant_id || '',
+                            shop_id: shopDetails?.shop?.shop_id || '',
+                            quantity: 1,
+                          }).then(res => {
+                            console.log('clg', res);
+                          })
+                        }
+                      >
+                        <Minus
+                          size={16}
+                          color={colors.primary}
+                          strokeWidth={2.6}
+                        />
+                      </TouchableOpacity>
+                      <Text style={styles.sheetQtyText}>
+                        {getCartQtyCount({
+                          product_id: selectedItem.product_id,
+                          variant_id: selectedTempVariant?.variant_id,
+                        })}
+                      </Text>
+                      <TouchableOpacity
+                        style={styles.sheetQtyButton}
+                        activeOpacity={0.85}
+                        onPress={() =>
+                          addProduct({
+                            product_id: selectedItem.product_id,
+                            variant_id: selectedTempVariant?.variant_id || '',
+                            shop_id: shopDetails?.shop?.shop_id || '',
+                            quantity: 1,
+                          }).then(res => {
+                            console.log('clg', res);
+                          })
+                        }
+                      >
+                        <Plus
+                          size={16}
+                          color={colors.primary}
+                          strokeWidth={2.6}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
                     <TouchableOpacity
                       style={styles.sheetAddButton}
                       activeOpacity={0.9}
-                      onPress={() => updateQty(selectedItem.id, 1)}
+                      onPress={() =>
+                        addProduct({
+                          product_id: selectedItem.product_id,
+                          variant_id: selectedTempVariant?.variant_id || '',
+                          shop_id: shopDetails?.shop?.shop_id || '',
+                          quantity: 1,
+                        })
+                      }
                     >
                       <LinearGradient
                         colors={[colors.primary, '#FFC94D']}
@@ -421,31 +696,23 @@ const RestaurantDetails = () => {
                         end={{ x: 0.65, y: 0 }}
                         style={styles.sheetAddGradient}
                       >
-                        <Plus size={16} color={colors.onPrimaryDeep} strokeWidth={2.6} />
-                        <Text style={styles.sheetAddText}>Add to cart</Text>
+                        <Plus
+                          size={16}
+                          color={colors.onPrimaryDeep}
+                          strokeWidth={2.6}
+                        />
+                        <Text style={styles.sheetAddText}>
+                          Add to cart ₹{selectedTempVariant?.price || 0}
+                        </Text>
                       </LinearGradient>
                     </TouchableOpacity>
-                  ) : (
-                    <View style={styles.sheetQtyPill}>
-                      <TouchableOpacity
-                        style={styles.sheetQtyButton}
-                        activeOpacity={0.85}
-                        onPress={() => updateQty(selectedItem.id, -1)}
-                      >
-                        <Minus size={16} color={colors.primary} strokeWidth={2.6} />
-                      </TouchableOpacity>
-                      <Text style={styles.sheetQtyText}>{selectedQty}</Text>
-                      <TouchableOpacity
-                        style={styles.sheetQtyButton}
-                        activeOpacity={0.85}
-                        onPress={() => updateQty(selectedItem.id, 1)}
-                      >
-                        <Plus size={16} color={colors.primary} strokeWidth={2.6} />
-                      </TouchableOpacity>
-                    </View>
                   )}
 
-                  <TouchableOpacity style={styles.sheetCloseButton} activeOpacity={0.9} onPress={closePreview}>
+                  <TouchableOpacity
+                    style={styles.sheetCloseButton}
+                    activeOpacity={0.9}
+                    onPress={closePreview}
+                  >
                     <Text style={styles.sheetCloseText}>Close</Text>
                   </TouchableOpacity>
                 </View>
@@ -642,6 +909,14 @@ const styles = StyleSheet.create({
     color: 'rgba(170, 171, 176, 0.5)',
     fontSize: typography.body,
     fontWeight: '400',
+  },
+  inputText: {
+    flex: 1,
+    color: colors.textSecondary,
+    fontFamily: 'Plus Jakarta Sans',
+    fontSize: typography.body,
+    lineHeight: 18,
+    fontWeight: '500',
   },
   menuSection: {
     paddingTop: 16,
@@ -847,7 +1122,7 @@ const styles = StyleSheet.create({
     lineHeight: 19.5,
   },
   smallBottomRow: {
-    marginTop: 4,
+    marginTop: 10,
     height: 28,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -989,6 +1264,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    marginBottom: 10,
   },
   sheetAddButton: {
     flex: 1,
@@ -1049,6 +1325,79 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontSize: typography.bodyPlus,
     fontWeight: '700',
+  },
+  variantsSection: {
+    marginTop: 20,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  variantsLabel: {
+    color: colors.textPrimary,
+    fontSize: typography.lg,
+    fontWeight: '700',
+    lineHeight: 28,
+    marginBottom: 6,
+  },
+  variantsSubtitle: {
+    color: colors.textMuted,
+    fontSize: typography.sm,
+    fontWeight: '500',
+    lineHeight: 19.5,
+    marginBottom: 16,
+  },
+  variantsList: {
+    gap: 12,
+  },
+  variantItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    gap: 12,
+  },
+  variantRadio: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radioOuter: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radioOuterActive: {
+    borderColor: colors.primary,
+  },
+  radioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.primary,
+  },
+  variantTextContent: {
+    flex: 1,
+  },
+  variantName: {
+    color: colors.textPrimary,
+    fontSize: typography.body,
+    fontWeight: '600',
+    lineHeight: 20,
+  },
+  variantItemPrice: {
+    color: colors.primary,
+    fontSize: typography.body,
+    fontWeight: '700',
+    lineHeight: 20,
   },
 });
 

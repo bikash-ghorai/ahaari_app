@@ -1,18 +1,14 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  Platform,
   ScrollView,
-  StyleProp,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  ViewStyle,
 } from 'react-native';
-import { BlurView } from '@react-native-community/blur';
-import { useNavigation } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Briefcase, Check, House, Plus, Users } from 'lucide-react-native';
+import { Briefcase, Check, House, MapPin, Plus } from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -20,6 +16,11 @@ import { colors, layout, typography } from '../constants/theme';
 import type { RootStackParamList } from '../types/navigation';
 import Header from '../components/Header';
 import GlassLayer from '../components/GlassLayer';
+import { useDispatch } from '../redux/store';
+import { getAddressList, setDefaultAddress } from '../redux/user/userAction';
+import { IAddress } from '../types';
+import { showToaster } from '../utils/toaster';
+import { goBack } from '../utils/navigationRef';
 
 const palette = {
   page: colors.background,
@@ -35,52 +36,86 @@ const palette = {
   iconMuted: '#BCC0C8',
 };
 
-type AddressTag = 'Home' | 'Office' | "Parents' House";
-type AddressIconType = 'home' | 'office' | 'parents';
-
-type AddressItem = {
-  id: string;
-  tag: AddressTag;
-  address: string;
-  icon: AddressIconType;
-};
-
-const addresses: AddressItem[] = [
-  {
-    id: 'home',
-    tag: 'Home',
-    address: '2468 Amber Crescent, Sunset Valley,\nSan Francisco, CA 94103',
-    icon: 'home',
-  },
-  {
-    id: 'work',
-    tag: 'Office',
-    address: 'Radiant Heights Tech Tower, Suite 402,\nMarket Street, SF 94105',
-    icon: 'office',
-  },
-  {
-    id: 'parents',
-    tag: "Parents' House",
-    address: '15 Nocturne Lane, Golden Hill,\nOakland, CA 94611',
-    icon: 'parents',
-  },
-];
+type AddressIconType = 'home' | 'office' | 'other';
 
 const AddressIcon = ({ type }: { type: AddressIconType }) => {
   if (type === 'home') {
-    return <House size={30} color={palette.amber} strokeWidth={2.6} fill={palette.amber} />;
+    return (
+      <House
+        size={30}
+        color={palette.amber}
+        strokeWidth={2.6}
+        fill={palette.amber}
+      />
+    );
   }
 
   if (type === 'office') {
-    return <Briefcase size={30} color={palette.amber} strokeWidth={2.5} fill={palette.amber} />;
+    return (
+      <Briefcase
+        size={30}
+        color={palette.amber}
+        strokeWidth={2.5}
+        fill={palette.amber}
+      />
+    );
   }
 
-  return <Users size={30} color={palette.amber} strokeWidth={2.4} />;
+  return (
+    <MapPin
+      size={30}
+      color={palette.amber}
+      strokeWidth={2.5}
+      fill={palette.amber}
+    />
+  );
 };
 
 const SelectAddressScreen = () => {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const [selectedId, setSelectedId] = useState(addresses[0]?.id ?? '');
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const isFocused = useIsFocused();
+  const dispatch = useDispatch();
+  const [selectedId, setSelectedId] = useState('');
+
+  const [addresses, setAddresses] = useState<IAddress[]>([]);
+
+  useEffect(() => {
+    if (isFocused) {
+      // Simulate fetching addresses from an API or local storage
+      dispatch(getAddressList())
+        .unwrap()
+        .then(({ data }) => {
+          setAddresses(data);
+          let defaultAddress = data.find(
+            (address: IAddress) => address.is_default === 1,
+          );
+          if (defaultAddress) {
+            setSelectedId(defaultAddress.address_id);
+          }
+        })
+        .catch(() => {
+          // In case of an error, we can set some default addresses or show an error message
+          setAddresses(addresses); // Using the hardcoded addresses as fallback
+        });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isFocused]);
+
+  const handleContinue = () => {
+    if (selectedId) {
+      dispatch(setDefaultAddress({ address_id: selectedId }))
+        .unwrap()
+        .then(() => {
+          goBack();
+        })
+        .catch(() => {
+          showToaster('Failed to set default address. Please try again.');
+        });
+    } else {
+      showToaster('Please select an address to continue');
+    }
+  };
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
@@ -114,15 +149,18 @@ const SelectAddressScreen = () => {
         </TouchableOpacity>
 
         <View style={styles.addressList}>
-          {addresses.map(item => {
-            const isSelected = item.id === selectedId;
+          {addresses.map((item, ind) => {
+            const isSelected = item?.address_id === selectedId;
 
             return (
               <TouchableOpacity
-                key={item.id}
+                key={ind}
                 activeOpacity={0.92}
-                style={[styles.addressCard, isSelected ? styles.addressCardActive : null]}
-                onPress={() => setSelectedId(item.id)}
+                style={[
+                  styles.addressCard,
+                  isSelected ? styles.addressCardActive : null,
+                ]}
+                onPress={() => setSelectedId(item?.address_id)}
               >
                 <GlassLayer radius={16} />
 
@@ -136,13 +174,24 @@ const SelectAddressScreen = () => {
                 <View style={styles.addressContentRow}>
                   <View style={styles.cardIconWrap}>
                     <View style={styles.cardIconBg}>
-                      <AddressIcon type={item.icon} />
+                      {item.type === 'Home' ? (
+                        <AddressIcon type="home" />
+                      ) : item.type === 'Work' ? (
+                        <AddressIcon type="office" />
+                      ) : (
+                        <AddressIcon type="other" />
+                      )}
                     </View>
                   </View>
 
                   <View style={styles.addressTextWrap}>
-                    <Text style={styles.addressTag}>{item.tag}</Text>
-                    <Text style={styles.addressLine}>{item.address}</Text>
+                    <Text style={styles.addressTag}>{item.type}</Text>
+                    <Text style={styles.addressLine}>
+                      {item?.address +
+                        ', ' +
+                        (item?.landmark ? item?.landmark + ', ' : '') +
+                        item?.pincode}
+                    </Text>
                   </View>
                 </View>
               </TouchableOpacity>
@@ -153,7 +202,7 @@ const SelectAddressScreen = () => {
         <TouchableOpacity
           activeOpacity={0.95}
           style={styles.continueButton}
-          onPress={() => navigation.goBack()}
+          onPress={handleContinue}
         >
           <LinearGradient
             colors={[palette.amber, palette.amberStrong]}
@@ -186,7 +235,6 @@ const styles = StyleSheet.create({
   },
   addressCard: {
     width: 342,
-    minHeight: 150.25,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: palette.cardBorder,
