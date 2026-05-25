@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import { BlurView } from '@react-native-community/blur';
-import { useIsFocused, useNavigation } from '@react-navigation/native';
+import { useIsFocused } from '@react-navigation/native';
 import {
   ArrowRight,
   AlertTriangle,
@@ -32,119 +32,73 @@ import { colors, layout, typography } from '../constants/theme';
 import GlassLayer from '../components/GlassLayer';
 import { useWeatherAlert } from '../contexts/WeatherAlertContext';
 import { useCart } from '../hooks';
-import { useDispatch } from '../redux/store';
-import { addCartItem } from '../redux/app/appAction';
-import { ICartItemRes } from '../types';
+import { useDispatch, useSelector } from '../redux/store';
+import {
+  addCartItem,
+  checkoutCart,
+  removeCoupon,
+} from '../redux/app/appAction';
+import { ICartItemRes, IPaymentMethod } from '../types';
 import { ImagePath } from '../constants/ImagePath';
 import { Constant } from '../constants/Constant';
-
-// type RecommendedItem = {
-//   id: string;
-//   name: string;
-//   price: number;
-//   image: string;
-// };
-
-// const recommendedItems: RecommendedItem[] = [
-//   {
-//     id: 'garlic-bread',
-//     name: 'Garlic Bread',
-//     price: 4.5,
-//     image:
-//       'https://images.unsplash.com/photo-1608198093002-ad4e005484ec?auto=format&fit=crop&w=400&q=80',
-//   },
-//   {
-//     id: 'soft-drink',
-//     name: 'Soft Drink',
-//     price: 2,
-//     image:
-//       'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=400&q=80',
-//   },
-//   {
-//     id: 'donut',
-//     name: 'Donut',
-//     price: 3.5,
-//     image:
-//       'https://images.unsplash.com/photo-1551024601-bec78aea704b?auto=format&fit=crop&w=400&q=80',
-//   },
-// ];
-
-const initialPromoCode = 'AMBER20';
-const initialPromoDiscount = 3.7;
+import { navigate } from '../utils/navigationRef';
+import RazorpayCheckout from 'react-native-razorpay';
+import { showToaster } from '../utils/toaster';
 
 const CartScreen = () => {
   const { cartValue, addProduct, removeProduct, getCartQtyCount } = useCart();
   const dispatch = useDispatch();
   const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
-  const navigation = useNavigation<any>();
+  const { userData } = useSelector(state => state.user);
 
   const isNonEmptyCart =
     cartValue && cartValue?.products && cartValue?.products.length > 0;
 
   const [vipEnabled, setVipEnabled] = useState(true);
-  const [paymentMethod, setPaymentMethod] = useState<'online' | 'cod'>(
-    'online',
-  );
-  const [promoAppliedCode, setPromoAppliedCode] = useState(initialPromoCode);
-  const [promoDiscount, setPromoDiscount] = useState(initialPromoDiscount);
-  const [isPromoApplied, setIsPromoApplied] = useState(true);
+  const [paymentMethod, setPaymentMethod] = useState<IPaymentMethod | ''>('');
   const { isBadWeather } = useWeatherAlert();
 
   const [originalCartValue, setOriginalCartValue] =
     useState<ICartItemRes | null>(null);
 
-  console.log('isNonEmptyCart', isNonEmptyCart);
-
-  // const freeDeliveryTarget = 25;
-  // const remainingForFreeDelivery = 20;
-  // const freeDeliveryProgress = 90;
-
   const handleRemovePromo = () => {
-    setIsPromoApplied(false);
-    setPromoAppliedCode('');
-    setPromoDiscount(0);
+    dispatch(removeCoupon())
+      .unwrap()
+      .then(() => {
+        fetchCartDetails();
+      });
   };
 
   const handleViewAllCoupons = () => {
-    navigation.navigate('CouponList', {
-      currentCode: isPromoApplied ? promoAppliedCode : undefined,
-    });
+    navigate('CouponList');
   };
-
-  // useEffect(() => {
-  //   const applied = route.params?.appliedCoupon;
-  //   if (!applied) {
-  //     return;
-  //   }
-
-  //   setPromoAppliedCode(applied.code);
-  //   setPromoDiscount(applied.discount);
-  //   setIsPromoApplied(true);
-  //   navigation.setParams({ appliedCoupon: undefined });
-  // }, [route.params?.appliedCoupon, navigation]);
 
   useEffect(() => {
     if (cartValue && isFocused && isNonEmptyCart) {
-      dispatch(addCartItem(cartValue))
-        .unwrap()
-        .then(({ data }) => {
-          console.log('data', data);
-          setOriginalCartValue(data);
-          setPaymentMethod(
-            data.payment_method.cod.is_selected
-              ? 'cod'
-              : data.payment_method.online.available
-              ? 'online'
-              : 'cod',
-          );
-        })
-        .catch(error => {
-          console.error('Error adding cart item:', error);
-        });
+      fetchCartDetails();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cartValue, isFocused, isNonEmptyCart]);
+
+  const fetchCartDetails = () => {
+    dispatch(addCartItem(cartValue))
+      .unwrap()
+      .then(({ data }) => {
+        console.log('data', data);
+        setOriginalCartValue(data);
+        setPaymentMethod(
+          data.payment_method.cod.is_selected
+            ? 'COD'
+            : data.payment_method.online.is_selected
+            ? 'Online'
+            : '',
+        );
+      })
+      .catch(error => {
+        console.error('Error adding cart item:', error);
+      });
+  };
 
   const totalAmount = useMemo(() => {
     if (originalCartValue) {
@@ -154,7 +108,7 @@ const CartScreen = () => {
         originalCartValue.tax;
       const vipCharge = vipEnabled ? originalCartValue.vip_charge : 0;
       const paymentCharge =
-        paymentMethod === 'cod'
+        paymentMethod === 'COD'
           ? originalCartValue.payment_method.cod.charge
           : originalCartValue.payment_method.online.charge;
       const extraCharges = originalCartValue.extra_charges.reduce(
@@ -179,6 +133,101 @@ const CartScreen = () => {
       return 0;
     }
   }, [originalCartValue, vipEnabled, paymentMethod]);
+
+  const handleCheckout = () => {
+    if (!originalCartValue?.address) {
+      return showToaster(
+        'Please select a delivery address before proceeding to checkout.',
+      );
+    }
+    if (!paymentMethod) {
+      return showToaster(
+        'Please select a payment method before proceeding to checkout.',
+      );
+    }
+    dispatch(
+      checkoutCart({
+        is_vip: vipEnabled,
+        payment_method: paymentMethod,
+        tips: 0,
+      }),
+    )
+      .unwrap()
+      .then(({ data }) => {
+        console.log('data', data);
+        if (data && data?.payment_type === 'COD') {
+          navigate('OrderConfirmed', {
+            orderId: 'LE-88291',
+            etaMinutes: 25,
+            itemName: 'Truffle Pasta',
+            chefName: 'Chef Antonio',
+          });
+        } else {
+          if (data?.gateway_info?.key) {
+            var options = {
+              description: data?.order_id,
+              // image: ,
+              currency: 'INR',
+              key: data?.gateway_info?.key,
+              amount: data?.gateway_info?.amount,
+              name: 'Ahaari',
+              order_id: data?.gateway_info?.order_id,
+              prefill: {
+                email: userData?.first_name,
+                contact: userData?.phone,
+                name: userData?.first_name + ' ' + userData?.last_name,
+              },
+              theme: {
+                color: colors.primary,
+                hide_topbar: true,
+                backdrop_color: '#000',
+              },
+              modal: {
+                escape: false,
+                confirm_close: true,
+              },
+              hidden: {
+                email: true,
+                contact: true,
+              },
+              readonly: {
+                contact: true,
+                email: true,
+                name: true,
+              },
+            };
+            paynow(options);
+          } else {
+            navigate('OrderFailed', {
+              message: 'Something went wrong!',
+            });
+          }
+        }
+      })
+      .catch(() => {
+        navigate('OrderFailed');
+      });
+  };
+
+  const paynow = (options: any) => {
+    RazorpayCheckout.open(options)
+      .then(data => {
+        console.log('payment success', data);
+        navigate('OrderConfirmed', {
+          orderId: 'LE-88291',
+          etaMinutes: 25,
+          itemName: 'Truffle Pasta',
+          chefName: 'Chef Antonio',
+        });
+      })
+      .catch(error => {
+        console.log('error', error);
+
+        navigate('OrderFailed', {
+          message: error?.error?.description,
+        });
+      });
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -235,7 +284,7 @@ const CartScreen = () => {
               overflow: 'hidden',
             }}
             activeOpacity={0.9}
-            onPress={() => navigation.navigate('Search')}
+            onPress={() => navigate('Search')}
           >
             <GlassLayer radius={20} tint="rgba(18, 20, 24, 0.24)" />
             <Search size={20} color="#FFFFFF" />
@@ -297,7 +346,7 @@ const CartScreen = () => {
               <TouchableOpacity
                 style={styles.changeAddressButton}
                 activeOpacity={0.88}
-                onPress={() => navigation.navigate('SelectAddress')}
+                onPress={() => navigate('SelectAddress')}
               >
                 <Text style={styles.changeAddressButtonText}>Change</Text>
               </TouchableOpacity>
@@ -328,7 +377,7 @@ const CartScreen = () => {
                   </View>
                   {originalCartValue?.coupon?.applied ? (
                     <Text style={styles.promoSavingsText}>
-                      You saved $
+                      You saved ₹
                       {originalCartValue?.coupon?.discount
                         ? originalCartValue?.coupon?.discount.toFixed(2)
                         : 0}
@@ -368,8 +417,8 @@ const CartScreen = () => {
                   <View key={index} style={styles.itemCard}>
                     <Image
                       source={
-                        item?.picture
-                          ? { uri: Constant.ImageURL + item.picture }
+                        item?.image
+                          ? { uri: Constant.ImageURL + item.image }
                           : ImagePath.noProductPlaceholder
                       }
                       style={styles.itemImage}
@@ -526,18 +575,18 @@ const CartScreen = () => {
                   <Pressable
                     style={[
                       styles.paymentCard,
-                      paymentMethod === 'online'
+                      paymentMethod === 'Online'
                         ? styles.paymentCardActive
                         : null,
                     ]}
-                    onPress={() => setPaymentMethod('online')}
+                    onPress={() => setPaymentMethod('Online')}
                   >
                     <View style={styles.paymentCardTopRow}>
                       <View style={styles.paymentIconRow}>
                         <CreditCard
                           size={18}
                           color={
-                            paymentMethod === 'online'
+                            paymentMethod === 'Online'
                               ? colors.primary
                               : '#B4BBC7'
                           }
@@ -547,12 +596,12 @@ const CartScreen = () => {
                       <View
                         style={[
                           styles.radioOuter,
-                          paymentMethod === 'online'
+                          paymentMethod === 'Online'
                             ? styles.radioOuterActive
                             : null,
                         ]}
                       >
-                        {paymentMethod === 'online' ? (
+                        {paymentMethod === 'Online' ? (
                           <View style={styles.radioInner} />
                         ) : null}
                       </View>
@@ -573,27 +622,27 @@ const CartScreen = () => {
                   <Pressable
                     style={[
                       styles.paymentCard,
-                      paymentMethod === 'cod' ? styles.paymentCardActive : null,
+                      paymentMethod === 'COD' ? styles.paymentCardActive : null,
                     ]}
-                    onPress={() => setPaymentMethod('cod')}
+                    onPress={() => setPaymentMethod('COD')}
                   >
                     <View style={styles.paymentCardTopRow}>
                       <Wallet
                         size={18}
                         color={
-                          paymentMethod === 'cod' ? colors.primary : '#B4BBC7'
+                          paymentMethod === 'COD' ? colors.primary : '#B4BBC7'
                         }
                         strokeWidth={2.2}
                       />
                       <View
                         style={[
                           styles.radioOuter,
-                          paymentMethod === 'cod'
+                          paymentMethod === 'COD'
                             ? styles.radioOuterActive
                             : null,
                         ]}
                       >
-                        {paymentMethod === 'cod' ? (
+                        {paymentMethod === 'COD' ? (
                           <View style={styles.radioInner} />
                         ) : null}
                       </View>
@@ -643,7 +692,7 @@ const CartScreen = () => {
                 </View>
               ) : null}
 
-              {paymentMethod === 'cod' &&
+              {paymentMethod === 'COD' &&
               originalCartValue?.payment_method?.cod &&
               originalCartValue?.payment_method?.cod?.charge > 0 ? (
                 <View style={styles.breakdownRow}>
@@ -653,7 +702,7 @@ const CartScreen = () => {
                   </Text>
                 </View>
               ) : null}
-              {paymentMethod === 'online' &&
+              {paymentMethod === 'Online' &&
               originalCartValue?.payment_method?.online &&
               originalCartValue?.payment_method?.online?.charge > 0 ? (
                 <View style={styles.breakdownRow}>
@@ -678,16 +727,16 @@ const CartScreen = () => {
                 </View>
               ))}
 
-              {/* {isPromoApplied ? (
-            <View style={styles.breakdownRow}>
-              <Text style={styles.breakdownDiscountLabel}>
-                Coupon Discount ({promoAppliedCode})
-              </Text>
-              <Text style={styles.breakdownDiscountValue}>
-                -${promoDiscount.toFixed(2)}
-              </Text>
-            </View>
-          ) : null} */}
+              {originalCartValue?.coupon?.applied ? (
+                <View style={styles.breakdownRow}>
+                  <Text style={styles.breakdownDiscountLabel}>
+                    Coupon Discount ({originalCartValue?.coupon?.code})
+                  </Text>
+                  <Text style={styles.breakdownDiscountValue}>
+                    -₹{originalCartValue?.coupon?.discount.toFixed(2)}
+                  </Text>
+                </View>
+              ) : null}
 
               <View style={styles.breakdownDivider} />
 
@@ -755,16 +804,7 @@ const CartScreen = () => {
               <TouchableOpacity
                 style={styles.checkoutButton}
                 activeOpacity={0.92}
-                onPress={
-                  () =>
-                    navigation.navigate('OrderConfirmed', {
-                      orderId: 'LE-88291',
-                      etaMinutes: 25,
-                      itemName: 'Truffle Pasta',
-                      chefName: 'Chef Antonio',
-                    })
-                  // navigation.navigate('OrderFailed')
-                }
+                onPress={handleCheckout}
               >
                 <Text style={styles.checkoutButtonText}>
                   Proceed to Checkout
@@ -823,7 +863,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.03)',
     paddingHorizontal: layout.screenPadding,
     paddingVertical: 24,
-    minHeight: 196,
     overflow: 'hidden',
   },
   premiumChip: {

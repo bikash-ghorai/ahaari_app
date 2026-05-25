@@ -204,7 +204,6 @@ const useCart = () => {
     variant_id?: string;
   }) => {
     try {
-      console.log('cartValue', cartValue);
       if (!cartValue) {
         return 0;
       }
@@ -217,8 +216,6 @@ const useCart = () => {
         filtered_products.forEach((product: any) => {
           quantity_count += product.quantity;
         });
-        console.log('filtered_products', filtered_products);
-        console.log('quantity_count', quantity_count);
         return quantity_count;
       }
 

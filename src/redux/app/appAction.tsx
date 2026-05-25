@@ -3,7 +3,11 @@ import axios from '../../utils/axios';
 import {
   ICartItemReq,
   ICartItemRes,
+  ICheckoutReq,
+  ICheckoutRes,
   ICoupon,
+  IOrderDetails,
+  IOrderListRes,
   IRestaurant,
   IRestaurantDetails,
 } from '../../types';
@@ -67,7 +71,7 @@ export const getCoupons = createAsyncThunk(
 //For applying coupon
 export const applyCoupon = createAsyncThunk(
   'app/applyCoupon',
-  async (params: any, thunkAPI) => {
+  async (params: { coupon_id: string }, thunkAPI) => {
     try {
       const { data, message }: { data: Array<ICoupon>; message: string } =
         await axios.post('user/apply-coupon', params);
@@ -81,10 +85,52 @@ export const applyCoupon = createAsyncThunk(
 //For removing coupon
 export const removeCoupon = createAsyncThunk(
   'app/removeCoupon',
-  async (params: any, thunkAPI) => {
+  async (_, thunkAPI) => {
     try {
       const { data, message }: { data: Array<ICoupon>; message: string } =
-        await axios.post('user/remove-coupon', params);
+        await axios.get('user/remove-coupon');
+      return { data, message };
+    } catch (error: any) {
+      return thunkAPI.rejectWithValue(error);
+    }
+  },
+);
+
+//For checkout
+export const checkoutCart = createAsyncThunk(
+  'app/checkoutCart',
+  async (params: ICheckoutReq, thunkAPI) => {
+    try {
+      const { data, message }: { data: ICheckoutRes; message: string } =
+        await axios.post('user/checkout', params);
+      return { data, message };
+    } catch (error: any) {
+      return thunkAPI.rejectWithValue(error);
+    }
+  },
+);
+
+//For getting orders
+export const getOrders = createAsyncThunk(
+  'app/getOrders',
+  async (_, thunkAPI) => {
+    try {
+      const { data, message }: { data: IOrderListRes; message: string } =
+        await axios.get('user/orders');
+      return { data, message };
+    } catch (error: any) {
+      return thunkAPI.rejectWithValue(error);
+    }
+  },
+);
+
+//For getting order details
+export const getOrderDetails = createAsyncThunk(
+  'app/getOrderDetails',
+  async (orderId: string, thunkAPI) => {
+    try {
+      const { data, message }: { data: IOrderDetails; message: string } =
+        await axios.get(`user/order/${orderId}`);
       return { data, message };
     } catch (error: any) {
       return thunkAPI.rejectWithValue(error);

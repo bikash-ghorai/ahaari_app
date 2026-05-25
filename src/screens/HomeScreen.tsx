@@ -42,6 +42,7 @@ import type { RootStackParamList, RootTabParamList } from '../types/navigation';
 import { navigate } from '../utils/navigationRef';
 import { useDispatch, useSelector } from '../redux/store';
 import { getAddressList, updateLocation } from '../redux/user/userAction';
+import { Constant } from '../constants/Constant';
 
 const GlassLayer = () =>
   Platform.OS === 'ios' ? (
@@ -128,8 +129,6 @@ const heroSlides: HeroSlide[] = [
       'https://images.unsplash.com/photo-1526234362653-3b75a0b9b5f0?auto=format&fit=crop&w=900&q=80',
   },
 ];
-
-const GOOGLE_MAPS_API_KEY = 'AIzaSyAR4jzABer8rctIaR95zM5IWBXu5R1KUYc';
 
 type HomeScreenNavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<RootTabParamList, 'Home'>,
@@ -288,12 +287,12 @@ const HomeScreen = () => {
 
     const reverseGeocode = async () => {
       try {
-        if (!GOOGLE_MAPS_API_KEY) {
+        if (!Constant.MapKey) {
           return;
         }
 
         const response = await fetch(
-          `https://maps.googleapis.com/maps/api/geocode/json?latlng=${currentCoords.latitude},${currentCoords.longitude}&key=${GOOGLE_MAPS_API_KEY}&language=en`,
+          `https://maps.googleapis.com/maps/api/geocode/json?latlng=${currentCoords.latitude},${currentCoords.longitude}&key=${Constant.MapKey}&language=en`,
         );
 
         if (!response.ok) {

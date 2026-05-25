@@ -1,5 +1,5 @@
 import { PayloadAction, createSlice } from '@reduxjs/toolkit';
-import { getAddressList, logout, verifyOTP } from './userAction';
+import { getAddressList, getMyProfile, logout, verifyOTP } from './userAction';
 import { IAddress, IUser } from '../../types';
 
 export interface UserState {
@@ -27,6 +27,12 @@ const userSlice = createSlice({
     builder.addCase(verifyOTP.fulfilled, (state: UserState, action: any) => {
       state.error = null;
       state.userData = action.payload?.data?.user;
+    });
+
+    //user phone verify
+    builder.addCase(getMyProfile.fulfilled, (state: UserState, action: any) => {
+      state.error = null;
+      state.userData = action.payload?.data;
     });
 
     builder.addCase(

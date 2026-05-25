@@ -1,6 +1,7 @@
 /* eslint-disable react-native/no-inline-styles */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Alert,
   Keyboard,
   Platform,
   Pressable,
@@ -137,10 +138,13 @@ const OtpAuthScreen = () => {
     }
     dispatch(resendOtp({ phone }))
       .unwrap()
-      .then(() => {
+      .then(({ data }) => {
         setCountdown(INITIAL_COUNTDOWN);
         setOtp('');
         focusOtpInput();
+        if (data?.otp) {
+          Alert.alert(`OTP ${data?.otp}`);
+        }
       });
   };
 

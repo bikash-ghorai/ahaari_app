@@ -1,3 +1,4 @@
+/* eslint-disable react-native/no-inline-styles */
 import React, { useEffect, useState } from 'react';
 import {
   ScrollView,
@@ -6,79 +7,20 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Check, Tag } from 'lucide-react-native';
+import { Tag } from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, layout, typography } from '../constants/theme';
-import type { RootStackParamList } from '../types/navigation';
 import Header from '../components/Header';
 import GlassLayer from '../components/GlassLayer';
 import { useDispatch } from '../redux/store';
-import { getCoupons } from '../redux/app/appAction';
+import { applyCoupon, getCoupons } from '../redux/app/appAction';
 import { ICoupon } from '../types';
-
-type CouponItem = {
-  id: string;
-  code: string;
-  title: string;
-  description: string;
-  discount: number;
-};
-
-type LockedOffer = {
-  id: string;
-  code: string;
-  title: string;
-  description: string;
-  note: string;
-  noteTone: 'error' | 'muted';
-};
-
-const applicableCoupons: CouponItem[] = [
-  {
-    id: 'amber20',
-    code: 'AMBER20',
-    title: '20% Off Premium Orders',
-    description: 'Get 20% off on all orders above $15. Valid until midnight.',
-    discount: 3.7,
-  },
-  {
-    id: 'nocturne5',
-    code: 'NOCTURNE5',
-    title: 'Flat $5 Delivery Discount',
-    description: 'Save $5 on delivery fees for your next boutique meal.',
-    discount: 5,
-  },
-];
-
-const lockedOffers: LockedOffer[] = [
-  {
-    id: 'feast50',
-    code: 'FEAST50',
-    title: '50% Off Feast Menu',
-    description: 'Valid only on orders above $50 from partner restaurants.',
-    note: 'Add $12.50 more to unlock',
-    noteTone: 'error',
-  },
-  {
-    id: 'newuser',
-    code: 'NEWUSER',
-    title: 'Free Dessert',
-    description: 'Get a complimentary dessert with your first order.',
-    note: 'Not applicable for current users',
-    noteTone: 'muted',
-  },
-];
+import { reset } from '../utils/navigationRef';
 
 const CouponListScreen = () => {
   const dispatch = useDispatch();
-  const navigation =
-    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const route = useRoute<RouteProp<RootStackParamList, 'CouponList'>>();
-  const currentCode = route.params?.currentCode;
 
   const [couponList, setCouponList] = useState<ICoupon[]>([]);
 
@@ -91,20 +33,20 @@ const CouponListScreen = () => {
       .catch(error => {
         console.error('Failed to fetch coupons:', error);
       });
-    setCouponList(applicableCoupons);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const applyCoupon = (coupon: CouponItem) => {
-    navigation.navigate('Tabs', {
-      screen: 'Cart',
-      params: {
-        appliedCoupon: {
-          code: coupon.code,
-          discount: coupon.discount,
-        },
-      },
-    });
+  const handleApplyCoupon = (coupon: ICoupon) => {
+    dispatch(applyCoupon({ coupon_id: coupon.coupon_id }))
+      .unwrap()
+      .then(() => {
+        reset('Tabs', {
+          screen: 'Cart',
+        });
+      })
+      .catch(error => {
+        console.error('Failed to apply coupon:', error);
+      });
   };
 
   return (
@@ -121,119 +63,106 @@ const CouponListScreen = () => {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Applicable Coupons</Text>
-          <Text style={styles.sectionMeta}>
-            {applicableCoupons.length} Available
-          </Text>
+          <Text style={styles.sectionTitle}>Available Coupons</Text>
         </View>
 
         <View style={styles.couponGrid}>
-          {applicableCoupons.map(coupon => {
-            const isSelected = coupon.code === currentCode;
-            const buttonColors = isSelected
-              ? ['rgba(255, 255, 255, 0.16)', 'rgba(255, 255, 255, 0.08)']
-              : [colors.primary, 'rgba(245, 158, 11, 0.95)'];
+          {couponList.map((coupon, index) => {
+            const isApplicable = coupon.is_applicable;
+            const buttonColors = [colors.primary, 'rgba(245, 158, 11, 0.95)'];
 
             return (
-              <View
-                key={coupon.id}
-                style={[
-                  styles.couponCard,
-                  isSelected ? styles.couponCardActive : null,
-                ]}
-              >
+              <View key={index} style={[styles.couponCard]}>
                 <GlassLayer radius={16} />
-                <View style={styles.couponAccent} />
+                <View
+                  style={[
+                    styles.couponAccent,
+                    {
+                      backgroundColor: isApplicable
+                        ? colors.primary
+                        : 'rgba(255, 255, 255, 0.36)',
+                    },
+                  ]}
+                />
 
                 <View style={styles.couponTopRow}>
-                  <View style={styles.couponCodePill}>
-                    <Text style={styles.couponCodeText}>{coupon.code}</Text>
-                  </View>
-                  {isSelected ? (
-                    <View style={styles.appliedBadge}>
-                      <Check size={14} color={colors.black} strokeWidth={2.6} />
-                      <Text style={styles.appliedBadgeText}>Applied</Text>
-                    </View>
-                  ) : (
-                    <View style={styles.couponIconWrap}>
-                      <Tag size={18} color={colors.primary} strokeWidth={2.3} />
-                    </View>
-                  )}
-                </View>
-
-                <Text style={styles.couponTitle}>{coupon.title}</Text>
-                <Text style={styles.couponDescription}>
-                  {coupon.description}
-                </Text>
-
-                <TouchableOpacity
-                  activeOpacity={0.9}
-                  disabled={isSelected}
-                  onPress={() => applyCoupon(coupon)}
-                  style={styles.applyButton}
-                >
-                  <LinearGradient
-                    colors={buttonColors}
-                    start={{ x: 0, y: 0.5 }}
-                    end={{ x: 1, y: 0.5 }}
-                    style={styles.applyButtonGradient}
+                  <View
+                    style={[
+                      isApplicable
+                        ? styles.couponCodePill
+                        : styles.couponCodePillMuted,
+                    ]}
                   >
                     <Text
-                      style={[
-                        styles.applyButtonText,
-                        isSelected ? styles.applyButtonTextActive : null,
-                      ]}
+                      style={
+                        isApplicable
+                          ? styles.couponCodeText
+                          : styles.couponCodeMuted
+                      }
                     >
-                      {isSelected ? 'Applied' : 'Apply Coupon'}
+                      {coupon.code}
                     </Text>
-                  </LinearGradient>
-                </TouchableOpacity>
+                  </View>
+                  <View
+                    style={[
+                      styles.couponIconWrap,
+                      {
+                        backgroundColor: isApplicable
+                          ? 'rgba(245, 158, 11, 0.16)'
+                          : 'rgba(255, 255, 255, 0.08)',
+                      },
+                    ]}
+                  >
+                    <Tag
+                      size={18}
+                      color={
+                        isApplicable ? colors.primary : colors.textMutedLight
+                      }
+                      strokeWidth={2.3}
+                    />
+                  </View>
+                </View>
+
+                <Text
+                  style={isApplicable ? styles.couponTitle : styles.lockedTitle}
+                >
+                  {coupon?.title}
+                </Text>
+                <Text
+                  style={
+                    isApplicable
+                      ? styles.couponDescription
+                      : styles.lockedDescription
+                  }
+                >
+                  {coupon?.description}
+                </Text>
+
+                {isApplicable ? (
+                  <TouchableOpacity
+                    activeOpacity={0.9}
+                    onPress={() => handleApplyCoupon(coupon)}
+                    style={styles.applyButton}
+                  >
+                    <LinearGradient
+                      colors={buttonColors}
+                      start={{ x: 0, y: 0.5 }}
+                      end={{ x: 1, y: 0.5 }}
+                      style={styles.applyButtonGradient}
+                    >
+                      <Text style={[styles.applyButtonText]}>Apply Coupon</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                ) : (
+                  <View style={[styles.lockedNote, styles.lockedNoteMuted]}>
+                    <Text style={styles.lockedNoteTextMuted}>
+                      Not applicable for current order
+                    </Text>
+                  </View>
+                )}
               </View>
             );
           })}
-        </View>
-
-        <View style={styles.sectionHeaderMuted}>
-          <Text style={styles.sectionTitleMuted}>More Offers</Text>
-        </View>
-
-        <View style={styles.couponGridMuted}>
-          {lockedOffers.map(offer => (
-            <View key={offer.id} style={styles.lockedCard}>
-              <GlassLayer radius={16} />
-
-              <View style={styles.couponTopRow}>
-                <View style={styles.couponCodePillMuted}>
-                  <Text style={styles.couponCodeMuted}>{offer.code}</Text>
-                </View>
-                <View style={styles.lockedBadge}>
-                  <Text style={styles.lockedBadgeText}>Locked</Text>
-                </View>
-              </View>
-
-              <Text style={styles.lockedTitle}>{offer.title}</Text>
-              <Text style={styles.lockedDescription}>{offer.description}</Text>
-
-              <View
-                style={[
-                  styles.lockedNote,
-                  offer.noteTone === 'error'
-                    ? styles.lockedNoteError
-                    : styles.lockedNoteMuted,
-                ]}
-              >
-                <Text
-                  style={
-                    offer.noteTone === 'error'
-                      ? styles.lockedNoteTextError
-                      : styles.lockedNoteTextMuted
-                  }
-                >
-                  {offer.note}
-                </Text>
-              </View>
-            </View>
-          ))}
         </View>
       </ScrollView>
     </SafeAreaView>
