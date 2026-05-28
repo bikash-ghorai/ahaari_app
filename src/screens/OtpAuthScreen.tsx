@@ -142,9 +142,9 @@ const OtpAuthScreen = () => {
         setCountdown(INITIAL_COUNTDOWN);
         setOtp('');
         focusOtpInput();
-        if (data?.otp) {
-          Alert.alert(`OTP ${data?.otp}`);
-        }
+        // if (data?.otp) {
+        //   Alert.alert(`OTP ${data?.otp}`);
+        // }
       });
   };
 

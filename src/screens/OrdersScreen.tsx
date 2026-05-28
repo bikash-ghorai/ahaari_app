@@ -50,35 +50,7 @@ type HistoryOrder = {
   showRateButton?: boolean;
 };
 
-const historyOrders: HistoryOrder[] = [
-  {
-    id: 'burger-loft',
-    restaurant: 'The Burger Loft',
-    date: 'Oct 24',
-    total: '$42.50',
-    image:
-      'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=500&q=80',
-    quote: '"Amazing truffle fries as always!"',
-  },
-  {
-    id: 'napoli-pizzeria',
-    restaurant: 'Napoli Pizzeria',
-    date: 'Oct 21',
-    total: '$18.90',
-    image:
-      'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=500&q=80',
-    showRateButton: true,
-  },
-  {
-    id: 'green-garden',
-    restaurant: 'Green Garden',
-    date: 'Oct 15',
-    total: '$31.20',
-    image:
-      'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=500&q=80',
-    showRateButton: true,
-  },
-];
+const historyOrders: HistoryOrder[] = [];
 
 const GlassLayer = ({
   radius,

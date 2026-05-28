@@ -1,15 +1,17 @@
 /* eslint-disable react-native/no-inline-styles */
 import React, { useMemo, useState } from 'react';
 import {
+  Alert,
+  Image,
+  KeyboardAvoidingView,
   Platform,
+  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-  Image,
-  Alert,
 } from 'react-native';
 import { BlurView } from '@react-native-community/blur';
 import MaterialIcons from '@react-native-vector-icons/material-icons';
@@ -26,6 +28,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, layout, typography } from '../constants/theme';
 import { useDispatch } from '../redux/store';
 import { login } from '../redux/user/userAction';
+import { showToaster } from '../utils/toaster';
 
 const FrostedLayer = ({ radius }: { radius: number }) => (
   <>
@@ -73,12 +76,13 @@ const LoginScreen = () => {
   const [phone, setPhone] = useState('');
 
   const phoneDigits = useMemo(() => phone.replace(/\D/g, ''), [phone]);
-  const canRequestOtp = phoneDigits.length === 10;
 
   const handleGetOtp = () => {
-    if (!canRequestOtp) {
+    if (phoneDigits.length !== 10) {
+      showToaster('Please enter a valid 10-digit phone number.');
       return;
     }
+
     dispatch(login({ phone: phoneDigits }))
       .unwrap()
       .then(({ data }) => {
@@ -144,91 +148,90 @@ const LoginScreen = () => {
         </Svg>
       </View>
 
-      <View style={styles.content}>
-        <View style={styles.card}>
-          <FrostedLayer radius={32} />
-          <View pointerEvents="none" style={styles.cardMesh} />
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.content}>
+            <View style={styles.card}>
+              <FrostedLayer radius={32} />
+              <View pointerEvents="none" style={styles.cardMesh} />
 
-          <View style={styles.cardInner}>
-            <View style={styles.header}>
-              <View style={styles.brandWrap}>
-                <View style={styles.brandGlow} />
+              <View style={styles.cardInner}>
+                <View style={styles.header}>
+                  <View style={styles.brandWrap}>
+                    <View style={styles.brandGlow} />
 
-                <LinearGradient
-                  colors={['#FFAD3A', '#D97706']}
-                  start={{ x: 0.2, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.brandIconShell}
-                >
-                  <Image
-                    source={require('../assets/logo.png')}
-                    style={{ width: 80, height: 80 }}
+                    <LinearGradient
+                      colors={['#FFAD3A', '#D97706']}
+                      start={{ x: 0.2, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.brandIconShell}
+                    >
+                      <Image
+                        source={require('../assets/logo_w.png')}
+                        style={{ width: 75, height: 75 }}
+                      />
+                    </LinearGradient>
+                    <Text style={styles.brandLuxe}>Ahaari</Text>
+                    <Text style={styles.brandEats}>Your Ahaar, Always Ready.</Text>
+                  </View>
+
+                  <Text style={styles.heading}>Let's Get Started</Text>
+                  <Text style={styles.subheading}>
+                    Enter your mobile number to continue
+                  </Text>
+                </View>
+
+                <View style={styles.inputShell}>
+                  <TouchableOpacity
+                    activeOpacity={0.86}
+                    style={styles.countryCodeButton}
+                  >
+                    <Text style={styles.countryCodeText}>IN +91</Text>
+                    <MaterialIcons name="expand-more" color="#AAABB0" size={20} />
+                  </TouchableOpacity>
+
+                  <TextInput
+                    keyboardType="phone-pad"
+                    placeholder="91234 56789"
+                    placeholderTextColor="rgba(170, 171, 176, 0.62)"
+                    style={styles.phoneInput}
+                    value={phone}
+                    onChangeText={text => setPhone(text)}
+                    maxLength={10}
                   />
-                </LinearGradient>
-                {/* <Text style={styles.brandLuxe}>BiteO</Text>
-                <Text style={styles.brandEats}>Your Food, Faster.</Text> */}
-              </View>
+                </View>
 
-              <Text style={styles.heading}>Let's Get Started</Text>
-              <Text style={styles.subheading}>
-                Enter your mobile number to continue
-              </Text>
-            </View>
-
-            <View style={styles.inputShell}>
-              <TouchableOpacity
-                activeOpacity={0.86}
-                style={styles.countryCodeButton}
-              >
-                <Text style={styles.countryCodeText}>IN +91</Text>
-                <MaterialIcons name="expand-more" color="#AAABB0" size={20} />
-              </TouchableOpacity>
-
-              <TextInput
-                keyboardType="phone-pad"
-                placeholder="91234 56789"
-                placeholderTextColor="rgba(170, 171, 176, 0.62)"
-                style={styles.phoneInput}
-                value={phone}
-                onChangeText={text => setPhone(text)}
-                maxLength={10}
-              />
-            </View>
-
-            <TouchableOpacity
-              activeOpacity={canRequestOtp ? 0.92 : 1}
-              style={styles.otpButton}
-              onPress={handleGetOtp}
-              disabled={!canRequestOtp}
-            >
-              <LinearGradient
-                colors={
-                  canRequestOtp
-                    ? ['#FFAD3A', '#E79400']
-                    : ['#5C4A2A', '#4A3B22']
-                }
-                start={{ x: 0.1, y: 0 }}
-                end={{ x: 0.95, y: 1 }}
-                style={styles.otpGradient}
-              >
-                <Text
-                  style={[
-                    styles.otpText,
-                    !canRequestOtp ? styles.otpTextDisabled : null,
-                  ]}
+                <TouchableOpacity
+                  activeOpacity={1}
+                  style={styles.otpButton}
+                  onPress={handleGetOtp}
                 >
-                  Get OTP
-                </Text>
-              </LinearGradient>
-            </TouchableOpacity>
+                  <LinearGradient
+                    colors={['#FFAD3A', '#E79400']}
+                    start={{ x: 0.1, y: 0 }}
+                    end={{ x: 0.95, y: 1 }}
+                    style={styles.otpGradient}
+                  >
+                    <Text style={styles.otpText}>Get OTP</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
 
-            <Text style={styles.footerText}>
-              By continuing, you agree to our{`\n`}
-              <Text style={styles.footerLink}>Terms of Service</Text>
-            </Text>
+                <Text style={styles.footerText}>
+                  By continuing, you agree to our{'\n'}
+                  <Text style={styles.footerLink}>Terms of Service</Text>
+                </Text>
+              </View>
+            </View>
           </View>
-        </View>
-      </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -253,6 +256,12 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
   },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
   content: {
     flex: 1,
     justifyContent: 'center',
@@ -271,7 +280,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 18 },
     shadowOpacity: 0.2,
     shadowRadius: 34,
-    // elevation: 12,
   },
   cardMesh: {
     position: 'absolute',
@@ -315,7 +323,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: typography.display,
     fontWeight: '900',
-    // letterSpacing: 7,
     lineHeight: 36,
   },
   brandEats: {
@@ -323,7 +330,6 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontSize: typography.sm,
     fontWeight: '800',
-    // letterSpacing: 8,
   },
   heading: {
     color: '#F3F3F9',
@@ -395,11 +401,8 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.3,
   },
-  otpTextDisabled: {
-    color: '#B9A88A',
-  },
   footerText: {
-    marginTop: 4,
+    marginTop: 15,
     color: 'rgba(170, 171, 176, 0.74)',
     textAlign: 'center',
     fontSize: typography.sm,

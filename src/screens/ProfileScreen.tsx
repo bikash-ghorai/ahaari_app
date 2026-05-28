@@ -142,12 +142,12 @@ const ProfileScreen = () => {
                 </View>
               </View>
 
-              {/* <TouchableOpacity
+              <TouchableOpacity
                 style={styles.topUpButton}
-                onPress={() => navigation.navigate('WalletHistory')}
+                // onPress={() => navigation.navigate('WalletHistory')}
               >
                 <Text style={styles.topUpButtonText}>Top Up</Text>
-              </TouchableOpacity> */}
+              </TouchableOpacity>
             </View>
 
             {/* <View style={styles.walletVipDivider} />
@@ -268,7 +268,7 @@ const ProfileScreen = () => {
 
             <View style={styles.listDivider} />
 
-            <TouchableOpacity
+            {/* <TouchableOpacity
               style={styles.listRow}
               onPress={() => navigation.navigate('WalletHistory')}
             >
@@ -279,11 +279,11 @@ const ProfileScreen = () => {
               <ChevronRight size={20} color="#6C7078" />
             </TouchableOpacity>
 
-            <View style={styles.listDivider} />
+            <View style={styles.listDivider} /> */}
 
             <TouchableOpacity
               style={styles.listRow}
-              onPress={() => navigation.navigate('ReferEarn')}
+              // onPress={() => navigation.navigate('ReferEarn')}
             >
               <View style={styles.listRowLeft}>
                 <Gift size={21} color={colors.textMuted} />

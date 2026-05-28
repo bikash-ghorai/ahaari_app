@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Image,
   ScrollView,
@@ -14,14 +14,24 @@ import { Star } from 'lucide-react-native';
 
 import { colors, layout, typography } from '../constants/theme';
 import Header from '../components/Header';
-
+import { getUserDetailsFromAsyncStore } from '../utils/storage';
 const PersonalInfoScreen = () => {
-  const [fullName, setFullName] = React.useState('Sarah Jenkins');
-  const [username, setUsername] = React.useState('sarah.j');
-  const [email, setEmail] = React.useState('sarah.j@lifestyle.com');
-  const [phone, setPhone] = React.useState('+1 (415) 555-0182');
-  const [birthday, setBirthday] = React.useState('12 Aug 1994');
-  const [address, setAddress] = React.useState('123 Amber Lane, San Francisco');
+  const [firstName, setFirstName] = React.useState('');
+  const [lastName, setLastName] = React.useState('');
+  const [phone, setPhone] = React.useState('');
+  const [birthday, setBirthday] = React.useState('');
+
+  const loadUserDetails = async () => {
+    const userDetails: any = await getUserDetailsFromAsyncStore();
+    setFirstName(userDetails?.first_name || '');
+    setLastName(userDetails?.last_name || '');
+    setPhone(userDetails?.phone || '');
+    setBirthday(userDetails?.dob || '');
+  };
+
+  useEffect(() => {
+    loadUserDetails();
+  }, []);
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
@@ -48,7 +58,7 @@ const PersonalInfoScreen = () => {
             </View>
 
             <View style={styles.heroText}>
-              <Text style={styles.heroName}>{fullName}</Text>
+              <Text style={styles.heroName}>{firstName} {lastName}</Text>
               <Text style={styles.heroMeta}>Member since 2022</Text>
 
               <View style={styles.heroActions}>
@@ -75,32 +85,46 @@ const PersonalInfoScreen = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Profile Details</Text>
           <View style={styles.formCard}>
+            <View style={styles.rowFields}>
+              <View style={styles.halfField}>
+                <Text style={styles.fieldLabel}>FIRST NAME</Text>
+                <View style={styles.inputShell}>
+                  <TextInput
+                    value={firstName}
+                    onChangeText={setFirstName}
+                    placeholder="Your first name"
+                    placeholderTextColor={colors.textMuted}
+                    style={styles.inputText}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.halfField}>
+                <Text style={styles.fieldLabel}>LAST NAME</Text>
+                <View style={styles.inputShell}>
+                  <TextInput
+                    value={lastName}
+                    onChangeText={setLastName}
+                    placeholder="Your last name"
+                    placeholderTextColor={colors.textMuted}
+                    style={styles.inputText}
+                  />
+                </View>
+              </View>
+            </View>
             <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>FULL NAME</Text>
+              <Text style={styles.fieldLabel}>PHONE NUMBER</Text>
               <View style={styles.inputShell}>
                 <TextInput
-                  value={fullName}
-                  onChangeText={setFullName}
-                  placeholder="Your full name"
+                  value={phone}
+                  onChangeText={setPhone}
+                  placeholder="Phone"
                   placeholderTextColor={colors.textMuted}
+                  keyboardType="phone-pad"
                   style={styles.inputText}
                 />
               </View>
             </View>
-
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>USERNAME</Text>
-              <View style={styles.inputShell}>
-                <TextInput
-                  value={username}
-                  onChangeText={setUsername}
-                  placeholder="@username"
-                  placeholderTextColor={colors.textMuted}
-                  style={styles.inputText}
-                />
-              </View>
-            </View>
-
             <View style={styles.rowFields}>
               <View style={styles.halfField}>
                 <Text style={styles.fieldLabel}>BIRTHDAY</Text>
@@ -120,59 +144,6 @@ const PersonalInfoScreen = () => {
                 <View style={[styles.inputShell, styles.inputMuted]}>
                   <Text style={styles.inputStaticText}>Standard</Text>
                 </View>
-              </View>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Contact</Text>
-          <View style={styles.formCard}>
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>EMAIL ADDRESS</Text>
-              <View style={styles.inputShell}>
-                <TextInput
-                  value={email}
-                  onChangeText={setEmail}
-                  placeholder="Email"
-                  placeholderTextColor={colors.textMuted}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  style={styles.inputText}
-                />
-              </View>
-            </View>
-
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>PHONE NUMBER</Text>
-              <View style={styles.inputShell}>
-                <TextInput
-                  value={phone}
-                  onChangeText={setPhone}
-                  placeholder="Phone"
-                  placeholderTextColor={colors.textMuted}
-                  keyboardType="phone-pad"
-                  style={styles.inputText}
-                />
-              </View>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Address</Text>
-          <View style={styles.formCard}>
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>PRIMARY ADDRESS</Text>
-              <View style={[styles.inputShell, styles.inputTall]}>
-                <TextInput
-                  value={address}
-                  onChangeText={setAddress}
-                  placeholder="Street, City"
-                  placeholderTextColor={colors.textMuted}
-                  multiline={true}
-                  style={[styles.inputText, styles.inputMultiline]}
-                />
               </View>
             </View>
           </View>
@@ -300,6 +271,9 @@ const styles = StyleSheet.create({
   },
   section: {
     gap: 12,
+  },
+  hiddenSection: {
+    display: 'none',
   },
   sectionTitle: {
     color: colors.textPrimary,

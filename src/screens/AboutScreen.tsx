@@ -68,8 +68,8 @@ const AboutScreen = () => {
             </View>
 
             <View style={styles.brandText}>
-              <Text style={styles.brandTitle}>BiteO</Text>
-              <Text style={styles.brandSubtitle}>Curated dining, delivered.</Text>
+              <Text style={styles.brandTitle}>Ahaari</Text>
+              <Text style={styles.brandSubtitle}>Your Ahaar, Always Ready.</Text>
             </View>
           </View>
 
@@ -79,12 +79,12 @@ const AboutScreen = () => {
               <Text style={styles.heroPillText}>Chef Verified</Text>
             </View>
             <View style={styles.heroPillMuted}>
-              <Text style={styles.heroPillMutedText}>Version 1.4.0</Text>
+              <Text style={styles.heroPillMutedText}>Version 0.2</Text>
             </View>
           </View>
 
           <Text style={styles.heroBody}>
-            BiteO curates premium menus from top kitchens, pairing seasonal ingredients with
+            Ahaari curates premium menus from top kitchens, pairing seasonal ingredients with
             delightful delivery experiences.
           </Text>
         </View>

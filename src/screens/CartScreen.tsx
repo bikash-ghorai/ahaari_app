@@ -809,13 +809,13 @@ const CartScreen = () => {
                 <Text style={styles.checkoutButtonText}>
                   Proceed to Checkout
                 </Text>
-
-                <View style={styles.checkoutRightBlock}>
+<ArrowRight size={20} color="#111111" strokeWidth={2.8} />
+                {/* <View style={styles.checkoutRightBlock}>
                   <Text style={styles.checkoutAmountText}>
                     ₹{totalAmount.toFixed(2)}
                   </Text>
                   <ArrowRight size={20} color="#111111" strokeWidth={2.8} />
-                </View>
+                </View> */}
               </TouchableOpacity>
             </View>
           </View>
@@ -1462,12 +1462,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    // shadowColor: colors.primary,
-    // shadowOpacity: 0.45,
-    // shadowRadius: 20,
-    // shadowOffset: { width: 0, height: 0 },
-    // elevation: 10,
+    justifyContent: 'center',
+    gap: 12,
   },
   checkoutButtonText: {
     color: colors.black,
