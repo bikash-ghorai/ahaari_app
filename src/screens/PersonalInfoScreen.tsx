@@ -37,14 +37,11 @@ const PersonalInfoScreen = () => {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.heroCard}>
-          
-
           <View style={styles.heroRow}>
             <View style={styles.avatarWrap}>
               <Image
                 source={{
-                  uri:
-                    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=512&q=80',
+                  uri: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=512&q=80',
                 }}
                 style={styles.avatar}
               />
@@ -56,11 +53,18 @@ const PersonalInfoScreen = () => {
 
               <View style={styles.heroActions}>
                 <View style={styles.heroChip}>
-                  <Star size={12} color={colors.primary} fill={colors.primary} />
+                  <Star
+                    size={12}
+                    color={colors.primary}
+                    fill={colors.primary}
+                  />
                   <Text style={styles.heroChipText}>Standard Member</Text>
                 </View>
 
-                <TouchableOpacity style={styles.editButton} activeOpacity={0.85}>
+                <TouchableOpacity
+                  style={styles.editButton}
+                  activeOpacity={0.85}
+                >
                   <Text style={styles.editButtonText}>Edit photo</Text>
                 </TouchableOpacity>
               </View>
@@ -71,7 +75,6 @@ const PersonalInfoScreen = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Profile Details</Text>
           <View style={styles.formCard}>
-
             <View style={styles.fieldGroup}>
               <Text style={styles.fieldLabel}>FULL NAME</Text>
               <View style={styles.inputShell}>
@@ -125,7 +128,6 @@ const PersonalInfoScreen = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Contact</Text>
           <View style={styles.formCard}>
-
             <View style={styles.fieldGroup}>
               <Text style={styles.fieldLabel}>EMAIL ADDRESS</Text>
               <View style={styles.inputShell}>
@@ -160,7 +162,6 @@ const PersonalInfoScreen = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Address</Text>
           <View style={styles.formCard}>
-
             <View style={styles.fieldGroup}>
               <Text style={styles.fieldLabel}>PRIMARY ADDRESS</Text>
               <View style={[styles.inputShell, styles.inputTall]}>

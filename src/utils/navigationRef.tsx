@@ -6,7 +6,7 @@ import { RootStackParamList } from '../types/navigation';
 
 export const navigationRef = createNavigationContainerRef<RootStackParamList>();
 
-export const navigate = (name: string, params?: any) => {
+export const navigate = (name: string, params?: undefined | any) => {
   if (navigationRef.isReady()) {
     navigationRef.navigate(name as any, params as any);
   }

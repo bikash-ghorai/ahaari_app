@@ -1,12 +1,12 @@
 {
-  "name": "Ahaaree",
+  "name": "Ahaari",
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "android": "npx react-native run-android",
+    "android": "react-native run-android",
     "ios": "react-native run-ios",
     "lint": "eslint .",
-    "start": "react-native start --reset-cache",
+    "start": "react-native start",
     "test": "jest",
     "clean": "cd android && gradlew clean",
     "bundle": "cd android && gradlew bundleRelease",

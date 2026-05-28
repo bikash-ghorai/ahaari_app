@@ -24,7 +24,7 @@ import {
 import { colors, layout, typography } from '../constants/theme';
 import Header from '../components/Header';
 
-const supportPhone = '+1 (415) 555-0175';
+const supportPhone = '+91 9134331144';
 const supportPhoneDigits = supportPhone.replace(/\D/g, '');
 const supportEmail = 'support@biteo.app';
 const whatsappUrl = `https://wa.me/${supportPhoneDigits}`;
@@ -96,7 +96,8 @@ const faqItems = [
   {
     id: 'payment',
     question: 'Can I change my payment method?',
-    answer: 'You can switch payment methods at checkout before placing an order.',
+    answer:
+      'You can switch payment methods at checkout before placing an order.',
   },
   {
     id: 'address',
@@ -157,12 +158,20 @@ const HelpCenterScreen = () => {
           </View>
 
           <View style={styles.actionRow}>
-            <TouchableOpacity style={styles.callButton} activeOpacity={0.9} onPress={handleCall}>
+            <TouchableOpacity
+              style={styles.callButton}
+              activeOpacity={0.9}
+              onPress={handleCall}
+            >
               <Phone size={16} color={colors.textPrimary} strokeWidth={2.2} />
               <Text style={styles.callButtonText}>Call</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.whatsappButton} activeOpacity={0.9} onPress={handleWhatsApp}>
+            <TouchableOpacity
+              style={styles.whatsappButton}
+              activeOpacity={0.9}
+              onPress={handleWhatsApp}
+            >
               <LinearGradient
                 colors={['#1EAD5A', '#2CD370']}
                 start={{ x: 0.1, y: 0.2 }}
@@ -175,7 +184,11 @@ const HelpCenterScreen = () => {
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={styles.emailButton} activeOpacity={0.9} onPress={handleEmail}>
+          <TouchableOpacity
+            style={styles.emailButton}
+            activeOpacity={0.9}
+            onPress={handleEmail}
+          >
             <Mail size={16} color={colors.textPrimary} strokeWidth={2.2} />
             <Text style={styles.emailButtonText}>Email support</Text>
           </TouchableOpacity>
@@ -188,12 +201,18 @@ const HelpCenterScreen = () => {
               const Icon = item.icon;
 
               return (
-                <TouchableOpacity key={item.id} style={styles.selfServiceCard} activeOpacity={0.88}>
+                <TouchableOpacity
+                  key={item.id}
+                  style={styles.selfServiceCard}
+                  activeOpacity={0.88}
+                >
                   <View style={styles.selfServiceIconWrap}>
                     <Icon size={18} color={colors.primary} strokeWidth={2.2} />
                   </View>
                   <Text style={styles.selfServiceTitle}>{item.title}</Text>
-                  <Text style={styles.selfServiceSubtitle}>{item.subtitle}</Text>
+                  <Text style={styles.selfServiceSubtitle}>
+                    {item.subtitle}
+                  </Text>
                 </TouchableOpacity>
               );
             })}
@@ -210,14 +229,22 @@ const HelpCenterScreen = () => {
                 <View key={item.id}>
                   <View style={styles.standardRow}>
                     <View style={styles.standardIconWrap}>
-                      <Icon size={16} color={colors.primary} strokeWidth={2.2} />
+                      <Icon
+                        size={16}
+                        color={colors.primary}
+                        strokeWidth={2.2}
+                      />
                     </View>
                     <View style={styles.standardTextWrap}>
                       <Text style={styles.standardTitle}>{item.title}</Text>
-                      <Text style={styles.standardSubtitle}>{item.subtitle}</Text>
+                      <Text style={styles.standardSubtitle}>
+                        {item.subtitle}
+                      </Text>
                     </View>
                   </View>
-                  {index < serviceStandards.length - 1 ? <View style={styles.quickDivider} /> : null}
+                  {index < serviceStandards.length - 1 ? (
+                    <View style={styles.quickDivider} />
+                  ) : null}
                 </View>
               );
             })}
@@ -231,14 +258,20 @@ const HelpCenterScreen = () => {
               <View key={item.id}>
                 <View style={styles.faqRow}>
                   <View style={styles.faqIconWrap}>
-                    <ShieldCheck size={16} color={colors.primary} strokeWidth={2.2} />
+                    <ShieldCheck
+                      size={16}
+                      color={colors.primary}
+                      strokeWidth={2.2}
+                    />
                   </View>
                   <View style={styles.faqTextWrap}>
                     <Text style={styles.faqQuestion}>{item.question}</Text>
                     <Text style={styles.faqAnswer}>{item.answer}</Text>
                   </View>
                 </View>
-                {index < faqItems.length - 1 ? <View style={styles.quickDivider} /> : null}
+                {index < faqItems.length - 1 ? (
+                  <View style={styles.quickDivider} />
+                ) : null}
               </View>
             ))}
           </View>
@@ -250,7 +283,7 @@ const HelpCenterScreen = () => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1
+    flex: 1,
   },
   scrollView: {
     flex: 1,
