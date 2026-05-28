@@ -12,8 +12,10 @@ import {
 } from '../utils/storage';
 import { useDispatch } from '../redux/store';
 import { setUserData } from '../redux/user/userSlice';
+import { useCart } from '../hooks';
 
 const SplashScreen = () => {
+  const { getCart, emptyCart } = useCart();
   const dispatch = useDispatch();
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -26,18 +28,21 @@ const SplashScreen = () => {
   const checkAuthStatus = async () => {
     try {
       const token = await getAuthTokenFromAsyncStore();
-      const userDetails = await getUserDetailsFromAsyncStore();
+      const userDetails: any = await getUserDetailsFromAsyncStore();
       if (token && userDetails) {
         setApiToken(token);
         dispatch(setUserData(userDetails));
+        getCart();
         reset('Tabs');
       } else {
         await deleteAuthTokenFromAsyncStore();
+        emptyCart();
         reset('Login');
       }
     } catch (error: any) {
       console.log('error', error);
       await deleteAuthTokenFromAsyncStore();
+      emptyCart();
       reset('Login');
     }
   };

@@ -7,11 +7,17 @@ type WeatherAlertContextValue = {
   hide: () => void;
 };
 
-const WeatherAlertContext = React.createContext<WeatherAlertContextValue | undefined>(undefined);
+const WeatherAlertContext = React.createContext<
+  WeatherAlertContextValue | undefined
+>(undefined);
 
-export const WeatherAlertProvider = ({ children }: { children: React.ReactNode }) => {
+export const WeatherAlertProvider = ({
+  children,
+}: {
+  children: React.ReactNode;
+}) => {
   const [isVisible, setIsVisible] = React.useState(false);
-  const isBadWeather = true;
+  const isBadWeather = false;
 
   const show = React.useCallback(() => {
     if (isBadWeather) {
@@ -24,7 +30,9 @@ export const WeatherAlertProvider = ({ children }: { children: React.ReactNode }
   }, []);
 
   return (
-    <WeatherAlertContext.Provider value={{ isBadWeather, isVisible, show, hide }}>
+    <WeatherAlertContext.Provider
+      value={{ isBadWeather, isVisible, show, hide }}
+    >
       {children}
     </WeatherAlertContext.Provider>
   );

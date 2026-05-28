@@ -1,9 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import type { IUser } from '../types';
-
 const AUTH_TOKEN = '@token';
 const USER_DETAILS = '@userdetailsToAsyncStore';
+const USER_CART_DATA = '@usercartdataToAsyncStore';
 const LOCATION = '@location';
 const FCM_TOKEN = '@fcmtoken';
 
@@ -42,10 +41,12 @@ export const deleteAuthTokenFromAsyncStore = async (): Promise<boolean> => {
 };
 
 // -----------User Details------
-export const getUserDetailsFromAsyncStore = async (): Promise<IUser | null> => {
+export const getUserDetailsFromAsyncStore = async (): Promise<
+  string | null
+> => {
   try {
     const user_data = await AsyncStorage.getItem(USER_DETAILS);
-    return user_data != null ? (JSON.parse(user_data) as IUser) : null;
+    return user_data != null ? JSON.parse(user_data) : null;
   } catch (e) {
     console.log('error', e);
     return null;
@@ -53,7 +54,7 @@ export const getUserDetailsFromAsyncStore = async (): Promise<IUser | null> => {
 };
 
 export const setUserDetailsToAsyncStore = async (
-  value: IUser,
+  value: string,
 ): Promise<boolean> => {
   try {
     const user_data = JSON.stringify(value);
@@ -68,6 +69,42 @@ export const setUserDetailsToAsyncStore = async (
 export const deleteUserDetailsFromAsyncStore = async (): Promise<boolean> => {
   try {
     await AsyncStorage.removeItem(USER_DETAILS);
+    return true;
+  } catch (e) {
+    console.log('error', e);
+    return false;
+  }
+};
+
+// -----------User Cart Data------
+export const getUserCartDataFromAsyncStore = async (): Promise<
+  string | null
+> => {
+  try {
+    const cart_data = await AsyncStorage.getItem(USER_CART_DATA);
+    return cart_data != null ? JSON.parse(cart_data) : null;
+  } catch (e) {
+    console.log('error', e);
+    return null;
+  }
+};
+
+export const setUserCartDataToAsyncStore = async (
+  value: string,
+): Promise<boolean> => {
+  try {
+    const cart_data = JSON.stringify(value);
+    await AsyncStorage.setItem(USER_CART_DATA, cart_data);
+    return true;
+  } catch (e) {
+    console.log('error', e);
+    return false;
+  }
+};
+
+export const deleteUserCartDataFromAsyncStore = async (): Promise<boolean> => {
+  try {
+    await AsyncStorage.removeItem(USER_CART_DATA);
     return true;
   } catch (e) {
     console.log('error', e);

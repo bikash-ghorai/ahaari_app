@@ -1,8 +1,14 @@
 import React from 'react';
-import { Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { CheckCircle2, CookingPot, List, MapPin } from 'lucide-react-native';
+import { CheckCircle2, List, MapPin } from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -12,18 +18,19 @@ import type { RootStackParamList } from '../types/navigation';
 
 type OrderConfirmedRouteProp = RouteProp<RootStackParamList, 'OrderConfirmed'>;
 
-type OrderConfirmedNavigationProp = NativeStackNavigationProp<RootStackParamList, 'OrderConfirmed'>;
+type OrderConfirmedNavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  'OrderConfirmed'
+>;
 
 const OrderConfirmedScreen = () => {
   const navigation = useNavigation<OrderConfirmedNavigationProp>();
   const route = useRoute<OrderConfirmedRouteProp>();
-  const orderId = route.params?.orderId ?? 'LE-88291';
-  const etaMinutes = route.params?.etaMinutes ?? 25;
-  const itemName = route.params?.itemName ?? 'Truffle Pasta';
+  // const orderId = route.params?.orderId ?? 'LE-88291';
   const chefName = route.params?.chefName ?? 'Chef Antonio';
 
   const handleTrackLive = () => {
-    navigation.navigate('OrderDetails', { orderId });
+    // navigation.navigate('OrderDetails', { orderId });
   };
 
   const handleBackHome = () => {
@@ -32,7 +39,6 @@ const OrderConfirmedScreen = () => {
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
-
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -45,44 +51,9 @@ const OrderConfirmedScreen = () => {
           </View>
 
           <Text style={styles.title}>Order Confirmed</Text>
-          <Text style={styles.subtitle}>Your midnight feast is being prepared by {chefName}.</Text>
-        </View>
-
-        <View style={styles.statusCard}>
-          <GlassLayer radius={24} tint="rgba(35, 38, 44, 0.4)" />
-          <View pointerEvents="none" style={styles.statusGlow} />
-
-          <View style={styles.statusContent}>
-            <Text style={styles.kicker}>Estimated Arrival</Text>
-            <View style={styles.etaRow}>
-              <Text style={styles.etaValue}>{etaMinutes}</Text>
-              <Text style={styles.etaUnit}>min</Text>
-            </View>
-            <View style={styles.prepRow}>
-              <CookingPot size={16} color={colors.primary} strokeWidth={2.1} />
-              <Text style={styles.prepText}>Preparing your {itemName}</Text>
-            </View>
-          </View>
-
-          <View style={styles.mapWrap}>
-            <Image
-              source={{
-                uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA_-m3ulekqxhMaqjUr1NedlNlVbn-CW-uC5FEG1E1X8cnnmagXLFWGlUGKp9nTa_hi9CJVd8QqLUnxia_7sd71QNkjlWWPlOt7z_WopQe_IlCymzlo2Bwc2HSnEXDv-0Kd135BHZyhZd9QjdCOhq_BPTnMN1r_PY2m2UEGLPm9ppeu1rP955HNu7TcNBDNpfNObmGVSUShKraFOEsIC7rHdMvJv7EY7puzu6Iqllht4cWw4sZqOkDPjBWaJVWdIjBpLBsVPtUHgSw',
-              }}
-              style={styles.mapImage}
-            />
-            <View style={styles.mapDim} />
-            <LinearGradient
-              colors={['rgba(245, 158, 11, 0)', 'rgba(245, 158, 11, 0.7)', 'rgba(245, 158, 11, 0)']}
-              start={{ x: 0, y: 0.5 }}
-              end={{ x: 1, y: 0.5 }}
-              style={styles.routeLine}
-            />
-            <View style={styles.routeDotStart} />
-            <View style={styles.routeDotEnd}>
-              <View style={styles.routeDotCore} />
-            </View>
-          </View>
+          <Text style={styles.subtitle}>
+            Your midnight feast is being prepared by {chefName}.
+          </Text>
         </View>
 
         <View style={styles.instructionsCard}>
@@ -92,27 +63,42 @@ const OrderConfirmedScreen = () => {
             <Text style={styles.instructionsTitle}>Cooking Instructions</Text>
           </View>
           <View style={styles.instructionsBubble}>
-            <Text style={styles.instructionsText}>"Extra parmesan, no parsley"</Text>
+            <Text style={styles.instructionsText}>
+              "Extra parmesan, no parsley"
+            </Text>
           </View>
           <Text style={styles.instructionsNote}>
-            Chef {chefName} has received your requests and is preparing your meal accordingly.
+            Chef {chefName} has received your requests and is preparing your
+            meal accordingly.
           </Text>
         </View>
 
         <View style={styles.actions}>
-          <TouchableOpacity style={styles.primaryButton} activeOpacity={0.92} onPress={handleTrackLive}>
+          <TouchableOpacity
+            style={styles.primaryButton}
+            activeOpacity={0.92}
+            onPress={handleTrackLive}
+          >
             <LinearGradient
               colors={['#FFB53A', '#F59E0A']}
               start={{ x: 0, y: 0.5 }}
               end={{ x: 1, y: 0.5 }}
               style={styles.primaryGradient}
             >
-              <MapPin size={20} color={colors.onPrimaryDark} strokeWidth={2.4} />
+              <MapPin
+                size={20}
+                color={colors.onPrimaryDark}
+                strokeWidth={2.4}
+              />
               <Text style={styles.primaryText}>Track Live</Text>
             </LinearGradient>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.secondaryButton} activeOpacity={0.92} onPress={handleBackHome}>
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            activeOpacity={0.92}
+            onPress={handleBackHome}
+          >
             <GlassLayer radius={16} tint="rgba(255, 255, 255, 0.03)" />
             <Text style={styles.secondaryText}>Back to Home</Text>
           </TouchableOpacity>
@@ -138,6 +124,7 @@ const styles = StyleSheet.create({
   heroSection: {
     alignItems: 'center',
     gap: 10,
+    marginTop: '20%',
   },
   checkWrap: {
     width: 92,
@@ -151,7 +138,7 @@ const styles = StyleSheet.create({
     shadowColor: colors.primary,
     shadowOpacity: 0.3,
     shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 }
+    shadowOffset: { width: 0, height: 8 },
   },
   title: {
     color: colors.textPrimary,

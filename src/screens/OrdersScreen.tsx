@@ -1,10 +1,10 @@
-import React, { useEffect, useRef } from 'react';
+/* eslint-disable react-native/no-inline-styles */
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Image,
   Platform,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -12,9 +12,21 @@ import {
 } from 'react-native';
 import { BlurView } from '@react-native-community/blur';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import { CompositeNavigationProp, useNavigation } from '@react-navigation/native';
+import {
+  CompositeNavigationProp,
+  useIsFocused,
+  useNavigation,
+} from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { AlertTriangle, Bell, CircleCheck, Menu, MessageCircle, Phone, Search, Star } from 'lucide-react-native';
+import {
+  AlertTriangle,
+  Bell,
+  CircleCheck,
+  MessageCircle,
+  Phone,
+  Search,
+  Star,
+} from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -22,6 +34,11 @@ import { colors, layout, typography } from '../constants/theme';
 import type { RootStackParamList, RootTabParamList } from '../types/navigation';
 import { useWeatherAlert } from '../contexts/WeatherAlertContext';
 import WeatherAlertTooltip from '../components/WeatherAlertTooltip';
+import { useDispatch } from '../redux/store';
+import { getOrders } from '../redux/app/appAction';
+import { IOrderListRes } from '../types';
+import { ImagePath } from '../constants/ImagePath';
+import { Constant } from '../constants/Constant';
 
 type HistoryOrder = {
   id: string;
@@ -63,19 +80,27 @@ const historyOrders: HistoryOrder[] = [
   },
 ];
 
-const GlassLayer = ({ radius, tint = 'rgba(12, 14, 18, 0.35)' }: { radius: number; tint?: string }) => (
+const GlassLayer = ({
+  radius,
+  tint = 'rgba(12, 14, 18, 0.35)',
+}: {
+  radius: number;
+  tint?: string;
+}) => (
   <>
     {Platform.OS === 'ios' ? (
       <BlurView
         pointerEvents="none"
-        style={[{
-          position: 'absolute',
-          top: 0,
-          right: 0,
-          bottom: 0,
-          left: 0,
-          borderRadius: radius
-        }]}
+        style={[
+          {
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            bottom: 0,
+            left: 0,
+            borderRadius: radius,
+          },
+        ]}
         blurType="dark"
         blurAmount={30}
         reducedTransparencyFallbackColor="rgba(12, 14, 18, 0.45)"
@@ -104,8 +129,14 @@ type OrdersScreenNavigationProp = CompositeNavigationProp<
 >;
 
 const OrdersScreen = () => {
+  const dispatch = useDispatch();
+  const isFocused = useIsFocused();
   const navigation = useNavigation<OrdersScreenNavigationProp>();
   const shimmerValue = useRef(new Animated.Value(0)).current;
+
+  const [orderListData, setOrderListData] = useState<IOrderListRes | null>(
+    null,
+  );
 
   useEffect(() => {
     const shimmerLoop = Animated.loop(
@@ -122,6 +153,17 @@ const OrdersScreen = () => {
     };
   }, [shimmerValue]);
 
+  useEffect(() => {
+    if (isFocused) {
+      dispatch(getOrders())
+        .unwrap()
+        .then(({ data }) => {
+          setOrderListData(data);
+        });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isFocused]);
+
   const openOrderDetails = (orderId?: string) => {
     navigation.navigate('OrderDetails', orderId ? { orderId } : undefined);
   };
@@ -130,43 +172,50 @@ const OrdersScreen = () => {
     navigation.navigate('RateExperience');
   };
 
-  const shimmerTranslate = shimmerValue.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-120, 260],
-  });
-
   const { isBadWeather, show } = useWeatherAlert();
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
       <WeatherAlertTooltip />
-      <View style={{
-        paddingHorizontal: layout.screenPadding,
-        paddingTop: 8,
-        paddingBottom: 12,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between'
-      }}>
+      <View
+        style={{
+          paddingHorizontal: layout.screenPadding,
+          paddingTop: 8,
+          paddingBottom: 12,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
         <View style={{ gap: 4 }}>
-          <Text style={{
-            color: colors.textMuted,
-            fontSize: typography.caption,
-            letterSpacing: 1,
-            textTransform: 'uppercase'
-          }}>Today's picks</Text>
-          <Text style={{
-            color: colors.textPrimary,
-            fontSize: typography.xl,
-            fontWeight: '700',
-            letterSpacing: -0.3
-          }}>Curated Cart</Text>
+          <Text
+            style={{
+              color: colors.textMuted,
+              fontSize: typography.caption,
+              letterSpacing: 1,
+              textTransform: 'uppercase',
+            }}
+          >
+            Today's picks
+          </Text>
+          <Text
+            style={{
+              color: colors.textPrimary,
+              fontSize: typography.xl,
+              fontWeight: '700',
+              letterSpacing: -0.3,
+            }}
+          >
+            Curated Cart
+          </Text>
         </View>
 
-        <View style={{
-          flexDirection: 'row',
-          gap: 12
-        }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            gap: 12,
+          }}
+        >
           <TouchableOpacity
             style={{
               width: 44,
@@ -177,7 +226,7 @@ const OrdersScreen = () => {
               alignItems: 'center',
               borderWidth: 1,
               borderColor: colors.glassBorder,
-              overflow: 'hidden'
+              overflow: 'hidden',
             }}
             onPress={() => navigation.navigate('Search')}
           >
@@ -193,7 +242,7 @@ const OrdersScreen = () => {
               alignItems: 'center',
               borderWidth: 1,
               borderColor: colors.glassBorder,
-              overflow: 'hidden'
+              overflow: 'hidden',
             }}
             onPress={() => {
               if (isBadWeather) {
@@ -207,15 +256,17 @@ const OrdersScreen = () => {
             ) : (
               <>
                 <Bell size={20} color="#FFF" />
-                <View style={{
-                  position: 'absolute',
-                  top: 10,
-                  right: 10,
-                  width: 8,
-                  height: 8,
-                  backgroundColor: colors.primary,
-                  borderRadius: 4
-                }} />
+                <View
+                  style={{
+                    position: 'absolute',
+                    top: 10,
+                    right: 10,
+                    width: 8,
+                    height: 8,
+                    backgroundColor: colors.primary,
+                    borderRadius: 4,
+                  }}
+                />
               </>
             )}
           </TouchableOpacity>
@@ -228,89 +279,139 @@ const OrdersScreen = () => {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.mainStack}>
-          <View style={styles.activeSection}>
-            <View style={styles.activeHeaderRow}>
-              <Text style={styles.sectionTitle}>Active Order</Text>
-              <View style={styles.statusPill}>
-                <Text style={styles.statusPillText}>In Progress</Text>
-              </View>
-            </View>
-
-            <View style={styles.activeCard}>
-              <GlassLayer radius={16} tint="rgba(255, 255, 255, 0.03)" />
-
-              <View style={styles.activeTopRow}>
-                <View style={styles.activeLeftBlock}>
-                  <View style={styles.activeImageFrame}>
-                    <Image
-                      source={{
-                        uri: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=300&q=80',
-                      }}
-                      style={styles.activeFoodImage}
-                    />
-                  </View>
-
-                  <View style={styles.activeTitleGroup}>
-                    <Text style={styles.activeRestaurant}>Umami Sushi Garden</Text>
-                    <Text style={styles.activeMeta}>Order #9921  -  12 mins away</Text>
-                  </View>
+          {orderListData &&
+          orderListData?.active_orders &&
+          orderListData.active_orders.length > 0 ? (
+            <View style={styles.activeSection}>
+              <View style={styles.activeHeaderRow}>
+                <Text style={styles.sectionTitle}>Active Order</Text>
+                <View style={styles.statusPill}>
+                  <Text style={styles.statusPillText}>In Progress</Text>
                 </View>
               </View>
+              {orderListData.active_orders.map((order, ind) => {
+                return (
+                  <View style={styles.activeCard} key={ind}>
+                    <GlassLayer radius={16} tint="rgba(255, 255, 255, 0.03)" />
 
-              <View style={styles.progressSection}>
-                <View style={styles.progressLabelsRow}>
-                  <Text style={styles.progressLabelActive}>Preparing</Text>
-                  <Text style={styles.progressLabelActive}>On the Way</Text>
-                  <Text style={styles.progressLabelInactive}>Arrived</Text>
-                </View>
+                    <View style={styles.activeTopRow}>
+                      <View style={styles.activeLeftBlock}>
+                        <View style={styles.activeImageFrame}>
+                          <Image
+                            source={
+                              order?.shop?.image
+                                ? { uri: Constant.ImageURL + order.shop.image }
+                                : ImagePath.noShopPlaceholder
+                            }
+                            style={styles.activeFoodImage}
+                          />
+                        </View>
 
-                <View style={styles.progressTrackWrap}>
-                  <View style={styles.progressLineBase} />
-                  <LinearGradient
-                    colors={['#FFAD3A', '#F59E0A']}
-                    start={{ x: 0, y: 0.5 }}
-                    end={{ x: 1, y: 0.5 }}
-                    style={styles.progressLineActive}
-                  />
+                        <View style={styles.activeTitleGroup}>
+                          <Text style={styles.activeRestaurant}>
+                            {order?.shop?.name || ''}
+                          </Text>
+                          <Text style={styles.activeMeta}>
+                            Order #{order?.order_id}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
 
-                  <View style={[styles.progressDot, styles.progressDotOne, styles.progressDotDone]} />
-                  <View style={[styles.progressDot, styles.progressDotTwo, styles.progressDotDone]} />
-                  <View style={[styles.progressDot, styles.progressDotThree]} />
-                </View>
-              </View>
+                    <View style={styles.progressSection}>
+                      <View style={styles.progressLabelsRow}>
+                        <Text style={styles.progressLabelActive}>
+                          Preparing
+                        </Text>
+                        <Text style={styles.progressLabelActive}>
+                          On the Way
+                        </Text>
+                        <Text style={styles.progressLabelInactive}>
+                          Arrived
+                        </Text>
+                      </View>
 
-              <View style={styles.courierCard}>
-                <View style={styles.courierInfoRow}>
-                  <View style={styles.courierAvatarFrame}>
-                    <Image
-                      source={{
-                        uri: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=160&q=80',
-                      }}
-                      style={styles.courierAvatar}
-                    />
-                  </View>
+                      <View style={styles.progressTrackWrap}>
+                        <View style={styles.progressLineBase} />
+                        <LinearGradient
+                          colors={['#FFAD3A', '#F59E0A']}
+                          start={{ x: 0, y: 0.5 }}
+                          end={{ x: 1, y: 0.5 }}
+                          style={styles.progressLineActive}
+                        />
 
-                  <View>
-                    <Text style={styles.courierCaption}>Your Courier</Text>
-                    <Text style={styles.courierName}>Marco V.</Text>
-                    <View style={styles.ratingRow}>
-                      <Star size={12} color={colors.primary} fill={colors.primary} strokeWidth={1.8} />
-                      <Text style={styles.ratingText}>4.9</Text>
+                        <View
+                          style={[
+                            styles.progressDot,
+                            styles.progressDotOne,
+                            styles.progressDotDone,
+                          ]}
+                        />
+                        <View
+                          style={[
+                            styles.progressDot,
+                            styles.progressDotTwo,
+                            styles.progressDotDone,
+                          ]}
+                        />
+                        <View
+                          style={[styles.progressDot, styles.progressDotThree]}
+                        />
+                      </View>
+                    </View>
+
+                    <View style={styles.courierCard}>
+                      <View style={styles.courierInfoRow}>
+                        <View style={styles.courierAvatarFrame}>
+                          <Image
+                            source={{
+                              uri: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=160&q=80',
+                            }}
+                            style={styles.courierAvatar}
+                          />
+                        </View>
+
+                        <View>
+                          <Text style={styles.courierCaption}>
+                            Your Courier
+                          </Text>
+                          <Text style={styles.courierName}>Marco V.</Text>
+                          <View style={styles.ratingRow}>
+                            <Star
+                              size={12}
+                              color={colors.primary}
+                              fill={colors.primary}
+                              strokeWidth={1.8}
+                            />
+                            <Text style={styles.ratingText}>4.9</Text>
+                          </View>
+                        </View>
+                      </View>
+
+                      <View style={styles.courierActions}>
+                        <TouchableOpacity
+                          style={styles.courierIconButton}
+                          activeOpacity={0.88}
+                        >
+                          <MessageCircle
+                            size={16}
+                            color="#FFFFFF"
+                            strokeWidth={2}
+                          />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.courierIconButton}
+                          activeOpacity={0.88}
+                        >
+                          <Phone size={16} color="#FFFFFF" strokeWidth={2} />
+                        </TouchableOpacity>
+                      </View>
                     </View>
                   </View>
-                </View>
-
-                <View style={styles.courierActions}>
-                  <TouchableOpacity style={styles.courierIconButton} activeOpacity={0.88}>
-                    <MessageCircle size={16} color="#FFFFFF" strokeWidth={2} />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.courierIconButton} activeOpacity={0.88}>
-                    <Phone size={16} color="#FFFFFF" strokeWidth={2} />
-                  </TouchableOpacity>
-                </View>
-              </View>
+                );
+              })}
             </View>
-          </View>
+          ) : null}
 
           <View style={styles.historySection}>
             <Text style={styles.sectionTitle}>Order History</Text>
@@ -326,7 +427,10 @@ const OrdersScreen = () => {
                     onPress={() => openOrderDetails(order.id)}
                   >
                     <View style={styles.historyImageFrame}>
-                      <Image source={{ uri: order.image }} style={styles.historyImage} />
+                      <Image
+                        source={{ uri: order.image }}
+                        style={styles.historyImage}
+                      />
                     </View>
 
                     <View style={styles.historyTextGroup}>
@@ -335,7 +439,11 @@ const OrdersScreen = () => {
                       </Text>
 
                       <View style={styles.deliveredRow}>
-                        <CircleCheck size={14} color={colors.successBright} strokeWidth={2.1} />
+                        <CircleCheck
+                          size={14}
+                          color={colors.successBright}
+                          strokeWidth={2.1}
+                        />
                         <Text style={styles.deliveredText}>DELIVERED</Text>
                       </View>
 
@@ -350,11 +458,36 @@ const OrdersScreen = () => {
                   {order.quote ? (
                     <View style={styles.reviewCard}>
                       <View style={styles.reviewStarsRow}>
-                        <Star size={14} color={colors.primary} fill={colors.primary} strokeWidth={2.2} />
-                        <Star size={14} color={colors.primary} fill={colors.primary} strokeWidth={2.2} />
-                        <Star size={14} color={colors.primary} fill={colors.primary} strokeWidth={2.2} />
-                        <Star size={14} color={colors.primary} fill={colors.primary} strokeWidth={2.2} />
-                        <Star size={14} color={colors.primary} fill={colors.primary} strokeWidth={2.2} />
+                        <Star
+                          size={14}
+                          color={colors.primary}
+                          fill={colors.primary}
+                          strokeWidth={2.2}
+                        />
+                        <Star
+                          size={14}
+                          color={colors.primary}
+                          fill={colors.primary}
+                          strokeWidth={2.2}
+                        />
+                        <Star
+                          size={14}
+                          color={colors.primary}
+                          fill={colors.primary}
+                          strokeWidth={2.2}
+                        />
+                        <Star
+                          size={14}
+                          color={colors.primary}
+                          fill={colors.primary}
+                          strokeWidth={2.2}
+                        />
+                        <Star
+                          size={14}
+                          color={colors.primary}
+                          fill={colors.primary}
+                          strokeWidth={2.2}
+                        />
                       </View>
                       <Text style={styles.reviewText}>{order.quote}</Text>
                     </View>
@@ -365,7 +498,9 @@ const OrdersScreen = () => {
                       activeOpacity={0.88}
                       style={[
                         styles.primaryActionButton,
-                        order.showRateButton ? styles.primaryActionHalf : styles.primaryActionFull,
+                        order.showRateButton
+                          ? styles.primaryActionHalf
+                          : styles.primaryActionFull,
                       ]}
                       onPress={() => openOrderDetails(order.id)}
                     >
@@ -385,8 +520,14 @@ const OrdersScreen = () => {
                         style={styles.secondaryActionButton}
                         onPress={openRateExperience}
                       >
-                        <Star size={15} color={colors.primary} strokeWidth={2.2} />
-                        <Text style={styles.secondaryActionText}>RATE ORDER</Text>
+                        <Star
+                          size={15}
+                          color={colors.primary}
+                          strokeWidth={2.2}
+                        />
+                        <Text style={styles.secondaryActionText}>
+                          RATE ORDER
+                        </Text>
                       </TouchableOpacity>
                     ) : null}
                   </View>

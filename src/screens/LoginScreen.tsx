@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
   Image,
+  Alert,
 } from 'react-native';
 import { BlurView } from '@react-native-community/blur';
 import MaterialIcons from '@react-native-vector-icons/material-icons';
@@ -78,7 +79,13 @@ const LoginScreen = () => {
     if (!canRequestOtp) {
       return;
     }
-    dispatch(login({ phone: phoneDigits }));
+    dispatch(login({ phone: phoneDigits }))
+      .unwrap()
+      .then(({ data }) => {
+        if (data?.otp) {
+          Alert.alert(`OTP ${data?.otp}`);
+        }
+      });
   };
 
   return (

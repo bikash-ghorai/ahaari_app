@@ -77,6 +77,23 @@ export const verifyOTP = createAsyncThunk(
   },
 );
 
+//For fetching user profile
+export const getMyProfile = createAsyncThunk(
+  'user/getMyProfile',
+  async (_, thunkAPI) => {
+    try {
+      const { data, message }: { data: any; message: string } = await axios.get(
+        'user/my-profile',
+      );
+      console.log('data1', data);
+      await setUserDetailsToAsyncStore(data);
+      return { data, message };
+    } catch (error: any) {
+      return thunkAPI.rejectWithValue(error);
+    }
+  },
+);
+
 //For fetching user addresses
 export const getAddressList = createAsyncThunk(
   'user/getAddressList',

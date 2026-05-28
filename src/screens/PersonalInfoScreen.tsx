@@ -1,4 +1,4 @@
-import React, { useEffect,useState } from 'react';
+import React from 'react';
 import {
   Image,
   ScrollView,
@@ -11,44 +11,17 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Star } from 'lucide-react-native';
-import DatePicker from 'react-native-date-picker';
 
 import { colors, layout, typography } from '../constants/theme';
 import Header from '../components/Header';
-import { IUser } from '../types';
-import { getUserDetailsFromAsyncStore } from '../utils/storage';
 
 const PersonalInfoScreen = () => {
-  const [userInfo, setUserInfo] = useState<IUser | null>(null);
-  const [firstName, setFirstName] = React.useState('');
-  const [lastName, setLastName] = React.useState('');
+  const [fullName, setFullName] = React.useState('Sarah Jenkins');
   const [username, setUsername] = React.useState('sarah.j');
   const [email, setEmail] = React.useState('sarah.j@lifestyle.com');
   const [phone, setPhone] = React.useState('+1 (415) 555-0182');
-  const [birthday, setBirthday] = React.useState(new Date(1994, 7, 12));
-  const [showBirthdayPicker, setShowBirthdayPicker] = React.useState(false);
+  const [birthday, setBirthday] = React.useState('12 Aug 1994');
   const [address, setAddress] = React.useState('123 Amber Lane, San Francisco');
-
-  useEffect(() => {
-      let isMounted = true;
-  
-      const loadUserInfo = async () => {
-        const storedUserInfo = await getUserDetailsFromAsyncStore();
-  
-        if (isMounted) {
-          setUserInfo(storedUserInfo);
-          setFirstName(storedUserInfo?.first_name || '');
-          setLastName(storedUserInfo?.last_name || '');
-          setPhone(storedUserInfo?.phone || '');
-        }
-      };
-  
-      loadUserInfo();
-  
-      return () => {
-        isMounted = false;
-      };
-    }, []);
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
@@ -64,30 +37,34 @@ const PersonalInfoScreen = () => {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.heroCard}>
-          
-
           <View style={styles.heroRow}>
             <View style={styles.avatarWrap}>
               <Image
                 source={{
-                  uri:
-                    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=512&q=80',
+                  uri: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=512&q=80',
                 }}
                 style={styles.avatar}
               />
             </View>
 
             <View style={styles.heroText}>
-              <Text style={styles.heroName}>{firstName} {lastName}</Text>
+              <Text style={styles.heroName}>{fullName}</Text>
               <Text style={styles.heroMeta}>Member since 2022</Text>
 
               <View style={styles.heroActions}>
                 <View style={styles.heroChip}>
-                  <Star size={12} color={colors.primary} fill={colors.primary} />
+                  <Star
+                    size={12}
+                    color={colors.primary}
+                    fill={colors.primary}
+                  />
                   <Text style={styles.heroChipText}>Standard Member</Text>
                 </View>
 
-                <TouchableOpacity style={styles.editButton} activeOpacity={0.85}>
+                <TouchableOpacity
+                  style={styles.editButton}
+                  activeOpacity={0.85}
+                >
                   <Text style={styles.editButtonText}>Edit photo</Text>
                 </TouchableOpacity>
               </View>
@@ -98,14 +75,13 @@ const PersonalInfoScreen = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Profile Details</Text>
           <View style={styles.formCard}>
-
             <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>FIRST NAME</Text>
+              <Text style={styles.fieldLabel}>FULL NAME</Text>
               <View style={styles.inputShell}>
                 <TextInput
-                  value={firstName}
-                  onChangeText={setFirstName}
-                  placeholder="First name"
+                  value={fullName}
+                  onChangeText={setFullName}
+                  placeholder="Your full name"
                   placeholderTextColor={colors.textMuted}
                   style={styles.inputText}
                 />
@@ -113,13 +89,55 @@ const PersonalInfoScreen = () => {
             </View>
 
             <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>LAST NAME</Text>
+              <Text style={styles.fieldLabel}>USERNAME</Text>
               <View style={styles.inputShell}>
                 <TextInput
-                  value={lastName}
-                  onChangeText={setLastName}
-                  placeholder="Last name"
+                  value={username}
+                  onChangeText={setUsername}
+                  placeholder="@username"
                   placeholderTextColor={colors.textMuted}
+                  style={styles.inputText}
+                />
+              </View>
+            </View>
+
+            <View style={styles.rowFields}>
+              <View style={styles.halfField}>
+                <Text style={styles.fieldLabel}>BIRTHDAY</Text>
+                <View style={styles.inputShell}>
+                  <TextInput
+                    value={birthday}
+                    onChangeText={setBirthday}
+                    placeholder="DD MMM YYYY"
+                    placeholderTextColor={colors.textMuted}
+                    style={styles.inputText}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.halfField}>
+                <Text style={styles.fieldLabel}>MEMBER STATUS</Text>
+                <View style={[styles.inputShell, styles.inputMuted]}>
+                  <Text style={styles.inputStaticText}>Standard</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Contact</Text>
+          <View style={styles.formCard}>
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>EMAIL ADDRESS</Text>
+              <View style={styles.inputShell}>
+                <TextInput
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder="Email"
+                  placeholderTextColor={colors.textMuted}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
                   style={styles.inputText}
                 />
               </View>
@@ -138,45 +156,23 @@ const PersonalInfoScreen = () => {
                 />
               </View>
             </View>
+          </View>
+        </View>
 
-            <View style={styles.rowFields}>
-              <View style={styles.halfField}>
-                <Text style={styles.fieldLabel}>BIRTHDAY</Text>
-                <TouchableOpacity
-                  style={styles.inputShell}
-                  onPress={() => setShowBirthdayPicker(true)}
-                >
-                  <Text style={styles.inputText}>
-                    {birthday.toLocaleDateString('en-US', {
-                      day: '2-digit',
-                      month: 'short',
-                      year: 'numeric',
-                    })}
-                  </Text>
-                </TouchableOpacity>
-                <DatePicker
-                  modal
-                  open={showBirthdayPicker}
-                  date={birthday}
-                  onConfirm={(date) => {
-                    setBirthday(date);
-                    setShowBirthdayPicker(false);
-                  }}
-                  onCancel={() => setShowBirthdayPicker(false)}
-                  mode="date"
-                  maximumDate={new Date()}
-                  theme="dark"
-                  title="Select your birthday"
-                  confirmText="Confirm"
-                  cancelText="Cancel"
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Address</Text>
+          <View style={styles.formCard}>
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>PRIMARY ADDRESS</Text>
+              <View style={[styles.inputShell, styles.inputTall]}>
+                <TextInput
+                  value={address}
+                  onChangeText={setAddress}
+                  placeholder="Street, City"
+                  placeholderTextColor={colors.textMuted}
+                  multiline={true}
+                  style={[styles.inputText, styles.inputMultiline]}
                 />
-              </View>
-
-              <View style={styles.halfField}>
-                <Text style={styles.fieldLabel}>MEMBER STATUS</Text>
-                <View style={[styles.inputShell, styles.inputMuted]}>
-                  <Text style={styles.inputStaticText}>Standard</Text>
-                </View>
               </View>
             </View>
           </View>
@@ -194,9 +190,9 @@ const PersonalInfoScreen = () => {
             </LinearGradient>
           </TouchableOpacity>
 
-          {/* <TouchableOpacity style={styles.secondaryButton} activeOpacity={0.9}>
+          <TouchableOpacity style={styles.secondaryButton} activeOpacity={0.9}>
             <Text style={styles.secondaryButtonText}>Discard Updates</Text>
-          </TouchableOpacity> */}
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>

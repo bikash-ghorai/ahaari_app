@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import {
   KeyboardAvoidingView,
   ScrollView,
@@ -7,36 +7,58 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  PermissionsAndroid,
+  Platform,
+  ActivityIndicator,
+  Dimensions,
 } from 'react-native';
-import { ArrowUpDown, MapPin, Search } from 'lucide-react-native';
+import { Locate, MapPin } from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
+import MapView, { PROVIDER_GOOGLE } from 'react-native-maps';
+import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
+import Geolocation from '@react-native-community/geolocation';
 
 import { colors, layout, typography } from '../constants/theme';
-import GlassLayer from '../components/GlassLayer';
 import Header from '../components/Header';
-import { useDispatch } from '../redux/store';
-import { addAddress } from '../redux/user/userAction';
+import { useDispatch, useSelector } from '../redux/store';
+import { addAddress, getMyProfile } from '../redux/user/userAction';
 import { IAddressAddReq } from '../types';
 import { showToaster } from '../utils/toaster';
 import { goBack } from '../utils/navigationRef';
+import MapStyle from '../utils/MapStyle';
+import { Constant } from '../constants/Constant';
 
-const surfaceColors = {
-  map: '#A7A7A9',
-  searchText: '#B9BEC7',
-};
+const { height } = Dimensions.get('window');
 
 const AddressType: any = [
   { label: 'Home', value: 'Home' },
   { label: 'Work', value: 'Work' },
   { label: 'Other', value: 'Other' },
 ];
+
 const AddAddressScreen = () => {
-  const snapPoints = useMemo(() => ['45%', '45%'], []);
-
+  const snapPoints = useMemo(() => ['50%', '50%'], []);
   const dispatch = useDispatch();
+  const mapRef = useRef<null | any>(null);
+  const googlePlacesRef = useRef<null | any>(null);
+  const { userData } = useSelector((state: any) => state.user);
 
+  const isUserNameAvailable =
+    userData && userData?.first_name && userData?.last_name;
+
+  // Location state
+  const [location, setLocation] = useState({
+    latitude: 22.3912558,
+    longitude: 87.5631036,
+    latitudeDelta: 0.015,
+    longitudeDelta: 0.015,
+  });
+
+  const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+
+  // Form state
   const [type, setType] = useState<IAddressAddReq['type']>(
     AddressType[0].value,
   );
@@ -47,35 +69,164 @@ const AddAddressScreen = () => {
   const [pincode, setPincode] = useState<IAddressAddReq['pincode']>('');
   const [phone_no, setPhoneNo] = useState<IAddressAddReq['phone_no']>('');
 
+  // Request location permission and get current location
+  const requestLocationPermission = async () => {
+    try {
+      setIsLoadingLocation(true);
+      if (Platform.OS === 'android') {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+          {
+            title: 'Location Permission',
+            message: 'We need access to your location to show the map.',
+            buttonNeutral: 'Ask Me Later',
+            buttonNegative: 'Cancel',
+            buttonPositive: 'OK',
+          },
+        );
+
+        if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+          getCurrentLocation();
+        } else {
+          showToaster('Location permission denied');
+          setIsLoadingLocation(false);
+        }
+      } else {
+        getCurrentLocation();
+      }
+    } catch (err) {
+      console.log('Permission error:', err);
+      setIsLoadingLocation(false);
+    }
+  };
+
+  const getCurrentLocation = () => {
+    Geolocation.getCurrentPosition(
+      position => {
+        const { latitude, longitude } = position.coords;
+        const newLocation = {
+          latitude,
+          longitude,
+          latitudeDelta: 0.015,
+          longitudeDelta: 0.015,
+        };
+
+        setLocation(newLocation);
+        if (mapRef?.current) {
+          mapRef.current.animateToRegion(newLocation, 1000);
+        }
+        reverseGeocodeLocation(latitude, longitude);
+        setIsLoadingLocation(false);
+      },
+      error => {
+        console.log('Geolocation error:', error);
+        showToaster('Unable to fetch location');
+        setIsLoadingLocation(false);
+      },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 },
+    );
+  };
+
+  const reverseGeocodeLocation = async (lat: number, lng: number) => {
+    try {
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${Constant.MapKey}`,
+      );
+      const data = await response.json();
+
+      if (data.results && data.results.length > 0) {
+        const result = data.results[0];
+        setAddress(result.formatted_address);
+
+        // Extract city and postal code
+        let postalCode = '';
+
+        result.address_components.forEach((component: any) => {
+          if (component.types.includes('postal_code')) {
+            postalCode = component.long_name;
+          }
+        });
+
+        setPincode(postalCode);
+      }
+    } catch (error) {
+      console.log('Reverse geocoding error:', error);
+    }
+  };
+
+  const handleMapRegionChange = (newLocation: any) => {
+    setLocation(newLocation);
+    reverseGeocodeLocation(newLocation.latitude, newLocation.longitude);
+  };
+
+  const handlePlaceSelected = (data: any, details: any = null) => {
+    if (details && details.geometry) {
+      const { lat, lng } = details.geometry.location;
+      const newLocation = {
+        latitude: lat,
+        longitude: lng,
+        latitudeDelta: 0.015,
+        longitudeDelta: 0.015,
+      };
+
+      setLocation(newLocation);
+      setAddress(data.description);
+
+      if (mapRef?.current) {
+        mapRef.current.animateToRegion(newLocation, 1000);
+      }
+
+      // Extract postal code from details
+      details.address_components.forEach((component: any) => {
+        if (component.types.includes('postal_code')) {
+          setPincode(component.long_name);
+        }
+      });
+    }
+  };
+
+  // Get current location on mount
+  useEffect(() => {
+    requestLocationPermission();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleSaveAddress = () => {
     if (!address || !address.trim()) {
       showToaster('Please enter the address');
       return;
     }
-    if (!first_name || !first_name.trim()) {
-      showToaster('Please enter the first name');
-      return;
-    }
-    if (!last_name || !last_name.trim()) {
-      showToaster('Please enter the last name');
-      return;
+    if (!isUserNameAvailable) {
+      if (!first_name || !first_name.trim()) {
+        showToaster('Please enter the first name');
+        return;
+      }
+      if (!last_name || !last_name.trim()) {
+        showToaster('Please enter the last name');
+        return;
+      }
     }
     if (!pincode || !pincode.trim()) {
       showToaster('Please enter the ZIP code');
       return;
     }
+
     const params: IAddressAddReq = {
       type,
-      first_name,
-      last_name,
       address,
       landmark,
       pincode,
       phone_no,
-      latitude: '22.3912558',
-      longitude: '87.7531036',
+      latitude: location.latitude.toString(),
+      longitude: location.longitude.toString(),
     };
+    if (!isUserNameAvailable) {
+      params.first_name = first_name;
+      params.last_name = last_name;
+    }
+
     dispatch(addAddress(params)).then(() => {
+      dispatch(getMyProfile());
       goBack();
     });
   };
@@ -88,31 +239,67 @@ const AddAddressScreen = () => {
         containerStyle={{ paddingHorizontal: layout.screenPadding }}
       />
 
-      <View style={styles.mapSection}>
-        <View style={styles.searchBar}>
-          <GlassLayer radius={28} tint="rgba(12, 14, 18, 0.55)" />
-          <Search size={18} color={colors.primary} strokeWidth={2.4} />
-          <Text style={styles.searchPlaceholder}>
-            Search for new or enter a manual address
-          </Text>
-          <ArrowUpDown size={15} color={colors.primary} strokeWidth={2.2} />
-        </View>
+      <View style={[styles.mapContainer, { height: height * 0.4 }]}>
+        {isLoadingLocation && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.loadingText}>Fetching your location...</Text>
+          </View>
+        )}
 
-        <View style={styles.pinWrap}>
+        <MapView
+          ref={mapRef}
+          provider={PROVIDER_GOOGLE}
+          initialRegion={location}
+          onRegionChangeComplete={handleMapRegionChange}
+          style={styles.map}
+          customMapStyle={MapStyle}
+        />
+        {/* Center pin indicator */}
+        <View style={styles.mapCenterPin}>
           <MapPin
             size={52}
             color={colors.primary}
             fill={colors.primary}
             strokeWidth={1.8}
           />
-          <View style={styles.pinBadge}>
-            <Text style={styles.pinBadgeText}>PIN LOCATION</Text>
-          </View>
         </View>
+        {/* Search bar overlay */}
+        <GooglePlacesAutocomplete
+          ref={googlePlacesRef}
+          placeholder="Search address..."
+          onPress={handlePlaceSelected}
+          query={{
+            key: Constant.MapKey,
+            language: 'en',
+            components: 'country:in',
+          }}
+          styles={googlePlacesStyles}
+          textInputProps={{
+            placeholderTextColor: colors.textMutedAlt2,
+          }}
+          nearbyPlacesAPI="GooglePlacesSearch"
+          debounce={300}
+          enablePoweredByContainer={false}
+          listViewDisplayed="auto"
+          keyboardShouldPersistTaps="handled"
+          isRowScrollable={true}
+          minLength={2}
+          fetchDetails={true}
+        />
+
+        {/* Current location button */}
+        <TouchableOpacity
+          style={styles.currentLocationButton}
+          onPress={requestLocationPermission}
+          activeOpacity={0.8}
+        >
+          <Locate size={20} color={colors.primary} strokeWidth={2} />
+        </TouchableOpacity>
       </View>
 
       <BottomSheet
-        index={1}
+        index={0}
         snapPoints={snapPoints}
         enablePanDownToClose={false}
         backgroundStyle={styles.sheetBackground}
@@ -122,7 +309,7 @@ const AddAddressScreen = () => {
         <BottomSheetView style={styles.sheetContent}>
           <LinearGradient
             pointerEvents="none"
-            colors={['rgba(255, 176, 0, 0.12)', 'rgba(18, 20, 24, 0)']}
+            colors={['rgba(245, 158, 11, 0.12)', 'rgba(18, 20, 24, 0)']}
             start={{ x: 0.5, y: 0 }}
             end={{ x: 0.5, y: 1 }}
             style={styles.sheetGlow}
@@ -174,37 +361,39 @@ const AddAddressScreen = () => {
                     placeholderTextColor={colors.textMuted}
                     multiline={true}
                     style={[styles.inputText, styles.inputMultiline]}
+                    editable={false}
                   />
                 </View>
               </View>
+              {isUserNameAvailable ? null : (
+                <View style={styles.rowFields}>
+                  <View style={styles.halfField}>
+                    <Text style={styles.fieldLabel}>First Name *</Text>
+                    <View style={styles.inputShell}>
+                      <TextInput
+                        value={first_name}
+                        onChangeText={setFirstName}
+                        placeholder="First name"
+                        placeholderTextColor={colors.textMuted}
+                        style={styles.inputText}
+                      />
+                    </View>
+                  </View>
 
-              <View style={styles.rowFields}>
-                <View style={styles.halfField}>
-                  <Text style={styles.fieldLabel}>First Name *</Text>
-                  <View style={styles.inputShell}>
-                    <TextInput
-                      value={first_name}
-                      onChangeText={setFirstName}
-                      placeholder="First name"
-                      placeholderTextColor={colors.textMuted}
-                      style={styles.inputText}
-                    />
+                  <View style={styles.halfField}>
+                    <Text style={styles.fieldLabel}>Last Name *</Text>
+                    <View style={styles.inputShell}>
+                      <TextInput
+                        value={last_name}
+                        onChangeText={setLastName}
+                        placeholder="Last name"
+                        placeholderTextColor={colors.textMuted}
+                        style={styles.inputText}
+                      />
+                    </View>
                   </View>
                 </View>
-
-                <View style={styles.halfField}>
-                  <Text style={styles.fieldLabel}>Last Name *</Text>
-                  <View style={styles.inputShell}>
-                    <TextInput
-                      value={last_name}
-                      onChangeText={setLastName}
-                      placeholder="Last name"
-                      placeholderTextColor={colors.textMuted}
-                      style={styles.inputText}
-                    />
-                  </View>
-                </View>
-              </View>
+              )}
 
               <View style={styles.rowFields}>
                 <View style={styles.halfField}>
@@ -279,60 +468,55 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  mapSection: {
-    height: 364,
-    backgroundColor: surfaceColors.map,
-    overflow: 'hidden',
+  mapContainer: {
+    position: 'relative',
+    backgroundColor: '#999',
   },
-  searchBar: {
-    height: 56,
-    marginHorizontal: layout.screenPadding,
-    marginTop: 16,
-    borderRadius: 28,
+  map: {
+    flex: 1,
+  },
+  mapCenterPin: {
+    position: 'absolute',
+    top: '48%',
+    left: '50%',
+    marginLeft: -26,
+    marginTop: -26,
+    pointerEvents: 'none',
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 100,
+  },
+  loadingText: {
+    color: colors.textPrimary,
+    marginTop: 12,
+    fontSize: typography.body,
+    fontWeight: '600',
+  },
+  currentLocationButton: {
+    position: 'absolute',
+    bottom: 40,
+    right: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: colors.glass,
     borderWidth: 1,
     borderColor: colors.glassBorder,
-    flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 18,
-    gap: 12,
-    overflow: 'hidden',
+    justifyContent: 'center',
     shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 8 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
-    shadowRadius: 22,
-    elevation: 8,
-  },
-  searchPlaceholder: {
-    flex: 1,
-    color: surfaceColors.searchText,
-    fontFamily: 'Plus Jakarta Sans',
-    fontSize: typography.caption,
-    lineHeight: 14,
-    fontWeight: '500',
-  },
-  pinWrap: {
-    marginTop: 56,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pinBadge: {
-    marginTop: 8,
-    height: 24,
-    minWidth: 104,
-    borderRadius: 6,
-    backgroundColor: colors.surfaceDark,
-    paddingHorizontal: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pinBadgeText: {
-    color: colors.primary,
-    fontFamily: 'Plus Jakarta Sans',
-    fontSize: typography.caption,
-    lineHeight: 14,
-    letterSpacing: 0.8,
-    fontWeight: '700',
+    shadowRadius: 12,
+    elevation: 5,
   },
   sheetBackground: {
     backgroundColor: colors.background,
@@ -369,7 +553,6 @@ const styles = StyleSheet.create({
   },
   formTitle: {
     color: colors.textPrimary,
-    fontFamily: 'Plus Jakarta Sans',
     fontSize: typography.xxl,
     lineHeight: 34,
     fontWeight: '700',
@@ -379,7 +562,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
     width: 248,
     color: colors.textMuted,
-    fontFamily: 'Plus Jakarta Sans',
     fontSize: typography.smPlus,
     lineHeight: 20,
     fontWeight: '500',
@@ -402,12 +584,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   tagChipActive: {
-    borderColor: 'rgba(255, 176, 0, 0.55)',
-    backgroundColor: 'rgba(255, 176, 0, 0.14)',
+    borderColor: 'rgba(245, 158, 11, 0.55)',
+    backgroundColor: 'rgba(245, 158, 11, 0.14)',
   },
   tagText: {
     color: colors.textMuted,
-    fontFamily: 'Plus Jakarta Sans',
     fontSize: typography.caption,
     lineHeight: 14,
     fontWeight: '600',
@@ -415,6 +596,18 @@ const styles = StyleSheet.create({
   },
   tagTextActive: {
     color: colors.primary,
+  },
+  fetchedAddressText: {
+    color: colors.textPrimary,
+    fontSize: typography.body,
+    fontWeight: '600',
+    lineHeight: 20,
+  },
+  fetchedCityText: {
+    color: colors.textMuted,
+    fontSize: typography.caption,
+    marginTop: 4,
+    fontWeight: '500',
   },
   rowFields: {
     marginTop: 14,
@@ -426,7 +619,6 @@ const styles = StyleSheet.create({
   },
   fieldLabel: {
     color: colors.primary,
-    fontFamily: 'Plus Jakarta Sans',
     fontSize: typography.caption,
     lineHeight: 14,
     fontWeight: '700',
@@ -453,22 +645,9 @@ const styles = StyleSheet.create({
   },
   inputText: {
     color: colors.textSecondary,
-    fontFamily: 'Plus Jakarta Sans',
     fontSize: typography.body,
     lineHeight: 18,
     fontWeight: '500',
-  },
-  inputHint: {
-    color: colors.textMuted,
-    fontFamily: 'Plus Jakarta Sans',
-    fontSize: typography.body,
-    lineHeight: 20,
-    fontWeight: '500',
-  },
-  notesBox: {
-    height: 84,
-    paddingTop: 12,
-    alignItems: 'flex-start',
   },
   actionArea: {
     marginTop: 26,
@@ -488,17 +667,100 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: '#000000',
-    fontFamily: 'Plus Jakarta Sans',
     fontSize: typography.lg,
     fontWeight: '700',
     letterSpacing: 0.3,
   },
   actionHint: {
     color: colors.textMuted,
-    fontFamily: 'Plus Jakarta Sans',
     fontSize: typography.caption,
     lineHeight: 16,
     textAlign: 'center',
+  },
+});
+
+const googlePlacesStyles = StyleSheet.create({
+  container: {
+    position: 'absolute',
+    top: 16,
+    left: layout.screenPadding,
+    right: layout.screenPadding,
+    // zIndex: 1000,
+  },
+  textInput: {
+    height: 55,
+    paddingHorizontal: 16,
+    borderRadius: 28,
+    marginHorizontal: 0,
+    marginVertical: 0,
+    overflow: 'hidden',
+    padding: 0,
+    alignItems: 'flex-start',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.23)',
+    backgroundColor: 'rgba(12, 14, 18, 0.6)',
+    color: colors.textSecondary,
+    fontSize: typography.body,
+    lineHeight: 18,
+    fontWeight: '500',
+  },
+  listView: {
+    position: 'absolute',
+    top: 62,
+    left: 0,
+    right: 0,
+    maxHeight: 300,
+    borderRadius: 16,
+    marginHorizontal: 0,
+    marginVertical: 0,
+    backgroundColor: colors.surfaceDark,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 6,
+    zIndex: 1001,
+  },
+  row: {
+    backgroundColor: colors.surfaceDark,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 0.5,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
+  },
+  separator: {
+    height: 0.5,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  description: {
+    color: colors.textSecondary,
+    fontSize: typography.body,
+    fontWeight: '500',
+    marginBottom: 3,
+  },
+  loader: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    height: 40,
+  },
+  predefinedPlacesDescription: {
+    color: colors.textMuted,
+    fontSize: typography.caption,
+    fontWeight: '500',
+  },
+  poweredContainer: {
+    justifyContent: 'flex-start',
+    borderTopWidth: 0.5,
+    borderTopColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: colors.surfaceDark,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  powered: {
+    height: 16,
+    resizeMode: 'contain',
   },
 });
 

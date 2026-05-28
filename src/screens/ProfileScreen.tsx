@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+/* eslint-disable react-native/no-inline-styles */
+import React, { useEffect } from 'react';
 import {
   Image,
   ScrollView,
@@ -20,16 +21,14 @@ import {
   Wallet,
 } from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, layout, typography } from '../constants/theme';
-import type { IUser } from '../types';
 import type { RootStackParamList } from '../types/navigation';
-import { logout } from '../redux/user/userAction';
-import { useDispatch } from '../redux/store';
-import { getUserDetailsFromAsyncStore } from '../utils/storage';
+import { getMyProfile, logout } from '../redux/user/userAction';
+import { useDispatch, useSelector } from '../redux/store';
 
 const circleMembers = [
   'https://api.dicebear.com/9.x/adventurer/png?seed=ava',
@@ -47,9 +46,10 @@ const memberAvatarOffsetStyles = [
 
 const ProfileScreen = () => {
   const dispatch = useDispatch();
+  const isFocused = useIsFocused();
+  const { userData } = useSelector(state => state.user);
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const [userInfo, setUserInfo] = useState<IUser | null>(null);
   const hasActivePlan = false;
   const memberBadgeText = hasActivePlan
     ? 'Premium\nMember'
@@ -58,22 +58,11 @@ const ProfileScreen = () => {
   const planButtonText = hasActivePlan ? 'Manage Plan' : 'Choose Plan';
 
   useEffect(() => {
-    let isMounted = true;
-
-    const loadUserInfo = async () => {
-      const storedUserInfo = await getUserDetailsFromAsyncStore();
-
-      if (isMounted) {
-        setUserInfo(storedUserInfo);
-      }
-    };
-
-    loadUserInfo();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+    if (isFocused) {
+      dispatch(getMyProfile());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isFocused]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -88,12 +77,24 @@ const ProfileScreen = () => {
           <View style={styles.profileImageShell}>
             <View style={styles.profileImageGlow}>
               <View style={styles.profileImageBorder}>
-                <Image
-                  source={{
-                    uri: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=512&q=80',
-                  }}
-                  style={styles.profileImage}
-                />
+                {userData?.picture ? (
+                  <Image
+                    source={{ uri: userData.picture }}
+                    style={styles.profileImage}
+                  />
+                ) : (
+                  <Text
+                    style={{
+                      color: colors.accentCoral,
+                      fontSize: typography.display4xl,
+                      fontWeight: '700',
+                    }}
+                  >
+                    {userData?.first_name
+                      ? userData?.first_name?.charAt(0)
+                      : 'G'}
+                  </Text>
+                )}
               </View>
             </View>
             <View style={styles.memberBadge}>
@@ -116,10 +117,12 @@ const ProfileScreen = () => {
           </View>
 
           <Text style={styles.profileName}>
-            {userInfo?.first_name || 'Your Name'} {userInfo?.last_name || ''}
+            {userData?.first_name && userData?.last_name
+              ? userData.first_name + ' ' + userData.last_name
+              : 'Guest User'}
           </Text>
-          <Text style={styles.profileEmail}>
-            {userInfo?.phone ? `+91 ${userInfo.phone}` : 'Phone number not available'}
+          <Text style={styles.profilePhone}>
+            +91 {userData?.phone || 'Not Available'}
           </Text>
         </View>
 
@@ -133,16 +136,18 @@ const ProfileScreen = () => {
 
                 <View>
                   <Text style={styles.walletVipLabel}>WALLET BALANCE</Text>
-                  <Text style={styles.walletVipAmount}>₹{userInfo?.balance?.toFixed(2) || '0.00'}</Text>
+                  <Text style={styles.walletVipAmount}>
+                    ₹{userData?.balance ? userData?.balance.toFixed(2) : '0.00'}
+                  </Text>
                 </View>
               </View>
 
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 style={styles.topUpButton}
                 onPress={() => navigation.navigate('WalletHistory')}
               >
                 <Text style={styles.topUpButtonText}>Top Up</Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
 
             {/* <View style={styles.walletVipDivider} />
@@ -276,7 +281,7 @@ const ProfileScreen = () => {
 
             <View style={styles.listDivider} />
 
-            {/* <TouchableOpacity
+            <TouchableOpacity
               style={styles.listRow}
               onPress={() => navigation.navigate('ReferEarn')}
             >
@@ -291,7 +296,7 @@ const ProfileScreen = () => {
                 </View>
                 <ChevronRight size={20} color="#6C7078" />
               </View>
-            </TouchableOpacity> */}
+            </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.listRow}
@@ -374,7 +379,7 @@ const styles = StyleSheet.create({
     borderRadius: 66,
     borderWidth: 2,
     borderColor: colors.primary,
-    backgroundColor: colors.background,
+    backgroundColor: colors.glass,
     alignItems: 'center',
     justifyContent: 'center',
     boxShadow: `0px 0px 50px ${colors.primary}`,
@@ -441,17 +446,15 @@ const styles = StyleSheet.create({
   profileName: {
     color: colors.textPrimary,
     fontSize: typography.display2xl,
-    lineHeight: 56,
     fontWeight: '700',
-    marginTop: 13,
     letterSpacing: -0.9,
   },
-  profileEmail: {
+  profilePhone: {
     color: colors.textMutedDim,
     fontSize: typography.md,
     lineHeight: 22,
     fontWeight: '500',
-    marginTop: 2,
+    marginTop: 5,
   },
   walletVipSection: {
     marginTop: 26,
