@@ -14,7 +14,7 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.response.use(
   function (response) {
     console.log(response.config.url + ': axios-response', response);
-    if (response.data?.status || response.data?.success) {
+    if (response.data?.status) {
       return response.data;
     } else {
       const message = response.data?.message;

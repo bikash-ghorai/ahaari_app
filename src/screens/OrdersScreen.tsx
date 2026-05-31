@@ -22,10 +22,10 @@ import {
   AlertTriangle,
   Bell,
   CircleCheck,
-  MessageCircle,
   Phone,
   Search,
   Star,
+  XCircle,
 } from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -36,9 +36,11 @@ import { useWeatherAlert } from '../contexts/WeatherAlertContext';
 import WeatherAlertTooltip from '../components/WeatherAlertTooltip';
 import { useDispatch } from '../redux/store';
 import { getOrders } from '../redux/app/appAction';
-import { IOrderListRes } from '../types';
+import { IActiveOrder, IOrderListRes } from '../types';
 import { ImagePath } from '../constants/ImagePath';
 import { Constant } from '../constants/Constant';
+import { handleCall, statusColors } from '../utils/helper';
+import { useCart } from '../hooks';
 
 type HistoryOrder = {
   id: string;
@@ -105,6 +107,7 @@ const OrdersScreen = () => {
   const isFocused = useIsFocused();
   const navigation = useNavigation<OrdersScreenNavigationProp>();
   const shimmerValue = useRef(new Animated.Value(0)).current;
+  const { addMultipleProducts } = useCart();
 
   const [orderListData, setOrderListData] = useState<IOrderListRes | null>(
     null,
@@ -136,8 +139,8 @@ const OrdersScreen = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isFocused]);
 
-  const openOrderDetails = (orderId?: string) => {
-    navigation.navigate('OrderDetails', orderId ? { orderId } : undefined);
+  const openOrderDetails = (orderId: string) => {
+    navigation.navigate('OrderDetails', { orderId: orderId || '' });
   };
 
   const openRateExperience = () => {
@@ -145,6 +148,22 @@ const OrdersScreen = () => {
   };
 
   const { isBadWeather, show } = useWeatherAlert();
+
+  const currentProgressWidthNumber = (order: IActiveOrder) => {
+    if (!order?.timeline) return 0;
+
+    // pending, in_progress, completed;
+    const line_25 = order.timeline?.step_1?.status === 'in_progress';
+    const line_50 = order.timeline?.step_1?.status === 'completed';
+    const line_75 = order.timeline?.step_2?.status === 'in_progress';
+    const line_100 = order.timeline?.step_3?.status === 'completed';
+
+    if (line_100) return 100;
+    if (line_75) return 75;
+    if (line_25) return 25;
+    if (line_50) return 50;
+    return 0;
+  };
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
@@ -266,247 +285,328 @@ const OrdersScreen = () => {
                   <View style={styles.activeCard} key={ind}>
                     <GlassLayer radius={16} tint="rgba(255, 255, 255, 0.03)" />
 
-                    <View style={styles.activeTopRow}>
-                      <View style={styles.activeLeftBlock}>
-                        <View style={styles.activeImageFrame}>
-                          <Image
-                            source={
-                              order?.shop?.image
-                                ? { uri: Constant.ImageURL + order.shop.image }
-                                : ImagePath.noShopPlaceholder
-                            }
-                            style={styles.activeFoodImage}
-                          />
-                        </View>
-
-                        <View style={styles.activeTitleGroup}>
-                          <Text style={styles.activeRestaurant}>
-                            {order?.shop?.name || ''}
-                          </Text>
-                          <Text style={styles.activeMeta}>
-                            Order #{order?.order_id}
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-
-                    <View style={styles.progressSection}>
-                      <View style={styles.progressLabelsRow}>
-                        <Text style={styles.progressLabelActive}>
-                          Preparing
-                        </Text>
-                        <Text style={styles.progressLabelActive}>
-                          On the Way
-                        </Text>
-                        <Text style={styles.progressLabelInactive}>
-                          Arrived
-                        </Text>
-                      </View>
-
-                      <View style={styles.progressTrackWrap}>
-                        <View style={styles.progressLineBase} />
-                        <LinearGradient
-                          colors={['#FFAD3A', '#F59E0A']}
-                          start={{ x: 0, y: 0.5 }}
-                          end={{ x: 1, y: 0.5 }}
-                          style={styles.progressLineActive}
-                        />
-
-                        <View
-                          style={[
-                            styles.progressDot,
-                            styles.progressDotOne,
-                            styles.progressDotDone,
-                          ]}
-                        />
-                        <View
-                          style={[
-                            styles.progressDot,
-                            styles.progressDotTwo,
-                            styles.progressDotDone,
-                          ]}
-                        />
-                        <View
-                          style={[styles.progressDot, styles.progressDotThree]}
-                        />
-                      </View>
-                    </View>
-
-                    <View style={styles.courierCard}>
-                      <View style={styles.courierInfoRow}>
-                        <View style={styles.courierAvatarFrame}>
-                          <Image
-                            source={{
-                              uri: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=160&q=80',
-                            }}
-                            style={styles.courierAvatar}
-                          />
-                        </View>
-
-                        <View>
-                          <Text style={styles.courierCaption}>
-                            Your Courier
-                          </Text>
-                          <Text style={styles.courierName}>Marco V.</Text>
-                          <View style={styles.ratingRow}>
-                            <Star
-                              size={12}
-                              color={colors.primary}
-                              fill={colors.primary}
-                              strokeWidth={1.8}
+                    <TouchableOpacity
+                      activeOpacity={0.88}
+                      onPress={() => openOrderDetails(order?.order_id)}
+                    >
+                      <View style={styles.activeTopRow}>
+                        <View style={styles.activeLeftBlock}>
+                          <View style={styles.activeImageFrame}>
+                            <Image
+                              source={
+                                order?.shop_image
+                                  ? {
+                                      uri: Constant.ImageURL + order.shop_image,
+                                    }
+                                  : ImagePath.noShopPlaceholder
+                              }
+                              style={styles.activeFoodImage}
                             />
-                            <Text style={styles.ratingText}>4.9</Text>
+                          </View>
+
+                          <View style={styles.activeTitleGroup}>
+                            <Text style={styles.activeRestaurant}>
+                              {order?.shop_name || ''}
+                            </Text>
+                            <Text style={styles.activeMeta}>
+                              ID #{order?.order_id_label || ''}
+                            </Text>
                           </View>
                         </View>
                       </View>
 
-                      <View style={styles.courierActions}>
-                        <TouchableOpacity
-                          style={styles.courierIconButton}
-                          activeOpacity={0.88}
-                        >
-                          <MessageCircle
-                            size={16}
-                            color="#FFFFFF"
-                            strokeWidth={2}
+                      <View style={styles.progressSection}>
+                        <View style={styles.progressLabelsRow}>
+                          <Text
+                            style={[
+                              currentProgressWidthNumber(order) >= 25
+                                ? styles.progressLabelActive
+                                : styles.progressLabelInactive,
+                            ]}
+                          >
+                            {order?.timeline?.step_1?.title || 'Preparing'}
+                          </Text>
+                          <Text
+                            style={[
+                              currentProgressWidthNumber(order) >= 75
+                                ? styles.progressLabelActive
+                                : styles.progressLabelInactive,
+                            ]}
+                          >
+                            {order?.timeline?.step_2?.title || 'On The Way'}
+                          </Text>
+                          <Text style={[styles.progressLabelInactive]}>
+                            {order?.timeline?.step_3?.title || 'Delivered'}
+                          </Text>
+                        </View>
+
+                        <View style={styles.progressTrackWrap}>
+                          <View style={styles.progressLineBase} />
+                          <LinearGradient
+                            colors={['#FFAD3A', '#F59E0A']}
+                            start={{ x: 0, y: 0.5 }}
+                            end={{ x: 1, y: 0.5 }}
+                            style={[
+                              styles.progressLineActive,
+                              {
+                                width: `${currentProgressWidthNumber(order)}%`,
+                              },
+                            ]}
                           />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={styles.courierIconButton}
-                          activeOpacity={0.88}
-                        >
-                          <Phone size={16} color="#FFFFFF" strokeWidth={2} />
-                        </TouchableOpacity>
+
+                          <View
+                            style={[
+                              styles.progressDot,
+                              styles.progressDotOne,
+                              currentProgressWidthNumber(order) >= 25
+                                ? styles.progressDotDone
+                                : null,
+                            ]}
+                          />
+                          <View
+                            style={[
+                              styles.progressDot,
+                              styles.progressDotTwo,
+                              currentProgressWidthNumber(order) >= 75
+                                ? styles.progressDotDone
+                                : null,
+                            ]}
+                          />
+                          <View
+                            style={[
+                              styles.progressDot,
+                              styles.progressDotThree,
+                            ]}
+                          />
+                        </View>
                       </View>
-                    </View>
+                    </TouchableOpacity>
+                    {order?.status === 'On The Way' && order?.partner_info ? (
+                      <View style={styles.courierCard}>
+                        <View style={styles.courierInfoRow}>
+                          <View style={styles.courierAvatarFrame}>
+                            <Image
+                              source={
+                                order?.partner_info?.picture
+                                  ? {
+                                      uri:
+                                        Constant.ImageURL +
+                                        order.partner_info.picture,
+                                    }
+                                  : ImagePath.noProfile
+                              }
+                              style={styles.courierAvatar}
+                            />
+                          </View>
+
+                          <View>
+                            <Text style={styles.courierCaption}>
+                              Your Delivery Partner
+                            </Text>
+                            <Text style={styles.courierName}>
+                              {order?.partner_info?.name}
+                            </Text>
+                            <View style={styles.ratingRow}>
+                              <Star
+                                size={12}
+                                color={colors.primary}
+                                fill={colors.primary}
+                                strokeWidth={1.8}
+                              />
+                              <Text style={styles.ratingText}>
+                                {order?.partner_info?.rating || '0.0'}
+                              </Text>
+                            </View>
+                          </View>
+                        </View>
+
+                        <View style={styles.courierActions}>
+                          <TouchableOpacity
+                            style={styles.courierIconButton}
+                            activeOpacity={0.88}
+                            onPress={() =>
+                              handleCall(order?.partner_info?.contact || '')
+                            }
+                          >
+                            <Phone size={16} color="#FFFFFF" strokeWidth={2} />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ) : (
+                      <View style={styles.estimateNoticeCard}>
+                        <View style={styles.estimateTextWrapper}>
+                          <Text style={styles.estimateLabel}>
+                            {order?.status}
+                          </Text>
+                          <Text style={styles.estimateValue}>
+                            {order?.message}
+                          </Text>
+                        </View>
+                      </View>
+                    )}
                   </View>
                 );
               })}
             </View>
           ) : null}
 
-          <View style={styles.historySection}>
-            <Text style={styles.sectionTitle}>Order History</Text>
+          {orderListData?.past_orders &&
+          orderListData?.past_orders.length > 0 ? (
+            <View style={styles.historySection}>
+              <Text style={styles.sectionTitle}>Order History</Text>
 
-            <View style={styles.historyList}>
-              {historyOrders.map(order => (
-                <View key={order.id} style={styles.historyCard}>
-                  <GlassLayer radius={16} tint="rgba(255, 255, 255, 0.03)" />
+              <View style={styles.historyList}>
+                {orderListData?.past_orders.map((order, index) => (
+                  <View key={index} style={styles.historyCard}>
+                    <GlassLayer radius={16} tint="rgba(255, 255, 255, 0.03)" />
 
-                  <TouchableOpacity
-                    activeOpacity={0.88}
-                    style={styles.historyTopRow}
-                    onPress={() => openOrderDetails(order.id)}
-                  >
-                    <View style={styles.historyImageFrame}>
-                      <Image
-                        source={{ uri: order.image }}
-                        style={styles.historyImage}
-                      />
-                    </View>
-
-                    <View style={styles.historyTextGroup}>
-                      <Text style={styles.historyTitle} numberOfLines={1}>
-                        {order.restaurant}
-                      </Text>
-
-                      <View style={styles.deliveredRow}>
-                        <CircleCheck
-                          size={14}
-                          color={colors.successBright}
-                          strokeWidth={2.1}
-                        />
-                        <Text style={styles.deliveredText}>DELIVERED</Text>
-                      </View>
-
-                      <View style={styles.metaRow}>
-                        <Text style={styles.metaDateText}>{order.date}</Text>
-                        <View style={styles.metaDot} />
-                        <Text style={styles.metaAmountText}>{order.total}</Text>
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-
-                  {order.quote ? (
-                    <View style={styles.reviewCard}>
-                      <View style={styles.reviewStarsRow}>
-                        <Star
-                          size={14}
-                          color={colors.primary}
-                          fill={colors.primary}
-                          strokeWidth={2.2}
-                        />
-                        <Star
-                          size={14}
-                          color={colors.primary}
-                          fill={colors.primary}
-                          strokeWidth={2.2}
-                        />
-                        <Star
-                          size={14}
-                          color={colors.primary}
-                          fill={colors.primary}
-                          strokeWidth={2.2}
-                        />
-                        <Star
-                          size={14}
-                          color={colors.primary}
-                          fill={colors.primary}
-                          strokeWidth={2.2}
-                        />
-                        <Star
-                          size={14}
-                          color={colors.primary}
-                          fill={colors.primary}
-                          strokeWidth={2.2}
-                        />
-                      </View>
-                      <Text style={styles.reviewText}>{order.quote}</Text>
-                    </View>
-                  ) : null}
-
-                  <View style={styles.historyActionsRow}>
                     <TouchableOpacity
                       activeOpacity={0.88}
-                      style={[
-                        styles.primaryActionButton,
-                        order.showRateButton
-                          ? styles.primaryActionHalf
-                          : styles.primaryActionFull,
-                      ]}
-                      onPress={() => openOrderDetails(order.id)}
+                      style={styles.historyTopRow}
+                      onPress={() => openOrderDetails(order.order_id)}
                     >
-                      <LinearGradient
-                        colors={['#FFAD3A', '#F59E0A']}
-                        start={{ x: 0.16, y: -0.4 }}
-                        end={{ x: 0.84, y: 1.42 }}
-                        style={styles.primaryActionGradient}
-                      >
-                        <Text style={styles.primaryActionText}>REORDER</Text>
-                      </LinearGradient>
+                      <View style={styles.historyImageFrame}>
+                        <Image
+                          source={
+                            order?.shop_image
+                              ? { uri: Constant.ImageURL + order.shop_image }
+                              : ImagePath.noShopPlaceholder
+                          }
+                          style={styles.historyImage}
+                        />
+                      </View>
+
+                      <View style={styles.historyTextGroup}>
+                        <Text style={styles.historyTitle} numberOfLines={1}>
+                          {order?.shop_name}
+                        </Text>
+
+                        <View style={styles.deliveredRow}>
+                          {order?.status === 'Delivered' ? (
+                            <CircleCheck
+                              size={14}
+                              color={statusColors[order?.status || 'Delivered']}
+                              strokeWidth={2.1}
+                            />
+                          ) : (
+                            <XCircle
+                              size={14}
+                              color={statusColors[order?.status || 'Cancelled']}
+                              strokeWidth={2.1}
+                            />
+                          )}
+                          <Text
+                            style={[
+                              styles.deliveredText,
+                              {
+                                color:
+                                  statusColors[order?.status || 'Delivered'],
+                              },
+                            ]}
+                            numberOfLines={1}
+                          >
+                            {order?.status}
+                          </Text>
+                        </View>
+
+                        <View style={styles.metaRow}>
+                          <Text style={styles.metaDateText}>{order?.date}</Text>
+                          <View style={styles.metaDot} />
+                          <Text style={styles.metaAmountText}>
+                            ₹{order?.total}
+                          </Text>
+                        </View>
+                      </View>
                     </TouchableOpacity>
 
-                    {order.showRateButton ? (
+                    {/* {order.quote ? (
+                      <View style={styles.reviewCard}>
+                        <View style={styles.reviewStarsRow}>
+                          <Star
+                            size={14}
+                            color={colors.primary}
+                            fill={colors.primary}
+                            strokeWidth={2.2}
+                          />
+                          <Star
+                            size={14}
+                            color={colors.primary}
+                            fill={colors.primary}
+                            strokeWidth={2.2}
+                          />
+                          <Star
+                            size={14}
+                            color={colors.primary}
+                            fill={colors.primary}
+                            strokeWidth={2.2}
+                          />
+                          <Star
+                            size={14}
+                            color={colors.primary}
+                            fill={colors.primary}
+                            strokeWidth={2.2}
+                          />
+                          <Star
+                            size={14}
+                            color={colors.primary}
+                            fill={colors.primary}
+                            strokeWidth={2.2}
+                          />
+                        </View>
+                        <Text style={styles.reviewText}>{order.quote}</Text>
+                      </View>
+                    ) : null} */}
+
+                    <View style={styles.historyActionsRow}>
                       <TouchableOpacity
                         activeOpacity={0.88}
-                        style={styles.secondaryActionButton}
-                        onPress={openRateExperience}
+                        style={[
+                          styles.primaryActionButton,
+                          order?.rating
+                            ? styles.primaryActionHalf
+                            : styles.primaryActionFull,
+                        ]}
+                        onPress={() =>
+                          addMultipleProducts({
+                            shop_id: order?.shop_id,
+                            products: order?.items,
+                          }).then(() => {
+                            navigation.navigate('Cart');
+                          })
+                        }
                       >
-                        <Star
-                          size={15}
-                          color={colors.primary}
-                          strokeWidth={2.2}
-                        />
-                        <Text style={styles.secondaryActionText}>
-                          RATE ORDER
-                        </Text>
+                        <LinearGradient
+                          colors={['#FFAD3A', '#F59E0A']}
+                          start={{ x: 0.16, y: -0.4 }}
+                          end={{ x: 0.84, y: 1.42 }}
+                          style={styles.primaryActionGradient}
+                        >
+                          <Text style={styles.primaryActionText}>REORDER</Text>
+                        </LinearGradient>
                       </TouchableOpacity>
-                    ) : null}
+
+                      {/* {order.showRateButton ? (
+                        <TouchableOpacity
+                          activeOpacity={0.88}
+                          style={styles.secondaryActionButton}
+                          onPress={openRateExperience}
+                        >
+                          <Star
+                            size={15}
+                            color={colors.primary}
+                            strokeWidth={2.2}
+                          />
+                          <Text style={styles.secondaryActionText}>
+                            RATE ORDER
+                          </Text>
+                        </TouchableOpacity>
+                      ) : null} */}
+                    </View>
                   </View>
-                </View>
-              ))}
+                ))}
+              </View>
             </View>
-          </View>
+          ) : null}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -617,12 +717,10 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   activeCard: {
-    height: 288,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
     padding: 24,
-    gap: 31,
     overflow: 'hidden',
     shadowColor: colors.black,
     shadowOpacity: 0.28,
@@ -669,6 +767,7 @@ const styles = StyleSheet.create({
   },
   progressSection: {
     gap: 12,
+    marginTop: 30,
   },
   progressLabelsRow: {
     flexDirection: 'row',
@@ -705,7 +804,6 @@ const styles = StyleSheet.create({
   progressLineActive: {
     position: 'absolute',
     left: 0,
-    width: '69%',
     height: 4,
     borderRadius: 999,
   },
@@ -718,10 +816,14 @@ const styles = StyleSheet.create({
   },
   progressDotOne: {
     left: 0,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+    backgroundColor: colors.background,
   },
   progressDotTwo: {
-    left: '47%',
+    left: '50%',
     marginLeft: -4,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+    backgroundColor: colors.background,
   },
   progressDotThree: {
     right: 0,
@@ -745,6 +847,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginTop: 30,
   },
   courierInfoRow: {
     flexDirection: 'row',
@@ -853,8 +956,9 @@ const styles = StyleSheet.create({
     color: colors.successBright,
     fontSize: typography.caption,
     lineHeight: 14,
-    fontWeight: '900',
+    fontWeight: '800',
     letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   metaRow: {
     marginTop: 7,
@@ -951,6 +1055,45 @@ const styles = StyleSheet.create({
     fontSize: typography.smPlus,
     lineHeight: 18,
     fontWeight: '700',
+  },
+
+  /* -- Estimate Notice -- */
+  estimateNoticeCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 173, 58, 0.25)',
+    backgroundColor: 'rgba(255, 173, 58, 0.08)',
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 30,
+  },
+  estimateIconWrapper: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  estimateIcon: {
+    fontSize: 24,
+  },
+  estimateTextWrapper: {
+    flex: 1,
+    gap: 2,
+  },
+  estimateLabel: {
+    color: colors.primary,
+    fontSize: typography.caption,
+    lineHeight: 15,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  estimateValue: {
+    color: colors.textPrimary,
+    fontSize: typography.body,
+    lineHeight: 20,
+    fontWeight: '500',
   },
 });
 

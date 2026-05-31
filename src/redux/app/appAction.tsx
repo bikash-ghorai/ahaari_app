@@ -137,3 +137,17 @@ export const getOrderDetails = createAsyncThunk(
     }
   },
 );
+
+//For getting order details
+export const cancelOrder = createAsyncThunk(
+  'app/cancelOrder',
+  async (params: { order_id: string; reason: string }, thunkAPI) => {
+    try {
+      const { data, message }: { data: any; message: string } =
+        await axios.post(`user/cancel-order`, params);
+      return { data, message };
+    } catch (error: any) {
+      return thunkAPI.rejectWithValue(error);
+    }
+  },
+);

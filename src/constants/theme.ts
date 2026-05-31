@@ -43,6 +43,8 @@ export const colors = {
   successBright: '#34D399',
   successGreen: '#39D353',
   success: '#22C55E',
+  blue: '#0160f8',
+  red: '#FF0000',
 };
 
 export const spacing = {

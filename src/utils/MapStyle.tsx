@@ -21,7 +21,7 @@ const MapStyle = [
     featureType: 'road.highway',
     stylers: [
       {
-        color: '#ffeb3b',
+        color: '#c0c0be',
       },
     ],
   },

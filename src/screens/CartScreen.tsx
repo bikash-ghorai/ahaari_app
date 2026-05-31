@@ -46,7 +46,8 @@ import RazorpayCheckout from 'react-native-razorpay';
 import { showToaster } from '../utils/toaster';
 
 const CartScreen = () => {
-  const { cartValue, addProduct, removeProduct, getCartQtyCount } = useCart();
+  const { cartValue, addProduct, removeProduct, getCartQtyCount, emptyCart } =
+    useCart();
   const dispatch = useDispatch();
   const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
@@ -162,6 +163,7 @@ const CartScreen = () => {
             itemName: 'Truffle Pasta',
             chefName: 'Chef Antonio',
           });
+          emptyCart();
         } else {
           if (data?.gateway_info?.key) {
             var options = {
@@ -809,7 +811,7 @@ const CartScreen = () => {
                 <Text style={styles.checkoutButtonText}>
                   Proceed to Checkout
                 </Text>
-<ArrowRight size={20} color="#111111" strokeWidth={2.8} />
+                <ArrowRight size={20} color="#111111" strokeWidth={2.8} />
                 {/* <View style={styles.checkoutRightBlock}>
                   <Text style={styles.checkoutAmountText}>
                     ₹{totalAmount.toFixed(2)}

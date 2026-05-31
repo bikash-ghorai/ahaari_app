@@ -5,12 +5,17 @@ import { IAddress, IUser } from '../../types';
 export interface UserState {
   userData: IUser | null;
   addresses: IAddress[] | null;
+  userCurrentCoords: {
+    latitude: any;
+    longitude: any;
+  } | null;
   error: string | null;
 }
 
 const initialState: UserState = {
   userData: null,
   addresses: [],
+  userCurrentCoords: null,
   error: null,
 };
 
@@ -20,6 +25,9 @@ const userSlice = createSlice({
   reducers: {
     setUserData: (state, action: PayloadAction<IUser | null>) => {
       state.userData = action.payload;
+    },
+    setUserCurrentCoords: (state, action: PayloadAction<any>) => {
+      state.userCurrentCoords = action.payload;
     },
   },
   extraReducers: builder => {
@@ -56,5 +64,5 @@ const userSlice = createSlice({
   },
 });
 
-export const { setUserData } = userSlice.actions;
+export const { setUserData, setUserCurrentCoords } = userSlice.actions;
 export default userSlice.reducer;

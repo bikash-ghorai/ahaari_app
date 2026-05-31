@@ -11,6 +11,11 @@ interface IAddProduct {
   product_id: string;
   variant_id: string;
   quantity: number;
+  isRecreateCart?: boolean;
+}
+interface IAddMultipleProducts {
+  shop_id: string;
+  products: any;
 }
 
 const useCart = () => {
@@ -37,6 +42,43 @@ const useCart = () => {
     }
   };
 
+  const addMultipleProducts = async (props: IAddMultipleProducts) => {
+    try {
+      let cart = cartValue;
+      if (
+        !props.shop_id ||
+        !props.products ||
+        !Array.isArray(props.products) ||
+        props.products.length < 1
+      ) {
+        return {
+          data: cart,
+          message: 'Invalid product data',
+          status: false,
+        };
+      }
+
+      cart = {
+        shop_id: props.shop_id,
+        products: props.products,
+      };
+
+      dispatch(setCartToState(cart));
+      await setUserCartDataToAsyncStore(cart);
+      return {
+        data: cart,
+        message: 'Product added to cart successfully',
+        status: true,
+      };
+    } catch (error) {
+      console.log('Error in addProduct:', error);
+      return {
+        data: cartValue,
+        message: 'An error occurred while adding the product to the cart',
+        status: false,
+      };
+    }
+  };
   const addProduct = async (props: IAddProduct) => {
     try {
       let cart = cartValue;
@@ -53,7 +95,7 @@ const useCart = () => {
         };
       }
 
-      if (!cart) {
+      if (!cart || props?.isRecreateCart) {
         cart = {
           shop_id: props.shop_id,
           products: [
@@ -243,6 +285,7 @@ const useCart = () => {
     removeProduct,
     emptyCart,
     getCartQtyCount,
+    addMultipleProducts,
   };
 };
 

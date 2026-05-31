@@ -193,7 +193,15 @@ export type ICoupon = {
 };
 
 export type IPaymentMethod = 'Online' | 'COD';
-export type IOrderStatus = string; // Define specific order statuses as needed
+export type IOrderStatus =
+  | 'Processing'
+  | 'Pending'
+  | 'Preparing'
+  | 'Ready'
+  | 'On The Way'
+  | 'Delivered'
+  | 'Cancelled'
+  | 'Undelivered';
 
 export type ICheckoutReq = {
   payment_method: IPaymentMethod;
@@ -239,67 +247,100 @@ export type ICheckoutRes = {
 
 export type IOrderDetails = {
   order_id: string;
-  user_id: string;
-  shop_id: string;
-  sub_total: string;
-  delivery_charge: string;
-  tax: string;
-  extra_charges: Array<{
-    label: string;
-    amount: string;
-  }>;
-  discount: string;
-  coupon_id: string | null;
-  used_wallet_balance: string;
-  payable_amount: string;
-  paid_amount: string;
-  payment_type: string;
-  gateway_txn_id: string | null;
-  gateway_response: string | null;
-  remarks: string | null;
-  zone_id: string;
-  is_rated: number;
-  status: string;
-  shop: IRestaurant;
-  details: {
-    id: number;
-    order_id: string;
-    delivery_address: string;
-    alternative_contact: string | null;
-    delivery_coordinate: {
-      latitude: string;
-      longitude: string;
-    };
-    distance: number;
-    is_vip: number;
-    delivery_estimate_time: number;
-    instruction: string | null;
-    preparing_est_time: number;
-    delivery_partner_id: string | null;
-    otp: string | null;
-    collected_amount: string;
-    deduct_from_customer: number;
-    credit_to_shop: number;
-    created_at: string;
-    updated_at: string;
+  order_id_label: string;
+  shop_name: string;
+  status: IOrderStatus;
+  message: {
+    title: string;
+    description: string;
   };
+  date: string;
+  delivery_address: string;
   items: Array<{
-    id: number;
-    order_id: string;
-    variant_id: string;
-    product_name: string;
+    name: string;
+    description: string;
+    image: string;
     quantity: number;
     price: number;
-    seller_price: number;
-    container: number;
-    container_charge: number;
-    created_at: string;
-    updated_at: string;
   }>;
-  timelines: any[];
+  sub_total: number;
+  delivery_charge: number;
+  tax: number;
+  extra_charges: Array<{
+    label: string;
+    amount: number;
+  }>;
+  discount: number;
+  payable_amount: number;
+  total: number;
+  payment_type: IPaymentMethod;
+  partner_info: {
+    name: string;
+    picture: string;
+    contact: string;
+    rating: number | string;
+  };
+  shop_coordinate: {
+    latitude: string | number;
+    longitude: string | number;
+  };
+  delivery_coordinate: {
+    latitude: string | number;
+    longitude: string | number;
+  };
+  is_vip: boolean;
+  estimate_delivery_time: number | string;
 };
 
+export type IActiveOrder = {
+  order_id: string;
+  order_id_label: string;
+  shop_name: string;
+  shop_image: string;
+  status: IOrderStatus;
+  date: string;
+  message: string;
+  timeline: {
+    step_1: {
+      title: string;
+      status: string;
+    };
+    step_2: {
+      title: string;
+      status: string;
+    };
+    step_3: {
+      title: string;
+      status: string;
+    };
+  };
+  partner_info: {
+    name: string;
+    picture: string;
+    contact: string;
+    rating: number | string;
+  };
+};
+export type IPastOrder = {
+  order_id: string;
+  order_id_label: string;
+  shop_id: string;
+  shop_name: string;
+  shop_image: string;
+  status: IOrderStatus;
+  date: string;
+  total: string | number;
+  rating: {
+    star: number | null;
+    feedback: string | null;
+  } | null;
+  items: Array<{
+    product_id: string;
+    variant_id: string;
+    quantity: number;
+  }>;
+};
 export type IOrderListRes = {
-  active_orders: Array<IOrderDetails>;
-  past_orders: Array<IOrderDetails>;
+  active_orders: Array<IActiveOrder>;
+  past_orders: Array<IPastOrder>;
 };

@@ -11,21 +11,29 @@ import {
   getUserDetailsFromAsyncStore,
 } from '../utils/storage';
 import { useDispatch } from '../redux/store';
-import { setUserData } from '../redux/user/userSlice';
+import { setUserCurrentCoords, setUserData } from '../redux/user/userSlice';
 import { useCart } from '../hooks';
+import BootSplash from 'react-native-bootsplash';
+import { fetchUserCurrentLocation } from '../utils/helper';
 
 const SplashScreen = () => {
   const { getCart, emptyCart } = useCart();
   const dispatch = useDispatch();
+
   useEffect(() => {
-    const timer = setTimeout(() => {
-      checkAuthStatus();
-    }, 1500);
-    return () => clearTimeout(timer);
+    checkAuthStatus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const checkAuthStatus = async () => {
+    try {
+      let coords = await fetchUserCurrentLocation();
+      dispatch(setUserCurrentCoords(coords));
+      console.log('coords fetch success', coords);
+    } catch (error) {
+      console.error('Error fetching user location:', error);
+      dispatch(setUserCurrentCoords(null));
+    }
     try {
       const token = await getAuthTokenFromAsyncStore();
       const userDetails: any = await getUserDetailsFromAsyncStore();
@@ -39,11 +47,13 @@ const SplashScreen = () => {
         emptyCart();
         reset('Login');
       }
+      BootSplash.hide({ fade: true });
     } catch (error: any) {
       console.log('error', error);
       await deleteAuthTokenFromAsyncStore();
       emptyCart();
       reset('Login');
+      BootSplash.hide({ fade: true });
     }
   };
 
@@ -59,7 +69,6 @@ const SplashScreen = () => {
           flex: 1,
           justifyContent: 'center',
           alignItems: 'center',
-          backgroundColor: '#D73F0D',
         }}
       >
         <FastImage

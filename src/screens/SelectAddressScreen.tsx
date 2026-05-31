@@ -16,7 +16,7 @@ import { colors, layout, typography } from '../constants/theme';
 import type { RootStackParamList } from '../types/navigation';
 import Header from '../components/Header';
 import GlassLayer from '../components/GlassLayer';
-import { useDispatch } from '../redux/store';
+import { useDispatch, useSelector } from '../redux/store';
 import { getAddressList, setDefaultAddress } from '../redux/user/userAction';
 import { IAddress } from '../types';
 import { showToaster } from '../utils/toaster';
@@ -76,9 +76,8 @@ const SelectAddressScreen = () => {
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const isFocused = useIsFocused();
   const dispatch = useDispatch();
+  const { addresses } = useSelector(state => state.user);
   const [selectedId, setSelectedId] = useState('');
-
-  const [addresses, setAddresses] = useState<IAddress[]>([]);
 
   useEffect(() => {
     if (isFocused) {
@@ -86,17 +85,12 @@ const SelectAddressScreen = () => {
       dispatch(getAddressList())
         .unwrap()
         .then(({ data }) => {
-          setAddresses(data);
           let defaultAddress = data.find(
             (address: IAddress) => address.is_default === 1,
           );
           if (defaultAddress) {
             setSelectedId(defaultAddress.address_id);
           }
-        })
-        .catch(() => {
-          // In case of an error, we can set some default addresses or show an error message
-          setAddresses(addresses); // Using the hardcoded addresses as fallback
         });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -149,54 +143,78 @@ const SelectAddressScreen = () => {
         </TouchableOpacity>
 
         <View style={styles.addressList}>
-          {addresses.map((item, ind) => {
-            const isSelected = item?.address_id === selectedId;
+          {addresses && addresses.length > 0 ? (
+            addresses.map((item, ind) => {
+              const isSelected = item?.address_id === selectedId;
 
-            return (
-              <TouchableOpacity
-                key={ind}
-                activeOpacity={0.92}
-                style={[
-                  styles.addressCard,
-                  isSelected ? styles.addressCardActive : null,
-                ]}
-                onPress={() => setSelectedId(item?.address_id)}
-              >
-                <GlassLayer radius={16} />
+              return (
+                <TouchableOpacity
+                  key={ind}
+                  activeOpacity={0.92}
+                  style={[
+                    styles.addressCard,
+                    isSelected ? styles.addressCardActive : null,
+                  ]}
+                  onPress={() => setSelectedId(item?.address_id)}
+                >
+                  <GlassLayer radius={16} />
 
-                {isSelected ? (
-                  <View style={styles.selectedBadge} pointerEvents="none">
-                    <Check size={14} color={colors.black} strokeWidth={2.8} />
-                    <Text style={styles.selectedBadgeText}>Selected</Text>
-                  </View>
-                ) : null}
+                  {isSelected ? (
+                    <View style={styles.selectedBadge} pointerEvents="none">
+                      <Check size={14} color={colors.black} strokeWidth={2.8} />
+                      <Text style={styles.selectedBadgeText}>Selected</Text>
+                    </View>
+                  ) : null}
 
-                <View style={styles.addressContentRow}>
-                  <View style={styles.cardIconWrap}>
-                    <View style={styles.cardIconBg}>
-                      {item.type === 'Home' ? (
-                        <AddressIcon type="home" />
-                      ) : item.type === 'Work' ? (
-                        <AddressIcon type="office" />
-                      ) : (
-                        <AddressIcon type="other" />
-                      )}
+                  <View style={styles.addressContentRow}>
+                    <View style={styles.cardIconWrap}>
+                      <View style={styles.cardIconBg}>
+                        {item.type === 'Home' ? (
+                          <AddressIcon type="home" />
+                        ) : item.type === 'Work' ? (
+                          <AddressIcon type="office" />
+                        ) : (
+                          <AddressIcon type="other" />
+                        )}
+                      </View>
+                    </View>
+
+                    <View style={styles.addressTextWrap}>
+                      <Text style={styles.addressTag}>{item.type}</Text>
+                      <Text style={styles.addressLine}>
+                        {item?.address +
+                          ', ' +
+                          (item?.landmark ? item?.landmark + ', ' : '') +
+                          item?.pincode}
+                      </Text>
                     </View>
                   </View>
+                </TouchableOpacity>
+              );
+            })
+          ) : (
+            <View style={styles.emptyStateContainer}>
+              <View style={styles.emptyStateIconWrapper}>
+                <LinearGradient
+                  colors={[
+                    'rgba(245, 158, 11, 0.12)',
+                    'rgba(245, 158, 11, 0.06)',
+                  ]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.emptyStateGradient}
+                >
+                  <MapPin size={48} color={colors.primary} strokeWidth={1.5} />
+                </LinearGradient>
+              </View>
 
-                  <View style={styles.addressTextWrap}>
-                    <Text style={styles.addressTag}>{item.type}</Text>
-                    <Text style={styles.addressLine}>
-                      {item?.address +
-                        ', ' +
-                        (item?.landmark ? item?.landmark + ', ' : '') +
-                        item?.pincode}
-                    </Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
+              <Text style={styles.emptyStateTitle}>No Addresses Yet</Text>
+              <Text style={styles.emptyStateMessage}>
+                Add your first address to get started with fast and easy
+                delivery.
+              </Text>
+            </View>
+          )}
         </View>
 
         <TouchableOpacity
@@ -354,6 +372,43 @@ const styles = StyleSheet.create({
     fontSize: typography.md,
     lineHeight: 24,
     fontWeight: '700',
+  },
+
+  /* -- Empty state -- */
+  emptyStateContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 80,
+    minHeight: 400,
+  },
+  emptyStateIconWrapper: {
+    marginBottom: 32,
+  },
+  emptyStateGradient: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.2)',
+  },
+  emptyStateTitle: {
+    color: colors.textPrimary,
+    fontSize: typography.xxl,
+    fontWeight: '700',
+    lineHeight: 32,
+    marginBottom: 12,
+    textAlign: 'center',
+    letterSpacing: -0.3,
+  },
+  emptyStateMessage: {
+    color: colors.textMuted,
+    fontSize: typography.body,
+    lineHeight: 24,
+    textAlign: 'center',
+    letterSpacing: 0.2,
   },
 });
 

@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Tag } from 'lucide-react-native';
+import { Tag, Gift } from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -62,107 +62,133 @@ const CouponListScreen = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Available Coupons</Text>
-        </View>
-
         <View style={styles.couponGrid}>
-          {couponList.map((coupon, index) => {
-            const isApplicable = coupon.is_applicable;
-            const buttonColors = [colors.primary, 'rgba(245, 158, 11, 0.95)'];
+          {couponList && couponList.length > 0 ? (
+            couponList.map((coupon, index) => {
+              const isApplicable = coupon.is_applicable;
+              const buttonColors = [colors.primary, 'rgba(245, 158, 11, 0.95)'];
 
-            return (
-              <View key={index} style={[styles.couponCard]}>
-                <GlassLayer radius={16} />
-                <View
-                  style={[
-                    styles.couponAccent,
-                    {
-                      backgroundColor: isApplicable
-                        ? colors.primary
-                        : 'rgba(255, 255, 255, 0.36)',
-                    },
-                  ]}
-                />
-
-                <View style={styles.couponTopRow}>
+              return (
+                <View key={index} style={[styles.couponCard]}>
+                  <GlassLayer radius={16} />
                   <View
                     style={[
-                      isApplicable
-                        ? styles.couponCodePill
-                        : styles.couponCodePillMuted,
-                    ]}
-                  >
-                    <Text
-                      style={
-                        isApplicable
-                          ? styles.couponCodeText
-                          : styles.couponCodeMuted
-                      }
-                    >
-                      {coupon.code}
-                    </Text>
-                  </View>
-                  <View
-                    style={[
-                      styles.couponIconWrap,
+                      styles.couponAccent,
                       {
                         backgroundColor: isApplicable
-                          ? 'rgba(245, 158, 11, 0.16)'
-                          : 'rgba(255, 255, 255, 0.08)',
+                          ? colors.primary
+                          : 'rgba(255, 255, 255, 0.36)',
                       },
                     ]}
-                  >
-                    <Tag
-                      size={18}
-                      color={
-                        isApplicable ? colors.primary : colors.textMutedLight
-                      }
-                      strokeWidth={2.3}
-                    />
+                  />
+
+                  <View style={styles.couponTopRow}>
+                    <View
+                      style={[
+                        isApplicable
+                          ? styles.couponCodePill
+                          : styles.couponCodePillMuted,
+                      ]}
+                    >
+                      <Text
+                        style={
+                          isApplicable
+                            ? styles.couponCodeText
+                            : styles.couponCodeMuted
+                        }
+                      >
+                        {coupon.code}
+                      </Text>
+                    </View>
+                    <View
+                      style={[
+                        styles.couponIconWrap,
+                        {
+                          backgroundColor: isApplicable
+                            ? 'rgba(245, 158, 11, 0.16)'
+                            : 'rgba(255, 255, 255, 0.08)',
+                        },
+                      ]}
+                    >
+                      <Tag
+                        size={18}
+                        color={
+                          isApplicable ? colors.primary : colors.textMutedLight
+                        }
+                        strokeWidth={2.3}
+                      />
+                    </View>
                   </View>
+
+                  <Text
+                    style={
+                      isApplicable ? styles.couponTitle : styles.lockedTitle
+                    }
+                  >
+                    {coupon?.title}
+                  </Text>
+                  <Text
+                    style={
+                      isApplicable
+                        ? styles.couponDescription
+                        : styles.lockedDescription
+                    }
+                  >
+                    {coupon?.description}
+                  </Text>
+
+                  {isApplicable ? (
+                    <TouchableOpacity
+                      activeOpacity={0.9}
+                      onPress={() => handleApplyCoupon(coupon)}
+                      style={styles.applyButton}
+                    >
+                      <LinearGradient
+                        colors={buttonColors}
+                        start={{ x: 0, y: 0.5 }}
+                        end={{ x: 1, y: 0.5 }}
+                        style={styles.applyButtonGradient}
+                      >
+                        <Text style={[styles.applyButtonText]}>
+                          Apply Coupon
+                        </Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  ) : (
+                    <View style={[styles.lockedNote, styles.lockedNoteMuted]}>
+                      <Text style={styles.lockedNoteTextMuted}>
+                        Not applicable for current order
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              );
+            })
+          ) : (
+            <View style={styles.emptyStateWrapper}>
+              <View style={styles.emptyStateContainer}>
+                <View style={styles.emptyStateIconWrapper}>
+                  <LinearGradient
+                    colors={[
+                      'rgba(245, 158, 11, 0.12)',
+                      'rgba(245, 158, 11, 0.06)',
+                    ]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.emptyStateGradient}
+                  >
+                    <Gift size={48} color={colors.primary} strokeWidth={1.5} />
+                  </LinearGradient>
                 </View>
 
-                <Text
-                  style={isApplicable ? styles.couponTitle : styles.lockedTitle}
-                >
-                  {coupon?.title}
+                <Text style={styles.emptyStateTitle}>No Coupons Available</Text>
+                <Text style={styles.emptyStateMessage}>
+                  Check back soon for exciting deals and discounts on your
+                  favorite restaurants.
                 </Text>
-                <Text
-                  style={
-                    isApplicable
-                      ? styles.couponDescription
-                      : styles.lockedDescription
-                  }
-                >
-                  {coupon?.description}
-                </Text>
-
-                {isApplicable ? (
-                  <TouchableOpacity
-                    activeOpacity={0.9}
-                    onPress={() => handleApplyCoupon(coupon)}
-                    style={styles.applyButton}
-                  >
-                    <LinearGradient
-                      colors={buttonColors}
-                      start={{ x: 0, y: 0.5 }}
-                      end={{ x: 1, y: 0.5 }}
-                      style={styles.applyButtonGradient}
-                    >
-                      <Text style={[styles.applyButtonText]}>Apply Coupon</Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
-                ) : (
-                  <View style={[styles.lockedNote, styles.lockedNoteMuted]}>
-                    <Text style={styles.lockedNoteTextMuted}>
-                      Not applicable for current order
-                    </Text>
-                  </View>
-                )}
               </View>
-            );
-          })}
+            </View>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -388,6 +414,65 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: typography.captionPlus,
     fontWeight: '600',
+  },
+
+  /* -- Empty state -- */
+  emptyStateWrapper: {
+    flex: 1,
+    minHeight: 500,
+  },
+  emptyStateContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 80,
+  },
+  emptyStateIconWrapper: {
+    marginBottom: 32,
+  },
+  emptyStateGradient: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.2)',
+  },
+  emptyStateTitle: {
+    color: colors.textPrimary,
+    fontSize: typography.xxl,
+    fontWeight: '700',
+    lineHeight: 32,
+    marginBottom: 12,
+    textAlign: 'center',
+    letterSpacing: -0.3,
+  },
+  emptyStateMessage: {
+    color: colors.textMuted,
+    fontSize: typography.body,
+    lineHeight: 24,
+    marginBottom: 32,
+    textAlign: 'center',
+    letterSpacing: 0.2,
+  },
+  emptyStateButton: {
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
+  emptyStateButtonText: {
+    color: colors.black,
+    fontSize: typography.body,
+    fontWeight: '700',
+    lineHeight: 20,
+    letterSpacing: 0.5,
   },
 });
 

@@ -24,6 +24,7 @@ import {
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   AlertTriangle,
+  BadgePercent,
   Bell,
   Calendar,
   CheckCircle2,
@@ -612,7 +613,7 @@ const HomeScreen = () => {
               <View style={styles.restaurantInfo}>
                 <View style={styles.restaurantHeader}>
                   <Text style={styles.restaurantName}>{restaurant.name}</Text>
-                  <CheckCircle2 size={18} color={colors.primary} />
+                  <BadgePercent size={20} color={colors.primary} />
                 </View>
                 <Text style={styles.restaurantDetails}>
                   {restaurant.type} - {restaurant.time}

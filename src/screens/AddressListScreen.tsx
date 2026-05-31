@@ -74,7 +74,13 @@ const addresses: AddressItem[] = [
   },
 ];
 
-const GlassLayer = ({ radius, style }: { radius: number; style?: StyleProp<ViewStyle> }) => (
+const GlassLayer = ({
+  radius,
+  style,
+}: {
+  radius: number;
+  style?: StyleProp<ViewStyle>;
+}) => (
   <>
     {Platform.OS === 'ios' ? (
       <BlurView
@@ -86,8 +92,10 @@ const GlassLayer = ({ radius, style }: { radius: number; style?: StyleProp<ViewS
             right: 0,
             bottom: 0,
             left: 0,
-            borderRadius: radius
-          }, style]}
+            borderRadius: radius,
+          },
+          style,
+        ]}
         blurType="dark"
         blurAmount={30}
         reducedTransparencyFallbackColor="rgba(10, 12, 18, 0.5)"
@@ -114,32 +122,54 @@ const GlassLayer = ({ radius, style }: { radius: number; style?: StyleProp<ViewS
 
 const AddressIcon = ({ type }: { type: AddressIcon }) => {
   if (type === 'home') {
-    return <House size={30} color={palette.amber} strokeWidth={2.6} fill={palette.amber} />;
+    return (
+      <House
+        size={30}
+        color={palette.amber}
+        strokeWidth={2.6}
+        fill={palette.amber}
+      />
+    );
   }
 
   if (type === 'office') {
-    return <Briefcase size={30} color={palette.amber} strokeWidth={2.5} fill={palette.amber} />;
+    return (
+      <Briefcase
+        size={30}
+        color={palette.amber}
+        strokeWidth={2.5}
+        fill={palette.amber}
+      />
+    );
   }
 
   return <Users size={30} color={palette.amber} strokeWidth={2.4} />;
 };
 
 const AddressListScreen = () => {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
-      <Header title="Restaurant Details" showBackButton={true} containerStyle={{ paddingHorizontal: layout.screenPadding }} />
+      <Header
+        title="Restaurant Details"
+        showBackButton={true}
+        containerStyle={{ paddingHorizontal: layout.screenPadding }}
+      />
 
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-
         <View style={styles.addressList}>
           {addresses.map(item => (
-            <TouchableOpacity key={item.id} activeOpacity={0.92} style={styles.addressCard}>
+            <TouchableOpacity
+              key={item.id}
+              activeOpacity={0.92}
+              style={styles.addressCard}
+            >
               <GlassLayer radius={16} />
 
               <View style={styles.addressContentRow}>
@@ -155,8 +185,15 @@ const AddressListScreen = () => {
                 </View>
 
                 <View style={styles.editWrap}>
-                  <TouchableOpacity activeOpacity={0.85} style={styles.editButton}>
-                    <Pencil size={22} color={palette.iconMuted} strokeWidth={2.35} />
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    style={styles.editButton}
+                  >
+                    <Pencil
+                      size={22}
+                      color={palette.iconMuted}
+                      strokeWidth={2.35}
+                    />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -164,7 +201,11 @@ const AddressListScreen = () => {
           ))}
         </View>
 
-        <TouchableOpacity activeOpacity={0.95} style={styles.addButton} onPress={() => navigation.navigate('AddAddress')}>
+        <TouchableOpacity
+          activeOpacity={0.95}
+          style={styles.addButton}
+          onPress={() => navigation.navigate('AddAddress')}
+        >
           <LinearGradient
             colors={[palette.amber, palette.amberStrong]}
             start={{ x: 0.47, y: 1 }}
@@ -184,7 +225,7 @@ const AddressListScreen = () => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1
+    flex: 1,
   },
   ambientLayer: {
     position: 'absolute',

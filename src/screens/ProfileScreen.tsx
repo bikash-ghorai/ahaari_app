@@ -257,7 +257,7 @@ const ProfileScreen = () => {
 
             <TouchableOpacity
               style={styles.listRow}
-              onPress={() => navigation.navigate('AddressList')}
+              onPress={() => navigation.navigate('SelectAddress')}
             >
               <View style={styles.listRowLeft}>
                 <MapPin size={21} color={colors.textMuted} />
