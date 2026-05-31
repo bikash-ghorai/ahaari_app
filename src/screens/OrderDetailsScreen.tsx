@@ -43,7 +43,6 @@ import {
   statusColors,
 } from '../utils/helper';
 import { showToaster } from '../utils/toaster';
-import FastImage from 'react-native-fast-image';
 
 const OrderDetailsScreen = () => {
   const dispatch = useDispatch();

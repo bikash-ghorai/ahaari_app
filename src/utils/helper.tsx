@@ -1,4 +1,5 @@
-import Geolocation from '@react-native-community/geolocation';
+import Geolocation from 'react-native-geolocation-service';
+
 import { Linking, PermissionsAndroid, Platform } from 'react-native';
 
 export const statusColors: any = {
@@ -55,6 +56,7 @@ const requestLocationPermission = async () => {
 };
 
 export const fetchUserCurrentLocation = async () => {
+  console.log('Fetching user location...', new Date().getSeconds());
   const hasPermission = await requestLocationPermission();
   if (!hasPermission) {
     return Promise.reject(new Error('Location permission denied'));
@@ -65,15 +67,16 @@ export const fetchUserCurrentLocation = async () => {
       position => {
         console.log('current position', position);
         resolve(position.coords);
+        console.log('Fetching user location eeeee...', new Date().getSeconds());
       },
       error => {
         console.log('Geolocation error:', error);
         reject(error);
       },
       {
-        enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 10000,
+        enableHighAccuracy: false, // Force it to use cellular/network cache
+        timeout: 10000, // Fail quickly if no cache exists
+        maximumAge: 3600000, // Accept a cached location up to 1 hour old
       },
     );
   });
