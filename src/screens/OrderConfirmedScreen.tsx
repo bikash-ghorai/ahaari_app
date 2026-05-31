@@ -1,40 +1,62 @@
-import React from 'react';
+/* eslint-disable react-native/no-inline-styles */
+import React, { useState } from 'react';
 import {
+  KeyboardAvoidingView,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useRoute } from '@react-navigation/native';
 import { CheckCircle2, List, MapPin } from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import GlassLayer from '../components/GlassLayer';
 import { colors, layout, typography } from '../constants/theme';
-import type { RootStackParamList } from '../types/navigation';
-
-type OrderConfirmedRouteProp = RouteProp<RootStackParamList, 'OrderConfirmed'>;
-
-type OrderConfirmedNavigationProp = NativeStackNavigationProp<
-  RootStackParamList,
-  'OrderConfirmed'
->;
+import { useDispatch } from '../redux/store';
+import { addCookingInstructions } from '../redux/app/appAction';
+import { reset } from '../utils/navigationRef';
 
 const OrderConfirmedScreen = () => {
-  const navigation = useNavigation<OrderConfirmedNavigationProp>();
-  const route = useRoute<OrderConfirmedRouteProp>();
+  const route = useRoute<any>();
+  const dispatch = useDispatch();
+  const [instructionsNote, setInstructionsNote] = useState('');
   // const orderId = route.params?.orderId ?? 'LE-88291';
   const chefName = route.params?.chefName ?? 'Chef Antonio';
+  const orderData = route.params?.order_data;
+
+  console.log('route.params', route.params);
 
   const handleTrackLive = () => {
-    // navigation.navigate('OrderDetails', { orderId });
+    if (!orderData?.order_id || !instructionsNote.trim()) {
+      reset('Tabs', { screen: 'Orders' });
+    }
+    dispatch(
+      addCookingInstructions({
+        order_id: orderData?.order_id ?? '',
+        instruction: instructionsNote,
+      }),
+    ).finally(() => {
+      reset('Tabs', { screen: 'Orders' });
+    });
   };
 
   const handleBackHome = () => {
-    navigation.navigate('Tabs', { screen: 'Home' });
+    if (!orderData?.order_id || !instructionsNote.trim()) {
+      reset('Tabs', { screen: 'Home' });
+      return;
+    }
+    dispatch(
+      addCookingInstructions({
+        order_id: orderData?.order_id ?? '',
+        instruction: instructionsNote,
+      }),
+    ).finally(() => {
+      reset('Tabs', { screen: 'Home' });
+    });
   };
 
   return (
@@ -44,65 +66,84 @@ const OrderConfirmedScreen = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.heroSection}>
-          <View style={styles.checkWrap}>
-            <GlassLayer radius={46} tint="rgba(255, 255, 255, 0.06)" />
-            <CheckCircle2 size={48} color={colors.primary} strokeWidth={2.4} />
-          </View>
-
-          <Text style={styles.title}>Order Confirmed</Text>
-          <Text style={styles.subtitle}>
-            Your midnight feast is being prepared by {chefName}.
-          </Text>
-        </View>
-
-        <View style={styles.instructionsCard}>
-          <GlassLayer radius={20} tint="rgba(255, 255, 255, 0.04)" />
-          <View style={styles.instructionsHeader}>
-            <List size={20} color={colors.primary} strokeWidth={2.2} />
-            <Text style={styles.instructionsTitle}>Cooking Instructions</Text>
-          </View>
-          <View style={styles.instructionsBubble}>
-            <Text style={styles.instructionsText}>
-              "Extra parmesan, no parsley"
-            </Text>
-          </View>
-          <Text style={styles.instructionsNote}>
-            Chef {chefName} has received your requests and is preparing your
-            meal accordingly.
-          </Text>
-        </View>
-
-        <View style={styles.actions}>
-          <TouchableOpacity
-            style={styles.primaryButton}
-            activeOpacity={0.92}
-            onPress={handleTrackLive}
-          >
-            <LinearGradient
-              colors={['#FFB53A', '#F59E0A']}
-              start={{ x: 0, y: 0.5 }}
-              end={{ x: 1, y: 0.5 }}
-              style={styles.primaryGradient}
-            >
-              <MapPin
-                size={20}
-                color={colors.onPrimaryDark}
+        <KeyboardAvoidingView
+          behavior="padding"
+          style={{
+            gap: 24,
+          }}
+        >
+          <View style={styles.heroSection}>
+            <View style={styles.checkWrap}>
+              <GlassLayer radius={46} tint="rgba(255, 255, 255, 0.06)" />
+              <CheckCircle2
+                size={48}
+                color={colors.primary}
                 strokeWidth={2.4}
               />
-              <Text style={styles.primaryText}>Track Live</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+            </View>
 
-          <TouchableOpacity
-            style={styles.secondaryButton}
-            activeOpacity={0.92}
-            onPress={handleBackHome}
-          >
-            <GlassLayer radius={16} tint="rgba(255, 255, 255, 0.03)" />
-            <Text style={styles.secondaryText}>Back to Home</Text>
-          </TouchableOpacity>
-        </View>
+            <Text style={styles.title}>Order Confirmed</Text>
+            <Text style={styles.subtitle}>
+              Your delicious meal is being prepared. Get ready for a delightful
+              dining experience!
+            </Text>
+          </View>
+
+          <View style={styles.instructionsCard}>
+            <GlassLayer radius={20} tint="rgba(255, 255, 255, 0.04)" />
+            <View style={styles.instructionsHeader}>
+              <List size={20} color={colors.primary} strokeWidth={2.2} />
+              <Text style={styles.instructionsTitle}>Cooking Instructions</Text>
+            </View>
+            <View style={styles.fieldGroup}>
+              <View style={[styles.inputShell, styles.inputTall]}>
+                <TextInput
+                  value={instructionsNote}
+                  onChangeText={setInstructionsNote}
+                  placeholder=" Add any special instructions for the chef (e.g., allergies, spice level, etc.)"
+                  placeholderTextColor={colors.textMuted}
+                  multiline={true}
+                  style={[styles.inputText, styles.inputMultiline]}
+                />
+              </View>
+            </View>
+            <Text style={styles.instructionsNote}>
+              Chef {chefName} has received your requests and is preparing your
+              meal accordingly.
+            </Text>
+          </View>
+
+          <View style={styles.actions}>
+            <TouchableOpacity
+              style={styles.primaryButton}
+              activeOpacity={0.92}
+              onPress={handleTrackLive}
+            >
+              <LinearGradient
+                colors={['#FFB53A', '#F59E0A']}
+                start={{ x: 0, y: 0.5 }}
+                end={{ x: 1, y: 0.5 }}
+                style={styles.primaryGradient}
+              >
+                <MapPin
+                  size={20}
+                  color={colors.onPrimaryDark}
+                  strokeWidth={2.4}
+                />
+                <Text style={styles.primaryText}>Track Live</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              activeOpacity={0.92}
+              onPress={handleBackHome}
+            >
+              <GlassLayer radius={16} tint="rgba(255, 255, 255, 0.03)" />
+              <Text style={styles.secondaryText}>Back to Home</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
       </ScrollView>
     </SafeAreaView>
   );
@@ -117,13 +158,11 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: layout.screenPadding,
-    paddingTop: 24,
     paddingBottom: 40,
-    gap: 24,
   },
   heroSection: {
     alignItems: 'center',
-    gap: 10,
+    gap: 15,
     marginTop: '20%',
   },
   checkWrap: {
@@ -317,6 +356,7 @@ const styles = StyleSheet.create({
   },
   actions: {
     gap: 12,
+    marginTop: 20,
   },
   primaryButton: {
     height: 56,
@@ -355,6 +395,39 @@ const styles = StyleSheet.create({
     fontSize: typography.mdPlus,
     lineHeight: 22,
     fontWeight: '600',
+  },
+  fieldGroup: {
+    gap: 8,
+  },
+  fieldLabel: {
+    color: colors.textMutedAlt,
+    fontSize: typography.caption,
+    letterSpacing: 1,
+    fontWeight: '700',
+  },
+  inputShell: {
+    minHeight: 48,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(12, 14, 18, 0.6)',
+    paddingHorizontal: 14,
+    justifyContent: 'center',
+  },
+  inputTall: {
+    minHeight: 68,
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+  inputText: {
+    color: colors.textPrimary,
+    fontSize: typography.bodyPlus,
+    fontWeight: '600',
+    paddingVertical: 0,
+  },
+  inputMultiline: {
+    minHeight: 48,
+    textAlignVertical: 'top',
   },
 });
 

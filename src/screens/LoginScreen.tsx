@@ -1,7 +1,6 @@
 /* eslint-disable react-native/no-inline-styles */
 import React, { useMemo, useState } from 'react';
 import {
-  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -83,13 +82,7 @@ const LoginScreen = () => {
       return;
     }
 
-    dispatch(login({ phone: phoneDigits }))
-      .unwrap()
-      .then(({ data }) => {
-        if (data?.otp) {
-          Alert.alert(`OTP ${data?.otp}`);
-        }
-      });
+    dispatch(login({ phone: phoneDigits })).unwrap();
   };
 
   return (
@@ -179,7 +172,9 @@ const LoginScreen = () => {
                       />
                     </LinearGradient>
                     <Text style={styles.brandLuxe}>Ahaari</Text>
-                    <Text style={styles.brandEats}>Your Ahaar, Always Ready.</Text>
+                    <Text style={styles.brandEats}>
+                      Your Ahaar, Always Ready.
+                    </Text>
                   </View>
 
                   <Text style={styles.heading}>Let's Get Started</Text>
@@ -194,7 +189,11 @@ const LoginScreen = () => {
                     style={styles.countryCodeButton}
                   >
                     <Text style={styles.countryCodeText}>IN +91</Text>
-                    <MaterialIcons name="expand-more" color="#AAABB0" size={20} />
+                    <MaterialIcons
+                      name="expand-more"
+                      color="#AAABB0"
+                      size={20}
+                    />
                   </TouchableOpacity>
 
                   <TextInput

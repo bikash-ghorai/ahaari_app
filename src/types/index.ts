@@ -28,6 +28,40 @@ export type IVerifyUserReq = {
   otp: string | number;
 };
 
+export type IHomePageData = {
+  slides: Array<{
+    id: string;
+    image: string;
+  }>;
+  todaySpecials: Array<{
+    shop_id: string;
+    variant_id: string;
+    product_id: string;
+    name: string;
+    description: string;
+    price: number | string;
+    image: string | null;
+  }>;
+  coupons: Array<{
+    title: string;
+    discount_type: 'Percentage' | 'Flat';
+    discount: number;
+    code: string;
+    expire_on: string;
+  }>;
+  shops: Array<{
+    shop_id: string;
+    name: string;
+    image: string | null;
+    type: string;
+    time: string | null;
+    have_discount: boolean;
+    offer: string | null;
+    rating: number | string;
+  }>;
+  event: null | any;
+};
+
 export type IRestaurant = {
   id: string | number;
   shop_id: string;
@@ -50,7 +84,8 @@ export type IRestaurant = {
   status: string;
   created_at: string;
   updated_at: string;
-  hasVip: string;
+  type: string;
+  delivery_time: string;
 };
 
 export type IAddress = {
@@ -207,6 +242,7 @@ export type ICheckoutReq = {
   payment_method: IPaymentMethod;
   is_vip: boolean;
   tips: number;
+  use_wallet_balance: boolean;
 };
 
 export type ICheckoutRes = {
@@ -290,6 +326,7 @@ export type IOrderDetails = {
   };
   is_vip: boolean;
   estimate_delivery_time: number | string;
+  instruction: string | null;
 };
 
 export type IActiveOrder = {

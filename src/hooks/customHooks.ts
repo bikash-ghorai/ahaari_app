@@ -30,6 +30,7 @@ const useCart = () => {
       return {
         data: cart_val,
         message: 'Cart data retrieved successfully',
+        type: 'success',
         status: true,
       };
     } catch (error) {
@@ -37,6 +38,7 @@ const useCart = () => {
       return {
         data: null,
         message: 'An error occurred while retrieving the cart data',
+        type: 'error',
         status: false,
       };
     }
@@ -54,6 +56,7 @@ const useCart = () => {
         return {
           data: cart,
           message: 'Invalid product data',
+          type: 'error',
           status: false,
         };
       }
@@ -68,6 +71,7 @@ const useCart = () => {
       return {
         data: cart,
         message: 'Product added to cart successfully',
+        type: 'success',
         status: true,
       };
     } catch (error) {
@@ -75,6 +79,7 @@ const useCart = () => {
       return {
         data: cartValue,
         message: 'An error occurred while adding the product to the cart',
+        type: 'error',
         status: false,
       };
     }
@@ -91,6 +96,7 @@ const useCart = () => {
         return {
           data: cart,
           message: 'Invalid product data',
+          type: 'error',
           status: false,
         };
       }
@@ -112,6 +118,7 @@ const useCart = () => {
             data: cart,
             message:
               'You can only add products from one restaurant at a time. Please empty your cart to add products from another restaurant.',
+            type: 'different_shop_error',
             status: false,
           };
         } else {
@@ -149,6 +156,7 @@ const useCart = () => {
       return {
         data: cart,
         message: 'Product added to cart successfully',
+        type: 'success',
         status: true,
       };
     } catch (error) {
@@ -156,6 +164,7 @@ const useCart = () => {
       return {
         data: cartValue,
         message: 'An error occurred while adding the product to the cart',
+        type: 'error',
         status: false,
       };
     }
@@ -173,6 +182,7 @@ const useCart = () => {
         return {
           data: cart,
           message: 'Invalid product data',
+          type: 'error',
           status: false,
         };
       }
@@ -180,10 +190,11 @@ const useCart = () => {
         return {
           data: null,
           message: 'Cart is empty',
+          type: 'error',
           status: false,
         };
       } else {
-        const updatedCart = cart.products
+        const updatedCartProduct = cart.products
           .map((product: any) => {
             if (product.product_id === props.product_id) {
               if (product.variant_id === props.variant_id) {
@@ -200,16 +211,17 @@ const useCart = () => {
             return product;
           })
           .filter((product: any) => product !== null);
-        cart = {
-          ...cart,
-          products: updatedCart,
-        };
+        cart =
+          updatedCartProduct.length > 0
+            ? { ...cart, products: updatedCartProduct }
+            : null;
       }
       dispatch(setCartToState(cart));
       await setUserCartDataToAsyncStore(cart);
       return {
         data: cart,
         message: 'Product removed from cart successfully',
+        type: 'success',
         status: true,
       };
     } catch (error) {
@@ -217,6 +229,7 @@ const useCart = () => {
       return {
         data: cartValue,
         message: 'An error occurred while removing the product from the cart',
+        type: 'error',
         status: false,
       };
     }
@@ -229,6 +242,7 @@ const useCart = () => {
       return {
         data: null,
         message: 'Cart emptied successfully',
+        type: 'success',
         status: true,
       };
     } catch (error) {
@@ -236,6 +250,7 @@ const useCart = () => {
       return {
         data: cartValue,
         message: 'An error occurred while emptying the cart',
+        type: 'error',
         status: false,
       };
     }

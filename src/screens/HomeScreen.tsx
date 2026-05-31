@@ -1,10 +1,9 @@
 /* eslint-disable react-native/no-inline-styles */
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Animated,
   Image,
   Modal,
-  PermissionsAndroid,
   Platform,
   Pressable,
   ScrollView,
@@ -15,7 +14,6 @@ import {
   View,
 } from 'react-native';
 import { BlurView } from '@react-native-community/blur';
-import Geolocation from '@react-native-community/geolocation';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import {
   CompositeNavigationProp,
@@ -27,16 +25,17 @@ import {
   BadgePercent,
   Bell,
   Calendar,
-  CheckCircle2,
   ChevronDown,
+  LocateFixed,
+  Minus,
+  Plus,
   Search,
-  Star,
+  StarIcon,
 } from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, layout, typography } from '../constants/theme';
-import { featuredRestaurants, specials, promotions } from '../data/homeData';
 import WeatherAlertTooltip from '../components/WeatherAlertTooltip';
 import { useWeatherAlert } from '../contexts/WeatherAlertContext';
 import type { RootStackParamList, RootTabParamList } from '../types/navigation';
@@ -44,6 +43,13 @@ import { navigate } from '../utils/navigationRef';
 import { useDispatch, useSelector } from '../redux/store';
 import { getAddressList, updateLocation } from '../redux/user/userAction';
 import { Constant } from '../constants/Constant';
+import { ImagePath } from '../constants/ImagePath';
+import { homePageAPI } from '../redux/app/appAction';
+import { IHomePageData } from '../types';
+import { useCart } from '../hooks';
+import { showToaster } from '../utils/toaster';
+import { fetchUserCurrentLocation } from '../utils/helper';
+import { setUserCurrentCoords } from '../redux/user/userSlice';
 
 const GlassLayer = () =>
   Platform.OS === 'ios' ? (
@@ -56,81 +62,6 @@ const GlassLayer = () =>
     />
   ) : null;
 
-type AddressOption = {
-  id: string;
-  tag: string;
-  line1: string;
-  line2: string;
-  shortLabel: string;
-};
-
-type UpcomingEvent = {
-  title: string;
-  subtitle: string;
-  ctaText: string;
-};
-
-type HeroSlide = {
-  id: string;
-  tag: string;
-  title: string;
-  subtitle: string;
-  image: string;
-};
-
-const addressOptions: AddressOption[] = [
-  {
-    id: 'home',
-    tag: 'Home',
-    line1: '2468 Amber Crescent, Sunset Valley',
-    line2: 'San Francisco, CA 94103',
-    shortLabel: 'San Francisco, CA',
-  },
-  {
-    id: 'office',
-    tag: 'Office',
-    line1: 'Radiant Heights Tech Tower, Suite 402',
-    line2: 'Market Street, SF 94105',
-    shortLabel: 'Market Street, SF',
-  },
-  {
-    id: 'parents',
-    tag: "Parents' House",
-    line1: '15 Nocturne Lane, Golden Hill',
-    line2: 'Oakland, CA 94611',
-    shortLabel: 'Oakland, CA',
-  },
-];
-
-const heroSlides: HeroSlide[] = [
-  {
-    id: 'fresh-bites',
-    tag: 'Fresh Picks',
-    title: 'Lunch that feels a little more special',
-    subtitle:
-      'Swipe through hand-picked meals, fast delivery, and limited-time offers.',
-    image:
-      'https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=80',
-  },
-  {
-    id: 'specials',
-    tag: "Today's Specials",
-    title: 'Seasonal dishes from local favorites',
-    subtitle:
-      'Explore standout dishes curated for the current mood and weather.',
-    image:
-      'https://images.unsplash.com/photo-1482049016688-2d3e1b311543?auto=format&fit=crop&w=900&q=80',
-  },
-  {
-    id: 'promotions',
-    tag: 'Promotions',
-    title: 'Save more with every swipe',
-    subtitle: 'Unlock offers and delivery deals from restaurants nearby.',
-    image:
-      'https://images.unsplash.com/photo-1526234362653-3b75a0b9b5f0?auto=format&fit=crop&w=900&q=80',
-  },
-];
-
 type HomeScreenNavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<RootTabParamList, 'Home'>,
   NativeStackNavigationProp<RootStackParamList>
@@ -140,113 +71,51 @@ const HomeScreen = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const dispatch = useDispatch();
   const { addresses } = useSelector(state => state.user);
+  const { userCurrentCoords } = useSelector(state => state.user);
   const { isBadWeather, show } = useWeatherAlert();
-  const heroSlideCount = heroSlides.length;
+  const { getCartQtyCount, removeProduct, addProduct } = useCart();
+
+  const [homePageData, setHomePageData] = useState<IHomePageData | null>(null);
+
   const [activeHeroIndex, setActiveHeroIndex] = React.useState(0);
   const heroFadeAnim = React.useRef(new Animated.Value(0)).current;
   const heroSlideAnim = React.useRef(new Animated.Value(24)).current;
-  const [upcomingEvent] = React.useState<UpcomingEvent | null>(null);
-  const [selectedAddressId, setSelectedAddressId] = React.useState(
-    addressOptions[0]?.id ?? '',
-  );
-  const [isAddressSheetOpen, setIsAddressSheetOpen] = React.useState(false);
-  const [currentCoords, setCurrentCoords] = React.useState<{
-    latitude: number;
-    longitude: number;
-  } | null>(null);
-  const [currentPlace, setCurrentPlace] = React.useState<string | null>(null);
-  const [isLocating, setIsLocating] = React.useState(false);
-  const selectedAddress = React.useMemo(
-    () =>
-      addressOptions.find(option => option.id === selectedAddressId) ??
-      addressOptions[0],
-    [selectedAddressId],
-  );
-  const locationLabel = selectedAddress
-    ? `${selectedAddress.tag} · ${selectedAddress.shortLabel}`
-    : 'Choose address';
-  const currentLocationLabel = React.useMemo(() => {
-    if (!currentCoords) {
-      return null;
-    }
 
+  const [selectedAddressId, setSelectedAddressId] = React.useState('');
+  const [isAddressSheetOpen, setIsAddressSheetOpen] = React.useState(false);
+  const [isLocating, setIsLocating] = React.useState(false);
+  const [currentPlace, setCurrentPlace] = React.useState<string | null>(null);
+
+  const heroSlideCount = homePageData?.coupons.length || 0;
+
+  const currentLocationLabel = React.useMemo(() => {
     if (currentPlace) {
       return currentPlace;
     }
 
-    return `Current location · ${currentCoords.latitude.toFixed(
-      3,
-    )}, ${currentCoords.longitude.toFixed(3)}`;
-  }, [currentCoords, currentPlace]);
+    return 'Choose delivery address';
+  }, [currentPlace]);
+
   const resolvedLocationLabel = isLocating
     ? 'Locating current position...'
-    : currentLocationLabel ?? locationLabel;
-
-  const requestLocationPermission = React.useCallback(async () => {
-    if (Platform.OS !== 'android') {
-      return true;
-    }
-
-    try {
-      const result = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-        {
-          title: 'Location permission',
-          message:
-            'We use your location to show nearby restaurants and delivery options.',
-          buttonPositive: 'Allow',
-          buttonNegative: 'Not now',
-        },
-      );
-
-      return result === PermissionsAndroid.RESULTS.GRANTED;
-    } catch (error) {
-      console.error('Location permission error:', error);
-      return false;
-    }
-  }, []);
-
-  const fetchCurrentLocation = React.useCallback(async () => {
-    setIsLocating(true);
-
-    const hasPermission = await requestLocationPermission();
-    if (!hasPermission) {
-      setCurrentCoords(null);
-      setIsLocating(false);
-      return;
-    }
-
-    Geolocation.getCurrentPosition(
-      position => {
-        console.log('current position', position);
-        setCurrentCoords({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        });
-        setIsLocating(false);
-        dispatch(
-          updateLocation({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          }),
-        );
-      },
-      () => {
-        setCurrentCoords(null);
-        setIsLocating(false);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 10000,
-      },
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [requestLocationPermission]);
+    : currentLocationLabel;
 
   React.useEffect(() => {
-    fetchCurrentLocation();
-  }, [fetchCurrentLocation]);
+    handleFetchHomePageData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleFetchHomePageData = () => {
+    dispatch(homePageAPI())
+      .unwrap()
+      .then(({ data }) => {
+        setHomePageData(data);
+      })
+      .catch(error => {
+        console.log('Error fetching home page data:', error);
+        setHomePageData(null);
+      });
+  };
 
   React.useEffect(() => {
     if (heroSlideCount < 2) {
@@ -279,7 +148,7 @@ const HomeScreen = () => {
   }, [activeHeroIndex, heroFadeAnim, heroSlideAnim]);
 
   React.useEffect(() => {
-    if (!currentCoords) {
+    if (!userCurrentCoords) {
       setCurrentPlace(null);
       return;
     }
@@ -293,7 +162,7 @@ const HomeScreen = () => {
         }
 
         const response = await fetch(
-          `https://maps.googleapis.com/maps/api/geocode/json?latlng=${currentCoords.latitude},${currentCoords.longitude}&key=${Constant.MapKey}&language=en`,
+          `https://maps.googleapis.com/maps/api/geocode/json?latlng=${userCurrentCoords.latitude},${userCurrentCoords.longitude}&key=${Constant.MapKey}&language=en`,
         );
 
         if (!response.ok) {
@@ -324,7 +193,7 @@ const HomeScreen = () => {
     return () => {
       isActive = false;
     };
-  }, [currentCoords]);
+  }, [userCurrentCoords]);
 
   const handleGetAddress = () => {
     dispatch(getAddressList());
@@ -337,16 +206,11 @@ const HomeScreen = () => {
       <View style={styles.header}>
         <View style={styles.userInfo}>
           <View style={styles.avatarContainer}>
-            <Image
-              source={{
-                uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCXLAZpp1C5cMSy2_JHLk3TeaArbYCqDpiJOg3E7XeqYA8-s9sXC43O1upoTYYHPgUucBt0gg5jauS5_upvK4n9BlUY4Ui8aNOC_8juc3ZmjChJigqWdfxWhzGw2SEYhhOd3FaujfSau09-FXMwxEifgkJJtZLHRhMU9a7oQRqvZ6LqXhH8Tuvs_bmlyeAfwyZtYM_FIeGNw4E3LxzIfyb926TPNJbLi_QDKPqn1A2yd-Y544saFiSoAZtsQJkS98ZAr9pVm0NiFwE',
-              }}
-              style={styles.avatar}
-            />
+            <Image source={ImagePath.logoWithName} style={styles.avatar} />
           </View>
           <View style={{ width: '55%' }}>
             <Text style={styles.welcomeText} numberOfLines={1}>
-              Welcome, Sarah!
+              Ahaari
             </Text>
             <TouchableOpacity
               activeOpacity={0.8}
@@ -428,209 +292,390 @@ const HomeScreen = () => {
         </View>
       </View>
 
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {upcomingEvent ? (
-          <View style={styles.heroCard}>
-            <GlassLayer />
-            <View style={styles.heroImageContainer}>
-              <Image
-                source={{
-                  uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAxGNL0DERG9T_7taHIeOdBtSkXq8JXFF91p8Ku5vFG2nq9Fp4D9CzarNep_RZao1ui5qQGiBjarEGJd2rNGW8mHo9sx1EDTXKlgo8jBBlmXibf6gO2ps9lBe3bmUF_J2X0JTjIXNG4YbjscmB_hpnU-zlDA4s3QBWJwz-IkaZ85CCtAuFd0opEClyacyiZgMCcrvmDNDiacCEkHHz9mx6M-eQm8mKJeVN72a4x3J6-8upK89Je--LYh0-LvsFgARxE-Ee75BXFM5Q',
-                }}
-                style={styles.heroImage}
-              />
-              <LinearGradient
-                colors={['transparent', 'rgba(0, 0, 0, 0.62)']}
-                start={{ x: 0.5, y: 0.25 }}
-                end={{ x: 0.5, y: 1 }}
-                style={styles.heroOverlay}
-              />
-            </View>
-            <View style={styles.heroContent}>
-              <View style={styles.eventBadge}>
-                <Calendar size={12} color="#FFB000" />
-                <Text style={styles.eventBadgeText}>UPCOMING EVENT</Text>
+      {homePageData ? (
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {homePageData?.event ? (
+            <View style={styles.heroCard}>
+              <GlassLayer />
+              <View style={styles.heroImageContainer}>
+                <Image
+                  source={{
+                    uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAxGNL0DERG9T_7taHIeOdBtSkXq8JXFF91p8Ku5vFG2nq9Fp4D9CzarNep_RZao1ui5qQGiBjarEGJd2rNGW8mHo9sx1EDTXKlgo8jBBlmXibf6gO2ps9lBe3bmUF_J2X0JTjIXNG4YbjscmB_hpnU-zlDA4s3QBWJwz-IkaZ85CCtAuFd0opEClyacyiZgMCcrvmDNDiacCEkHHz9mx6M-eQm8mKJeVN72a4x3J6-8upK89Je--LYh0-LvsFgARxE-Ee75BXFM5Q',
+                  }}
+                  style={styles.heroImage}
+                />
+                <LinearGradient
+                  colors={['transparent', 'rgba(0, 0, 0, 0.62)']}
+                  start={{ x: 0.5, y: 0.25 }}
+                  end={{ x: 0.5, y: 1 }}
+                  style={styles.heroOverlay}
+                />
               </View>
-              <Text style={styles.heroTitle}>
-                Celebrate Chloe's Birthday Soon!
-              </Text>
-              <Text style={styles.heroSubtitle}>
-                Make her day special with her favorite artisanal treats and
-                desserts from the best bakeries.
-              </Text>
-              <TouchableOpacity style={styles.planButton}>
-                <Text style={styles.planButtonText}>Plan Party</Text>
-              </TouchableOpacity>
+              <View style={styles.heroContent}>
+                <View style={styles.eventBadge}>
+                  <Calendar size={12} color="#FFB000" />
+                  <Text style={styles.eventBadgeText}>UPCOMING EVENT</Text>
+                </View>
+                <Text style={styles.heroTitle}>
+                  Celebrate Chloe's Birthday Soon!
+                </Text>
+                <Text style={styles.heroSubtitle}>
+                  Make her day special with her favorite artisanal treats and
+                  desserts from the best bakeries.
+                </Text>
+                <TouchableOpacity style={styles.planButton}>
+                  <Text style={styles.planButtonText}>Plan Party</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
-        ) : (
-          <View style={styles.heroCard}>
-            <GlassLayer />
-            <View style={styles.heroImageContainer}>
-              {heroSlides[activeHeroIndex] ? (
-                <Animated.View
-                  style={[
-                    styles.heroImageMotion,
-                    {
-                      opacity: heroFadeAnim,
-                      transform: [{ translateX: heroSlideAnim }],
-                    },
-                  ]}
-                >
-                  <Image
-                    source={{ uri: heroSlides[activeHeroIndex].image }}
-                    style={styles.heroImage}
-                  />
-                </Animated.View>
-              ) : null}
-              <View style={styles.heroDots}>
-                {heroSlides.map((slide, index) => (
-                  <View
-                    key={slide.id}
+          ) : (
+            <View style={styles.heroCard}>
+              <GlassLayer />
+              <View style={styles.heroImageContainer}>
+                {homePageData?.slides &&
+                homePageData?.slides[activeHeroIndex] ? (
+                  <Animated.View
                     style={[
-                      styles.heroDot,
-                      index === activeHeroIndex ? styles.heroDotActive : null,
+                      styles.heroImageMotion,
+                      {
+                        opacity: heroFadeAnim,
+                        transform: [{ translateX: heroSlideAnim }],
+                      },
                     ]}
-                  />
+                  >
+                    <Image
+                      source={{
+                        uri:
+                          Constant.ImageURL +
+                          homePageData?.slides[activeHeroIndex].image,
+                      }}
+                      style={styles.heroImage}
+                    />
+                  </Animated.View>
+                ) : null}
+                <View style={styles.heroDots}>
+                  {homePageData?.slides.map((slide, index) => (
+                    <View
+                      key={slide.id}
+                      style={[
+                        styles.heroDot,
+                        index === activeHeroIndex ? styles.heroDotActive : null,
+                      ]}
+                    />
+                  ))}
+                </View>
+              </View>
+            </View>
+          )}
+
+          {homePageData?.todaySpecials &&
+          homePageData?.todaySpecials.length > 0 ? (
+            <>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Today's Specials</Text>
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.horizontalScroll}
+                contentContainerStyle={styles.horizontalScrollContent}
+              >
+                {homePageData?.todaySpecials.map((item, index) => (
+                  <View key={index} style={styles.specialCard}>
+                    <View style={styles.specialImageContainer}>
+                      <GlassLayer />
+                      <Image
+                        source={
+                          item?.image
+                            ? { uri: Constant.ImageURL + item.image }
+                            : ImagePath.noProductPlaceholder
+                        }
+                        style={styles.specialImage}
+                      />
+                      <View style={styles.priceBadge}>
+                        <GlassLayer />
+                        <Text style={styles.priceText}>₹{item?.price}</Text>
+                      </View>
+                    </View>
+                    <View style={styles.smallBottomRow}>
+                      <Text style={styles.specialTitle}>{item?.name}</Text>
+                      {getCartQtyCount({ product_id: item.product_id }) > 0 ? (
+                        <View style={styles.qtyPillSmall}>
+                          <TouchableOpacity
+                            style={styles.qtyButtonSmall}
+                            activeOpacity={0.85}
+                            onPress={() => {
+                              removeProduct({
+                                product_id: item?.product_id,
+                                variant_id: item?.variant_id,
+                                shop_id: item?.shop_id || '',
+                                quantity: 1,
+                              });
+                            }}
+                          >
+                            <Minus
+                              size={12}
+                              color={colors.primary}
+                              strokeWidth={2.6}
+                            />
+                          </TouchableOpacity>
+                          <Text style={styles.qtyTextSmall}>
+                            {getCartQtyCount({
+                              product_id: item.product_id,
+                            })}
+                          </Text>
+                          <TouchableOpacity
+                            style={styles.qtyButtonSmall}
+                            activeOpacity={0.85}
+                            onPress={() => {
+                              addProduct({
+                                product_id: item.product_id,
+                                variant_id: item?.variant_id,
+                                shop_id: item?.shop_id || '',
+                                quantity: 1,
+                              });
+                            }}
+                          >
+                            <Plus
+                              size={12}
+                              color={colors.primary}
+                              strokeWidth={2.6}
+                            />
+                          </TouchableOpacity>
+                        </View>
+                      ) : (
+                        <TouchableOpacity
+                          style={styles.addButtonSmall}
+                          activeOpacity={0.9}
+                          onPress={() => {
+                            addProduct({
+                              product_id: item.product_id,
+                              variant_id: item?.variant_id,
+                              shop_id: item?.shop_id || '',
+                              quantity: 1,
+                            }).then(res => {
+                              console.log('ress', res);
+                              if (res.type === 'different_shop_error') {
+                                showToaster(
+                                  'Replaced cart items with the new product from a different restaurant.',
+                                );
+                                addProduct({
+                                  product_id: item.product_id,
+                                  variant_id: item?.variant_id,
+                                  shop_id: item?.shop_id || '',
+                                  quantity: 1,
+                                  isRecreateCart: true,
+                                });
+                              }
+                            });
+                          }}
+                        >
+                          <Plus
+                            size={12}
+                            color={colors.background}
+                            strokeWidth={3}
+                          />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                    <Text style={styles.descText} numberOfLines={3}>
+                      {item?.description}
+                    </Text>
+                  </View>
+                ))}
+              </ScrollView>
+            </>
+          ) : null}
+
+          {homePageData?.coupons && homePageData?.coupons.length > 0 ? (
+            <>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Active Promotions</Text>
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.horizontalScroll}
+                contentContainerStyle={styles.horizontalScrollContent}
+              >
+                {homePageData?.coupons.map((promo, index) => {
+                  return (
+                    <View key={index} style={styles.promoBanner}>
+                      <View style={styles.promoBannerContent}>
+                        <>
+                          <View style={styles.promoBannerDiscount}>
+                            <LinearGradient
+                              colors={['#FF7351', '#FF5733']}
+                              start={{ x: 0, y: 0 }}
+                              end={{ x: 1, y: 1 }}
+                              style={styles.discountGradient}
+                            >
+                              {promo?.discount_type === 'Percentage' ? (
+                                <Text style={styles.discountValue}>
+                                  {promo?.discount}%
+                                </Text>
+                              ) : (
+                                <Text style={styles.discountValue}>
+                                  ₹{promo?.discount}
+                                </Text>
+                              )}
+                              <Text style={styles.discountLabel}>OFF</Text>
+                            </LinearGradient>
+                          </View>
+                          <View style={styles.promoBannerText}>
+                            <Text
+                              style={styles.promoBannerTitle}
+                              numberOfLines={2}
+                            >
+                              {promo?.title}
+                            </Text>
+                            <View style={styles.promoCodeChip}>
+                              <Text style={styles.promoCodeChipText}>
+                                {promo?.code}
+                              </Text>
+                            </View>
+                            <Text style={styles.promoExpiry}>
+                              {promo?.expire_on}
+                            </Text>
+                          </View>
+                        </>
+                      </View>
+                    </View>
+                  );
+                })}
+              </ScrollView>
+            </>
+          ) : null}
+
+          {homePageData?.shops && homePageData?.shops.length > 0 ? (
+            <>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Featured Restaurants</Text>
+              </View>
+              <View style={styles.restaurantList}>
+                {homePageData?.shops.map((restaurant, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={styles.restaurantCard}
+                    onPress={() =>
+                      navigation.navigate('RestaurantDetails', {
+                        shopId: restaurant?.shop_id,
+                      })
+                    }
+                  >
+                    <GlassLayer />
+                    <Image
+                      source={
+                        restaurant?.image
+                          ? { uri: Constant.ImageURL + restaurant?.image }
+                          : ImagePath.noShopPlaceholder
+                      }
+                      style={styles.restaurantImage}
+                    />
+                    <View style={styles.restaurantInfo}>
+                      <View style={styles.restaurantHeader}>
+                        <Text style={styles.restaurantName}>
+                          {restaurant?.name}
+                        </Text>
+                        <View
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            gap: 4,
+                          }}
+                        >
+                          <StarIcon
+                            size={12}
+                            color={colors.primary}
+                            fill={colors.primary}
+                          />
+                          <Text style={styles.badgeText}>
+                            {restaurant?.rating || '0.0'}
+                          </Text>
+                        </View>
+                      </View>
+                      <Text style={styles.restaurantDetails}>
+                        {restaurant?.type} - {restaurant?.time}
+                      </Text>
+                      {restaurant?.have_discount ? (
+                        <View
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            gap: 5,
+                            marginTop: 5,
+                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                            paddingHorizontal: 8,
+                            paddingVertical: 5,
+                            borderRadius: 6,
+                            alignSelf: 'flex-start',
+                          }}
+                        >
+                          <BadgePercent size={15} color={colors.primary} />
+                          <Text style={styles.badgeText}>
+                            {restaurant?.offer}
+                          </Text>
+                        </View>
+                      ) : null}
+                    </View>
+                  </TouchableOpacity>
                 ))}
               </View>
-            </View>
-            <View style={styles.heroContent}>
-              <View style={styles.eventBadge}>
-                <Calendar size={12} color="#FFB000" />
-                <Text style={styles.eventBadgeText}>UPCOMING EVENT</Text>
+            </>
+          ) : null}
+        </ScrollView>
+      ) : (
+        <View style={styles.comingSoonSection}>
+          <LinearGradient
+            colors={['rgba(255, 176, 0, 0.18)', 'rgba(255, 87, 51, 0.12)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.comingSoonCard}
+          >
+            <GlassLayer />
+            <View style={styles.comingSoonHeader}>
+              <View style={styles.comingSoonIconWrap}>
+                <LocateFixed size={20} color={colors.primary} />
               </View>
-              <Text style={styles.heroTitle}>
-                Celebrate Chloe's Birthday Soon!
-              </Text>
-              <Text style={styles.heroSubtitle}>
-                Make her day special with her favorite artisanal treats and
-                desserts from the best bakeries.
-              </Text>
-              <TouchableOpacity style={styles.planButton}>
-                <Text style={styles.planButtonText}>Plan Party</Text>
+              <View style={styles.comingSoonPill}>
+                <Text style={styles.comingSoonPillText}>Coming soon</Text>
+              </View>
+            </View>
+            <Text style={styles.comingSoonTitle} numberOfLines={2}>
+              We are not serviceable in this area yet
+            </Text>
+            <Text style={styles.comingSoonSubtitle} numberOfLines={3}>
+              {currentPlace}
+              {'\n'}
+              We&apos;re expanding soon, so you can order here once delivery
+              coverage opens up.
+            </Text>
+            <View style={styles.comingSoonActions}>
+              <TouchableOpacity
+                activeOpacity={0.9}
+                style={styles.comingSoonPrimaryAction}
+                onPress={() => {
+                  setIsAddressSheetOpen(true);
+                  handleGetAddress();
+                }}
+              >
+                <Text style={styles.comingSoonPrimaryActionText}>
+                  Change location
+                </Text>
               </TouchableOpacity>
-            </View>
-          </View>
-        )}
-
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Today's Specials</Text>
-          <TouchableOpacity>
-            <Text style={styles.viewAllText}>View All</Text>
-          </TouchableOpacity>
-        </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.horizontalScroll}
-          contentContainerStyle={styles.horizontalScrollContent}
-        >
-          {specials.map(item => (
-            <TouchableOpacity key={item.id} style={styles.specialCard}>
-              <View style={styles.specialImageContainer}>
-                <GlassLayer />
-                <Image
-                  source={{ uri: item.image }}
-                  style={styles.specialImage}
-                />
-                <View style={styles.priceBadge}>
-                  <GlassLayer />
-                  <Text style={styles.priceText}>{item.price}</Text>
-                </View>
-              </View>
-              <Text style={styles.specialTitle}>{item.title}</Text>
-              <View style={styles.ratingContainer}>
-                <Star size={14} color="#FFB000" fill="#FFB000" />
-                <Text style={styles.ratingText}>
-                  {item.rating} ({item.reviews} reviews)
+              <View style={styles.comingSoonSecondaryChip}>
+                <Text style={styles.comingSoonSecondaryChipText}>
+                  More zones arriving soon
                 </Text>
               </View>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Active Promotions</Text>
+            </View>
+          </LinearGradient>
         </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.horizontalScroll}
-          contentContainerStyle={styles.horizontalScrollContent}
-        >
-          {promotions.map(promo => {
-            return (
-              <TouchableOpacity key={promo.id} style={styles.promoBanner}>
-                <View style={styles.promoBannerContent}>
-                  <>
-                    <View style={styles.promoBannerDiscount}>
-                      <LinearGradient
-                        colors={['#FF7351', '#FF5733']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={styles.discountGradient}
-                      >
-                        <Text style={styles.discountValue}>
-                          {promo.discount}
-                        </Text>
-                        <Text style={styles.discountLabel}>OFF</Text>
-                      </LinearGradient>
-                    </View>
-                    <View style={styles.promoBannerText}>
-                      <Text style={styles.promoBannerTitle} numberOfLines={2}>
-                        {promo.title}
-                      </Text>
-                      <View style={styles.promoCodeChip}>
-                        <Text style={styles.promoCodeChipText}>
-                          {promo.code}
-                        </Text>
-                      </View>
-                      <Text style={styles.promoExpiry}>{promo.expiresIn}</Text>
-                    </View>
-                  </>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Featured Restaurants</Text>
-        </View>
-        <View style={styles.restaurantList}>
-          {featuredRestaurants.map(restaurant => (
-            <TouchableOpacity key={restaurant.id} style={styles.restaurantCard}>
-              <GlassLayer />
-              <Image
-                source={{ uri: restaurant.image }}
-                style={styles.restaurantImage}
-              />
-              <View style={styles.restaurantInfo}>
-                <View style={styles.restaurantHeader}>
-                  <Text style={styles.restaurantName}>{restaurant.name}</Text>
-                  <BadgePercent size={20} color={colors.primary} />
-                </View>
-                <Text style={styles.restaurantDetails}>
-                  {restaurant.type} - {restaurant.time}
-                </Text>
-                <View style={styles.restaurantBadges}>
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>{restaurant.tag}</Text>
-                  </View>
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>{restaurant.rating}</Text>
-                  </View>
-                </View>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </ScrollView>
+      )}
 
       <Modal
         transparent
@@ -647,6 +692,56 @@ const HomeScreen = () => {
             <GlassLayer />
             <View style={styles.sheetHandle} />
             <Text style={styles.sheetTitle}>Choose delivery address</Text>
+
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={styles.useLocationCard}
+              onPress={() => {
+                setIsAddressSheetOpen(false);
+                setIsLocating(true);
+                fetchUserCurrentLocation()
+                  .then((coords: any) => {
+                    console.log('coords fetch success', coords);
+                    if (coords && coords?.latitude && coords?.longitude) {
+                      dispatch(setUserCurrentCoords(coords));
+                      dispatch(
+                        updateLocation({
+                          latitude: coords.latitude,
+                          longitude: coords.longitude,
+                        }),
+                      )
+                        .unwrap()
+                        .then(() => {
+                          handleFetchHomePageData();
+                        });
+                      setSelectedAddressId('');
+                    }
+                  })
+                  .finally(() => {
+                    setIsLocating(false);
+                  });
+              }}
+            >
+              <GlassLayer />
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                }}
+              >
+                <LocateFixed color={colors.primary} />
+
+                <View style={{ marginLeft: 12 }}>
+                  <Text style={styles.useLocationTitle}>
+                    Use current location
+                  </Text>
+                  <Text style={styles.useLocationSub}>
+                    Detect your current address
+                  </Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+
             <View style={styles.sheetList}>
               {addresses && addresses.length > 0 ? (
                 addresses.map(option => {
@@ -663,11 +758,16 @@ const HomeScreen = () => {
                       onPress={() => {
                         setSelectedAddressId(option?.address_id);
                         setIsAddressSheetOpen(false);
+                        setCurrentPlace(option?.address);
                         dispatch(
                           updateLocation({
                             address_id: option?.address_id,
                           }),
-                        );
+                        )
+                          .unwrap()
+                          .then(() => {
+                            handleFetchHomePageData();
+                          });
                       }}
                     >
                       <GlassLayer />
@@ -755,9 +855,9 @@ const styles = StyleSheet.create({
   avatar: {
     width: 48,
     height: 48,
-    borderRadius: 24,
-    borderWidth: 2,
-    borderColor: colors.primary,
+    // borderRadius: 24,
+    // borderWidth: 2,
+    // borderColor: colors.primary,
   },
   welcomeText: {
     color: colors.textPrimary,
@@ -900,15 +1000,15 @@ const styles = StyleSheet.create({
   },
   specialCard: {
     width: 280,
-    gap: 16,
   },
   specialImageContainer: {
     backgroundColor: colors.glass,
-    padding: 8,
+    // padding: 8,
     borderRadius: 24,
     borderWidth: 1,
     borderColor: colors.glassBorder,
     aspectRatio: 4 / 3,
+    overflow: 'hidden',
   },
   specialImage: {
     width: '100%',
@@ -919,7 +1019,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 16,
     right: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: 'rgba(53, 50, 50, 0.91)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
@@ -940,12 +1040,148 @@ const styles = StyleSheet.create({
   ratingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
   },
-  ratingText: {
+  descText: {
     color: colors.textSecondary,
     fontSize: typography.sm,
+    marginTop: 12,
   },
+  smallBottomRow: {
+    marginTop: 15,
+    height: 28,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingRight: 5,
+  },
+  smallTag: {
+    color: colors.textMuted,
+    fontSize: typography.caption,
+    fontWeight: '700',
+    lineHeight: 15,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.14)',
+  },
+  addButtonSmall: {
+    width: 30,
+    height: 30,
+    borderRadius: 11,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  qtyPillSmall: {
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 176, 0, 0.3)',
+    backgroundColor: 'rgba(255, 176, 0, 0.12)',
+    paddingHorizontal: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  qtyButtonSmall: {
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  qtyTextSmall: {
+    color: colors.primary,
+    fontSize: typography.smPlus,
+    fontWeight: '700',
+  },
+  comingSoonSection: {
+    paddingHorizontal: layout.screenPadding,
+    marginTop: 8,
+  },
+  comingSoonCard: {
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 176, 0, 0.3)',
+    overflow: 'hidden',
+    padding: 18,
+    gap: 14,
+  },
+  comingSoonHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  comingSoonIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 176, 0, 0.16)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 176, 0, 0.28)',
+  },
+  comingSoonPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 87, 51, 0.16)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 87, 51, 0.28)',
+  },
+  comingSoonPillText: {
+    color: colors.primary,
+    fontSize: typography.caption,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+  },
+  comingSoonTitle: {
+    color: colors.textPrimary,
+    fontSize: typography.xl,
+    fontWeight: '800',
+    lineHeight: 28,
+  },
+  comingSoonSubtitle: {
+    color: colors.textSecondary,
+    fontSize: typography.body,
+    lineHeight: 20,
+  },
+  comingSoonActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    alignItems: 'center',
+  },
+  comingSoonPrimaryAction: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
+  },
+  comingSoonPrimaryActionText: {
+    color: colors.black,
+    fontSize: typography.sm,
+    fontWeight: '700',
+  },
+  comingSoonSecondaryChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  comingSoonSecondaryChipText: {
+    color: colors.textMuted,
+    fontSize: typography.sm,
+    fontWeight: '600',
+  },
+  //---New
   promoBanner: {
     width: 320,
     height: 140,
@@ -1007,7 +1243,8 @@ const styles = StyleSheet.create({
     marginLeft: 2,
   },
   discountGradient: {
-    width: 80,
+    // width: 80,
+    paddingHorizontal: 10,
     height: 80,
     borderRadius: 14,
     justifyContent: 'center',
@@ -1158,6 +1395,26 @@ const styles = StyleSheet.create({
     fontSize: typography.caption,
     fontWeight: '700',
     letterSpacing: 0.2,
+  },
+  useLocationCard: {
+    backgroundColor: colors.glass,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 12,
+    overflow: 'hidden',
+  },
+  useLocationTitle: {
+    color: colors.primary,
+    fontSize: typography.md,
+    fontWeight: '700',
+  },
+  useLocationSub: {
+    color: colors.textMuted,
+    fontSize: typography.sm,
+    marginTop: 4,
   },
   manageAddressButton: {
     marginTop: 16,

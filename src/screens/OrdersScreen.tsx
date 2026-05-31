@@ -42,18 +42,6 @@ import { Constant } from '../constants/Constant';
 import { handleCall, statusColors } from '../utils/helper';
 import { useCart } from '../hooks';
 
-type HistoryOrder = {
-  id: string;
-  restaurant: string;
-  date: string;
-  total: string;
-  image: string;
-  quote?: string;
-  showRateButton?: boolean;
-};
-
-const historyOrders: HistoryOrder[] = [];
-
 const GlassLayer = ({
   radius,
   tint = 'rgba(12, 14, 18, 0.35)',
@@ -143,9 +131,9 @@ const OrdersScreen = () => {
     navigation.navigate('OrderDetails', { orderId: orderId || '' });
   };
 
-  const openRateExperience = () => {
-    navigation.navigate('RateExperience');
-  };
+  // const openRateExperience = () => {
+  //   navigation.navigate('RateExperience');
+  // };
 
   const { isBadWeather, show } = useWeatherAlert();
 
@@ -187,7 +175,7 @@ const OrdersScreen = () => {
               textTransform: 'uppercase',
             }}
           >
-            Today's picks
+            Your Food Journey
           </Text>
           <Text
             style={{
@@ -197,7 +185,7 @@ const OrdersScreen = () => {
               letterSpacing: -0.3,
             }}
           >
-            Curated Cart
+            My Orders
           </Text>
         </View>
 
@@ -447,6 +435,51 @@ const OrdersScreen = () => {
                   </View>
                 );
               })}
+            </View>
+          ) : null}
+
+          {orderListData &&
+          !(
+            orderListData?.active_orders &&
+            orderListData.active_orders.length > 0
+          ) &&
+          !(
+            orderListData?.past_orders && orderListData.past_orders.length > 0
+          ) ? (
+            <View style={styles.emptyWrap}>
+              <View style={styles.emptyCard}>
+                <AlertTriangle size={44} color={colors.textMuted} />
+                <Text style={styles.emptyTitle}>No orders yet</Text>
+                <Text style={styles.emptySubtitle}>
+                  You don't have any active or past orders right now.
+                </Text>
+                <View style={styles.emptyActions}>
+                  <TouchableOpacity
+                    style={styles.emptyPrimaryButton}
+                    activeOpacity={0.88}
+                    onPress={() => navigation.navigate('Restaurants')}
+                  >
+                    <Text style={styles.emptyPrimaryButtonText}>
+                      Browse Restaurants
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.emptySecondaryButton}
+                    activeOpacity={0.88}
+                    onPress={() => {
+                      dispatch(getOrders())
+                        .unwrap()
+                        .then(({ data }) => {
+                          setOrderListData(data);
+                        })
+                        .catch(() => {});
+                    }}
+                  >
+                    <Text style={styles.emptySecondaryButtonText}>Refresh</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             </View>
           ) : null}
 
@@ -1094,6 +1127,58 @@ const styles = StyleSheet.create({
     fontSize: typography.body,
     lineHeight: 20,
     fontWeight: '500',
+  },
+  emptyWrap: {
+    alignItems: 'center',
+    paddingVertical: 48,
+  },
+  emptyCard: {
+    width: '100%',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    padding: 28,
+    alignItems: 'center',
+  },
+  emptyTitle: {
+    color: colors.textPrimary,
+    fontSize: typography.lg,
+    fontWeight: '700',
+    marginTop: 12,
+  },
+  emptySubtitle: {
+    color: colors.textMuted,
+    fontSize: typography.body,
+    marginTop: 8,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  emptyActions: {
+    marginTop: 16,
+    flexDirection: 'row',
+    gap: 12,
+  },
+  emptyPrimaryButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 999,
+  },
+  emptyPrimaryButtonText: {
+    color: colors.black,
+    fontWeight: '700',
+  },
+  emptySecondaryButton: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+  },
+  emptySecondaryButtonText: {
+    color: colors.textPrimary,
+    fontWeight: '700',
   },
 });
 

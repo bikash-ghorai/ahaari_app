@@ -2,10 +2,9 @@ import { createAsyncThunk } from '@reduxjs/toolkit';
 import {
   deleteAuthTokenFromAsyncStore,
   deleteUserDetailsFromAsyncStore,
-  setAuthTokenToAsyncStore,
   setUserDetailsToAsyncStore,
 } from '../../utils/storage';
-import axios, { removeApiToken, setApiToken } from '../../utils/axios';
+import axios, { removeApiToken } from '../../utils/axios';
 import { navigate, reset } from '../../utils/navigationRef';
 import {
   IAddress,
@@ -63,12 +62,6 @@ export const verifyOTP = createAsyncThunk(
         params,
       );
       showToaster(message);
-      if (data) {
-        setApiToken(data.token);
-        await setAuthTokenToAsyncStore(data.token);
-        await setUserDetailsToAsyncStore(data.user);
-      }
-      reset('Tabs');
       return { data, message };
     } catch (error: any) {
       showToaster(error);
@@ -83,7 +76,7 @@ export const getMyProfile = createAsyncThunk(
   async (_, thunkAPI) => {
     try {
       const { data, message }: { data: any; message: string } = await axios.get(
-        'user/my-profile',
+        'user/profile',
       );
       console.log('data1', data);
       await setUserDetailsToAsyncStore(data);
@@ -116,6 +109,22 @@ export const addAddress = createAsyncThunk(
     try {
       const { data, message }: { data: IAddress; message: string } =
         await axios.post('user/add-address', params);
+      showToaster(message);
+      return { data, message };
+    } catch (error: any) {
+      showToaster(error);
+      return thunkAPI.rejectWithValue(error);
+    }
+  },
+);
+
+//For deleting user address
+export const deleteAddress = createAsyncThunk(
+  'user/deleteAddress',
+  async (params: any, thunkAPI) => {
+    try {
+      const { data, message }: { data: IAddress; message: string } =
+        await axios.post('user/delete-address', params);
       showToaster(message);
       return { data, message };
     } catch (error: any) {
@@ -197,6 +206,22 @@ export const deleteAccount = createAsyncThunk(
       return { data, message };
     } catch (error: any) {
       // showToaster(error);
+      return thunkAPI.rejectWithValue(error);
+    }
+  },
+);
+
+//For fetching user profile
+export const getWalletHistory = createAsyncThunk(
+  'user/getWalletHistory',
+  async (params: any, thunkAPI) => {
+    try {
+      const { data, message }: { data: any; message: string } =
+        await axios.post('user/wallet', params);
+      console.log('data1', data);
+      await setUserDetailsToAsyncStore(data);
+      return { data, message };
+    } catch (error: any) {
       return thunkAPI.rejectWithValue(error);
     }
   },

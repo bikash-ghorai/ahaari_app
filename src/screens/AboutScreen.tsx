@@ -19,6 +19,7 @@ import {
 
 import { colors, layout, typography } from '../constants/theme';
 import Header from '../components/Header';
+import { ImagePath } from '../constants/ImagePath';
 
 const highlights = [
   {
@@ -62,14 +63,16 @@ const AboutScreen = () => {
           <View style={styles.brandRow}>
             <View style={styles.logoWrap}>
               <Image
-                source={require('../assets/name_logo.png')}
+                source={ImagePath.logoWithNameAndTag}
                 style={styles.logoImage}
               />
             </View>
 
             <View style={styles.brandText}>
               <Text style={styles.brandTitle}>Ahaari</Text>
-              <Text style={styles.brandSubtitle}>Your Ahaar, Always Ready.</Text>
+              <Text style={styles.brandSubtitle}>
+                Your Ahaar, Always Ready.
+              </Text>
             </View>
           </View>
 
@@ -84,8 +87,8 @@ const AboutScreen = () => {
           </View>
 
           <Text style={styles.heroBody}>
-            Ahaari curates premium menus from top kitchens, pairing seasonal ingredients with
-            delightful delivery experiences.
+            Ahaari curates premium menus from top kitchens, pairing seasonal
+            ingredients with delightful delivery experiences.
           </Text>
         </View>
 
@@ -102,7 +105,9 @@ const AboutScreen = () => {
                   </View>
                   <View style={styles.highlightTextWrap}>
                     <Text style={styles.highlightTitle}>{item.title}</Text>
-                    <Text style={styles.highlightSubtitle}>{item.subtitle}</Text>
+                    <Text style={styles.highlightSubtitle}>
+                      {item.subtitle}
+                    </Text>
                   </View>
                 </View>
               );
@@ -134,7 +139,8 @@ const AboutScreen = () => {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Share feedback</Text>
           <Text style={styles.cardBodyText}>
-            Tell us what you love, what you want next, and what would make delivery even better.
+            Tell us what you love, what you want next, and what would make
+            delivery even better.
           </Text>
 
           <TouchableOpacity style={styles.primaryButton} activeOpacity={0.92}>

@@ -1,3 +1,4 @@
+/* eslint-disable react-native/no-inline-styles */
 import React, { useEffect, useState } from 'react';
 import {
   ScrollView,
@@ -8,7 +9,14 @@ import {
 } from 'react-native';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Briefcase, Check, House, MapPin, Plus } from 'lucide-react-native';
+import {
+  Briefcase,
+  Check,
+  House,
+  MapPin,
+  Plus,
+  Trash2Icon,
+} from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -17,10 +25,15 @@ import type { RootStackParamList } from '../types/navigation';
 import Header from '../components/Header';
 import GlassLayer from '../components/GlassLayer';
 import { useDispatch, useSelector } from '../redux/store';
-import { getAddressList, setDefaultAddress } from '../redux/user/userAction';
+import {
+  deleteAddress,
+  getAddressList,
+  setDefaultAddress,
+} from '../redux/user/userAction';
 import { IAddress } from '../types';
 import { showToaster } from '../utils/toaster';
 import { goBack } from '../utils/navigationRef';
+import PopupMessage from '../components/PopupMessage';
 
 const palette = {
   page: colors.background,
@@ -37,6 +50,7 @@ const palette = {
 };
 
 type AddressIconType = 'home' | 'office' | 'other';
+type IRouteFor = 'addressList' | 'checkout';
 
 const AddressIcon = ({ type }: { type: AddressIconType }) => {
   if (type === 'home') {
@@ -71,13 +85,15 @@ const AddressIcon = ({ type }: { type: AddressIconType }) => {
   );
 };
 
-const SelectAddressScreen = () => {
+const SelectAddressScreen = (props: any) => {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const isFocused = useIsFocused();
   const dispatch = useDispatch();
   const { addresses } = useSelector(state => state.user);
+  const routeFor: IRouteFor = props?.route?.params?.routeFor || 'addressList';
   const [selectedId, setSelectedId] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<IAddress | null>(null);
 
   useEffect(() => {
     if (isFocused) {
@@ -90,6 +106,8 @@ const SelectAddressScreen = () => {
           );
           if (defaultAddress) {
             setSelectedId(defaultAddress.address_id);
+          } else {
+            setSelectedId('');
           }
         });
     }
@@ -111,10 +129,28 @@ const SelectAddressScreen = () => {
     }
   };
 
+  const handleDeleteAddress = () => {
+    if (deleteTarget?.address_id) {
+      dispatch(deleteAddress({ address_id: deleteTarget?.address_id }))
+        .unwrap()
+        .then(() => {
+          dispatch(getAddressList());
+        })
+        .catch(() => {
+          showToaster('Failed to delete address. Please try again.');
+        })
+        .finally(() => {
+          setDeleteTarget(null);
+        });
+    } else {
+      showToaster('Something went wrong. Please try again.');
+    }
+  };
+
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
       <Header
-        title="Select Address"
+        title={routeFor === 'checkout' ? 'Select Address' : 'Addresses'}
         showBackButton={true}
         containerStyle={{ paddingHorizontal: layout.screenPadding }}
       />
@@ -145,7 +181,8 @@ const SelectAddressScreen = () => {
         <View style={styles.addressList}>
           {addresses && addresses.length > 0 ? (
             addresses.map((item, ind) => {
-              const isSelected = item?.address_id === selectedId;
+              const isSelected =
+                item?.address_id === selectedId && routeFor === 'checkout';
 
               return (
                 <TouchableOpacity
@@ -156,6 +193,7 @@ const SelectAddressScreen = () => {
                     isSelected ? styles.addressCardActive : null,
                   ]}
                   onPress={() => setSelectedId(item?.address_id)}
+                  disabled={routeFor === 'addressList'}
                 >
                   <GlassLayer radius={16} />
 
@@ -164,6 +202,24 @@ const SelectAddressScreen = () => {
                       <Check size={14} color={colors.black} strokeWidth={2.8} />
                       <Text style={styles.selectedBadgeText}>Selected</Text>
                     </View>
+                  ) : null}
+                  {routeFor === 'addressList' ? (
+                    <TouchableOpacity
+                      style={{
+                        position: 'absolute',
+                        right: 14,
+                        top: 14,
+                        padding: 6,
+                      }}
+                      activeOpacity={0.75}
+                      onPress={() => setDeleteTarget(item)}
+                    >
+                      <Trash2Icon
+                        size={18}
+                        color={palette.iconMuted}
+                        strokeWidth={2.5}
+                      />
+                    </TouchableOpacity>
                   ) : null}
 
                   <View style={styles.addressContentRow}>
@@ -217,21 +273,35 @@ const SelectAddressScreen = () => {
           )}
         </View>
 
-        <TouchableOpacity
-          activeOpacity={0.95}
-          style={styles.continueButton}
-          onPress={handleContinue}
-        >
-          <LinearGradient
-            colors={[palette.amber, palette.amberStrong]}
-            start={{ x: 0.47, y: 1 }}
-            end={{ x: 0.53, y: 0 }}
-            style={styles.continueButtonGradient}
+        {routeFor === 'checkout' ? (
+          <TouchableOpacity
+            activeOpacity={0.95}
+            style={styles.continueButton}
+            onPress={handleContinue}
           >
-            <Text style={styles.continueButtonText}>Continue</Text>
-          </LinearGradient>
-        </TouchableOpacity>
+            <LinearGradient
+              colors={[palette.amber, palette.amberStrong]}
+              start={{ x: 0.47, y: 1 }}
+              end={{ x: 0.53, y: 0 }}
+              style={styles.continueButtonGradient}
+            >
+              <Text style={styles.continueButtonText}>Continue</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        ) : null}
       </ScrollView>
+
+      <PopupMessage
+        title={'Delete address?'}
+        description={
+          'This will remove the saved address from your account. You can add it again anytime.'
+        }
+        isVisible={!!deleteTarget}
+        onBtn1Press={() => setDeleteTarget(null)}
+        onBtn2Press={handleDeleteAddress}
+        btn2Name="Delete"
+        btn2Style={{ backgroundColor: 'rgb(240, 74, 74)' }}
+      />
     </SafeAreaView>
   );
 };

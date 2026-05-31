@@ -24,6 +24,7 @@ import { ImagePath } from '../constants/ImagePath';
 import { IProduct, IRestaurantDetails, IVariant } from '../types';
 import { Constant } from '../constants/Constant';
 import { useCart } from '../hooks';
+import PopupMessage from '../components/PopupMessage';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 // const signatureDishes: MenuItem[] = [
@@ -70,6 +71,9 @@ const RestaurantDetails = (props: IProps) => {
   const shopId = props?.route?.params?.shopId || '';
 
   const { getCartQtyCount, addProduct, removeProduct } = useCart();
+  const [duplicateRestaurenProduct, setDuplicateRestaurenProduct] =
+    useState<any>(null);
+
   const [selectedItem, setSelectedItem] = useState<IProduct | null>(null);
   const [selectedTempVariant, setSelectedTempVariant] =
     useState<IVariant | null>(null);
@@ -133,6 +137,37 @@ const RestaurantDetails = (props: IProps) => {
     }
   };
 
+  const handleAddToCart = (_props: {
+    product_id: string;
+    variant_id: string;
+    shop_id: string;
+    quantity?: number;
+  }) => {
+    let { product_id, variant_id, shop_id, quantity = 1 } = _props;
+    addProduct({
+      product_id,
+      variant_id,
+      shop_id,
+      quantity,
+    })
+      .then(res => {
+        console.log('res', res);
+        if (!res?.status && res?.type === 'different_shop_error') {
+          setDuplicateRestaurenProduct(_props);
+        }
+      })
+      .catch(err => {
+        console.error('Error adding product to cart:', err);
+      });
+  };
+  const handleReplaceCartItem = () => {
+    setDuplicateRestaurenProduct(null);
+    addProduct({
+      ...duplicateRestaurenProduct,
+      isRecreateCart: true,
+    });
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <Header
@@ -140,144 +175,156 @@ const RestaurantDetails = (props: IProps) => {
         showCartButton={true}
         containerStyle={{ paddingHorizontal: layout.screenPadding }}
       />
-      <ScrollView
-        ref={scrollRef}
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        stickyHeaderIndices={[1]}
-      >
-        <View
-          style={styles.heroSection}
-          onLayout={e => {
-            heroHeightRef.current = e.nativeEvent.layout.height;
-          }}
+      {shopDetails ? (
+        <ScrollView
+          ref={scrollRef}
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          stickyHeaderIndices={[1]}
         >
-          <Image
-            source={
-              shopDetails?.shop?.image
-                ? { uri: Constant.ImageURL + shopDetails.shop.image }
-                : ImagePath.noShopPlaceholder
-            }
-            style={styles.heroImage}
-          />
+          <View
+            style={styles.heroSection}
+            onLayout={e => {
+              heroHeightRef.current = e.nativeEvent.layout.height;
+            }}
+          >
+            <Image
+              source={
+                shopDetails?.shop?.image
+                  ? { uri: Constant.ImageURL + shopDetails.shop.image }
+                  : ImagePath.noShopPlaceholder
+              }
+              style={styles.heroImage}
+            />
 
-          <View style={styles.heroGlowLarge} />
-          <View style={styles.heroGlowSmall} />
+            <View style={styles.heroGlowLarge} />
+            <View style={styles.heroGlowSmall} />
 
-          <LinearGradient
-            colors={[
-              'rgba(12, 14, 18, 0.08)',
-              'rgba(12, 14, 18, 0.62)',
-              'rgba(12, 14, 18, 0.92)',
-            ]}
-            start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 1 }}
-            style={styles.heroGradient}
-          />
+            <LinearGradient
+              colors={[
+                'rgba(12, 14, 18, 0.08)',
+                'rgba(12, 14, 18, 0.62)',
+                'rgba(12, 14, 18, 0.92)',
+              ]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={styles.heroGradient}
+            />
 
-          <View style={styles.heroDetails}>
-            <Text style={styles.heroKicker}>{shopDetails?.shop?.address}</Text>
-            <Text style={styles.heroTitle}>{shopDetails?.shop?.name}</Text>
+            <View style={styles.heroDetails}>
+              <Text style={styles.heroKicker}>
+                {shopDetails?.shop?.address}
+              </Text>
+              <Text style={styles.heroTitle}>{shopDetails?.shop?.name}</Text>
 
-            <View style={styles.metaRow}>
-              <View style={styles.ratingRow}>
-                <Star
-                  size={14}
-                  color={colors.primary}
-                  fill={colors.primary}
-                  strokeWidth={1.9}
-                />
-                <Text style={styles.metaStrong}>4.9</Text>
-                <Text style={styles.metaMuted}>(2.4k reviews)</Text>
-              </View>
-              <View style={styles.metaDivider} />
-              <View style={styles.timeRow}>
-                <Clock3 size={15} color={colors.textMuted} strokeWidth={2.1} />
-                <Text style={styles.metaStrong}>25-35 min</Text>
+              <View style={styles.metaRow}>
+                <View style={styles.ratingRow}>
+                  <Star
+                    size={14}
+                    color={colors.primary}
+                    fill={colors.primary}
+                    strokeWidth={1.9}
+                  />
+                  <Text style={styles.metaStrong}>
+                    {shopDetails?.shop?.rating || '0.0'}
+                  </Text>
+                </View>
+                <View style={styles.metaDivider} />
+                {shopDetails?.shop?.delivery_time ? (
+                  <View style={styles.timeRow}>
+                    <Clock3
+                      size={15}
+                      color={colors.textMuted}
+                      strokeWidth={2.1}
+                    />
+                    <Text style={styles.metaStrong}>
+                      {shopDetails?.shop?.delivery_time}
+                    </Text>
+                  </View>
+                ) : null}
               </View>
             </View>
           </View>
-        </View>
 
-        <View style={styles.stickySection}>
-          <View style={styles.stickyCard}>
-            <BlurView
-              style={styles.bottomNavBlur}
-              blurType="dark"
-              blurAmount={15}
-              blurRadius={10}
-              downsampleFactor={1}
-              overlayColor="transparent"
-              reducedTransparencyFallbackColor="rgba(0, 0, 0, 0)"
-            />
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.categoryScroll}
-              contentContainerStyle={styles.categoryScrollContent}
-            >
-              {shopDetails?.categories && shopDetails?.categories.length > 0
-                ? shopDetails?.categories.map((category, index) => {
-                    const isActive =
-                      selectedCategory?.category_id === category?.category_id;
+          <View style={styles.stickySection}>
+            <View style={styles.stickyCard}>
+              <BlurView
+                style={styles.bottomNavBlur}
+                blurType="dark"
+                blurAmount={15}
+                blurRadius={10}
+                downsampleFactor={1}
+                overlayColor="transparent"
+                reducedTransparencyFallbackColor="rgba(0, 0, 0, 0)"
+              />
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.categoryScroll}
+                contentContainerStyle={styles.categoryScrollContent}
+              >
+                {shopDetails?.categories && shopDetails?.categories.length > 0
+                  ? shopDetails?.categories.map((category, index) => {
+                      const isActive =
+                        selectedCategory?.category_id === category?.category_id;
 
-                    return (
-                      <TouchableOpacity
-                        key={index}
-                        activeOpacity={0.9}
-                        style={
-                          isActive
-                            ? styles.categoryPillActive
-                            : styles.categoryPill
-                        }
-                        onPress={() => {
-                          setSelectedCategory(category);
-                          handleSearch(
-                            searchText || '',
-                            category?.products || [],
-                          );
-                          handleScrollToStickyHeader();
-                        }}
-                      >
-                        <Text
+                      return (
+                        <TouchableOpacity
+                          key={index}
+                          activeOpacity={0.9}
                           style={
                             isActive
-                              ? styles.categoryPillTextActive
-                              : styles.categoryPillText
+                              ? styles.categoryPillActive
+                              : styles.categoryPill
                           }
+                          onPress={() => {
+                            setSelectedCategory(category);
+                            handleSearch(
+                              searchText || '',
+                              category?.products || [],
+                            );
+                            handleScrollToStickyHeader();
+                          }}
                         >
-                          {category?.name}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })
-                : null}
-            </ScrollView>
+                          <Text
+                            style={
+                              isActive
+                                ? styles.categoryPillTextActive
+                                : styles.categoryPillText
+                            }
+                          >
+                            {category?.name}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })
+                  : null}
+              </ScrollView>
 
-            <View style={styles.searchBar}>
-              <Search
-                size={18}
-                color="rgba(170, 171, 176, 0.7)"
-                strokeWidth={2.1}
-              />
-              <TextInput
-                value={searchText}
-                onChangeText={txt => {
-                  handleSearch(txt, selectedCategory?.products || []);
-                  setSearchText(txt);
-                }}
-                onFocus={handleScrollToStickyHeader}
-                placeholder="Search through 200+ delicacies..."
-                placeholderTextColor={colors.textMuted}
-                style={[styles.inputText]}
-              />
+              <View style={styles.searchBar}>
+                <Search
+                  size={18}
+                  color="rgba(170, 171, 176, 0.7)"
+                  strokeWidth={2.1}
+                />
+                <TextInput
+                  value={searchText}
+                  onChangeText={txt => {
+                    handleSearch(txt, selectedCategory?.products || []);
+                    setSearchText(txt);
+                  }}
+                  onFocus={handleScrollToStickyHeader}
+                  placeholder="Search through 200+ delicacies..."
+                  placeholderTextColor={colors.textMuted}
+                  style={[styles.inputText]}
+                />
+              </View>
             </View>
           </View>
-        </View>
 
-        <View style={styles.menuSection}>
-          {/* <View style={styles.sectionHeader}>
+          <View style={styles.menuSection}>
+            {/* <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Signature Dishes</Text>
             <View style={styles.sectionDivider} />
           </View>
@@ -369,82 +416,108 @@ const RestaurantDetails = (props: IProps) => {
             ))}
           </ScrollView> */}
 
-          <View style={styles.sectionHeaderAlt}>
-            <Text style={styles.sectionTitle}>Sommelier Selection</Text>
-            <View style={styles.sectionDividerAlt} />
-          </View>
+            <View style={styles.sectionHeaderAlt}>
+              <Text style={styles.sectionTitle}>Sommelier Selection</Text>
+              <View style={styles.sectionDividerAlt} />
+            </View>
 
-          <View style={styles.sommelierList}>
-            {filteredProducts && filteredProducts.length > 0 ? (
-              filteredProducts.map((item, ind) => {
-                return (
-                  <TouchableOpacity
-                    key={ind}
-                    style={styles.menuCardSmall}
-                    activeOpacity={0.92}
-                    onPress={() => openPreview(item)}
-                  >
-                    <View style={styles.menuCardSmallContent}>
-                      <Image
-                        source={
-                          item?.image
-                            ? { uri: Constant.ImageURL + item.image }
-                            : ImagePath.noProductPlaceholder
-                        }
-                        style={styles.menuImageSmall}
-                      />
+            <View style={styles.sommelierList}>
+              {filteredProducts && filteredProducts.length > 0 ? (
+                filteredProducts.map((item, ind) => {
+                  return (
+                    <TouchableOpacity
+                      key={ind}
+                      style={styles.menuCardSmall}
+                      activeOpacity={0.92}
+                      onPress={() => openPreview(item)}
+                    >
+                      <View style={styles.menuCardSmallContent}>
+                        <Image
+                          source={
+                            item?.image
+                              ? { uri: Constant.ImageURL + item.image }
+                              : ImagePath.noProductPlaceholder
+                          }
+                          style={styles.menuImageSmall}
+                        />
 
-                      <View style={styles.smallTextArea}>
-                        <View style={styles.smallTitleRow}>
-                          <Text style={styles.smallTitle} numberOfLines={2}>
-                            {item?.name}
+                        <View style={styles.smallTextArea}>
+                          <View style={styles.smallTitleRow}>
+                            <Text style={styles.smallTitle} numberOfLines={2}>
+                              {item?.name}
+                            </Text>
+                            <Text style={styles.smallPrice}>
+                              ₹{item.variants[0]?.price}
+                            </Text>
+                          </View>
+                          <Text style={styles.smallDescription}>
+                            {item?.description}
                           </Text>
-                          <Text style={styles.smallPrice}>
-                            ₹{item.variants[0]?.price}
-                          </Text>
-                        </View>
-                        <Text style={styles.smallDescription}>
-                          {item?.description}
-                        </Text>
-                        <View style={styles.smallBottomRow}>
-                          {/* <Text style={styles.smallTag}>{item.tag}</Text> */}
-                          <View />
-                          {getCartQtyCount({ product_id: item.product_id }) >
-                          0 ? (
-                            <View style={styles.qtyPillSmall}>
+                          <View style={styles.smallBottomRow}>
+                            {/* <Text style={styles.smallTag}>{item.tag}</Text> */}
+                            <View />
+                            {getCartQtyCount({ product_id: item.product_id }) >
+                            0 ? (
+                              <View style={styles.qtyPillSmall}>
+                                <TouchableOpacity
+                                  style={styles.qtyButtonSmall}
+                                  activeOpacity={0.85}
+                                  onPress={() => {
+                                    if (item.variants.length === 1) {
+                                      removeProduct({
+                                        product_id: item.product_id,
+                                        variant_id: item.variants[0].variant_id,
+                                        shop_id:
+                                          shopDetails?.shop?.shop_id || '',
+                                        quantity: 1,
+                                      });
+                                    } else {
+                                      openPreview(item);
+                                    }
+                                  }}
+                                >
+                                  <Minus
+                                    size={12}
+                                    color={colors.primary}
+                                    strokeWidth={2.6}
+                                  />
+                                </TouchableOpacity>
+                                <Text style={styles.qtyTextSmall}>
+                                  {getCartQtyCount({
+                                    product_id: item.product_id,
+                                  })}
+                                </Text>
+                                <TouchableOpacity
+                                  style={styles.qtyButtonSmall}
+                                  activeOpacity={0.85}
+                                  onPress={() => {
+                                    if (item.variants.length === 1) {
+                                      handleAddToCart({
+                                        product_id: item.product_id,
+                                        variant_id: item.variants[0].variant_id,
+                                        shop_id:
+                                          shopDetails?.shop?.shop_id || '',
+                                        quantity: 1,
+                                      });
+                                    } else {
+                                      openPreview(item);
+                                    }
+                                  }}
+                                >
+                                  <Plus
+                                    size={12}
+                                    color={colors.primary}
+                                    strokeWidth={2.6}
+                                  />
+                                </TouchableOpacity>
+                              </View>
+                            ) : (
                               <TouchableOpacity
-                                style={styles.qtyButtonSmall}
-                                activeOpacity={0.85}
+                                style={styles.addButtonSmall}
+                                activeOpacity={0.9}
                                 onPress={() => {
                                   if (item.variants.length === 1) {
-                                    removeProduct({
-                                      product_id: item.product_id,
-                                      variant_id: item.variants[0].variant_id,
-                                      shop_id: shopDetails?.shop?.shop_id || '',
-                                      quantity: 1,
-                                    });
-                                  } else {
-                                    openPreview(item);
-                                  }
-                                }}
-                              >
-                                <Minus
-                                  size={12}
-                                  color={colors.primary}
-                                  strokeWidth={2.6}
-                                />
-                              </TouchableOpacity>
-                              <Text style={styles.qtyTextSmall}>
-                                {getCartQtyCount({
-                                  product_id: item.product_id,
-                                })}
-                              </Text>
-                              <TouchableOpacity
-                                style={styles.qtyButtonSmall}
-                                activeOpacity={0.85}
-                                onPress={() => {
-                                  if (item.variants.length === 1) {
-                                    addProduct({
+                                    handleAddToCart({
                                       product_id: item.product_id,
                                       variant_id: item.variants[0].variant_id,
                                       shop_id: shopDetails?.shop?.shop_id || '',
@@ -457,60 +530,51 @@ const RestaurantDetails = (props: IProps) => {
                               >
                                 <Plus
                                   size={12}
-                                  color={colors.primary}
-                                  strokeWidth={2.6}
+                                  color={colors.background}
+                                  strokeWidth={3}
                                 />
                               </TouchableOpacity>
-                            </View>
-                          ) : (
-                            <TouchableOpacity
-                              style={styles.addButtonSmall}
-                              activeOpacity={0.9}
-                              onPress={() => {
-                                if (item.variants.length === 1) {
-                                  addProduct({
-                                    product_id: item.product_id,
-                                    variant_id: item.variants[0].variant_id,
-                                    shop_id: shopDetails?.shop?.shop_id || '',
-                                    quantity: 1,
-                                  });
-                                } else {
-                                  openPreview(item);
-                                }
-                              }}
-                            >
-                              <Plus
-                                size={12}
-                                color={colors.background}
-                                strokeWidth={3}
-                              />
-                            </TouchableOpacity>
-                          )}
+                            )}
+                          </View>
                         </View>
                       </View>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })
-            ) : (
-              <View style={{ padding: 24, alignItems: 'center' }}>
-                <Text
-                  style={{ color: colors.textMuted, fontSize: typography.body }}
-                >
-                  No products found matching "{searchText}"
-                </Text>
-              </View>
-            )}
-            {filteredProducts.length < 3 && (
-              <View
-                style={{
-                  height: SCREEN_HEIGHT * 0.15 * (3 - filteredProducts.length),
-                }}
-              />
-            )}
+                    </TouchableOpacity>
+                  );
+                })
+              ) : (
+                <View style={{ padding: 24, alignItems: 'center' }}>
+                  <Text
+                    style={{
+                      color: colors.textMuted,
+                      fontSize: typography.body,
+                    }}
+                  >
+                    No products found matching "{searchText}"
+                  </Text>
+                </View>
+              )}
+              {filteredProducts.length < 3 && (
+                <View
+                  style={{
+                    height:
+                      SCREEN_HEIGHT * 0.15 * (3 - filteredProducts.length),
+                  }}
+                />
+              )}
+            </View>
           </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      ) : null}
+      <PopupMessage
+        title={'Replace cart items?'}
+        description={
+          'Your cart contains items from another restaurant. Do you want to replace them with items from this restaurant?'
+        }
+        isVisible={duplicateRestaurenProduct?.product_id ? true : false}
+        onBtn1Press={() => setDuplicateRestaurenProduct(null)}
+        onBtn2Press={handleReplaceCartItem}
+        btn2Name="Replace"
+      />
 
       <BottomSheet
         ref={sheetRef}
@@ -660,13 +724,11 @@ const RestaurantDetails = (props: IProps) => {
                         style={styles.sheetQtyButton}
                         activeOpacity={0.85}
                         onPress={() =>
-                          addProduct({
+                          handleAddToCart({
                             product_id: selectedItem.product_id,
                             variant_id: selectedTempVariant?.variant_id || '',
                             shop_id: shopDetails?.shop?.shop_id || '',
                             quantity: 1,
-                          }).then(res => {
-                            console.log('clg', res);
                           })
                         }
                       >
@@ -682,7 +744,7 @@ const RestaurantDetails = (props: IProps) => {
                       style={styles.sheetAddButton}
                       activeOpacity={0.9}
                       onPress={() =>
-                        addProduct({
+                        handleAddToCart({
                           product_id: selectedItem.product_id,
                           variant_id: selectedTempVariant?.variant_id || '',
                           shop_id: shopDetails?.shop?.shop_id || '',

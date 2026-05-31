@@ -1,7 +1,6 @@
 /* eslint-disable react-native/no-inline-styles */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Alert,
   Keyboard,
   Platform,
   Pressable,
@@ -28,8 +27,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, layout, typography } from '../constants/theme';
 import type { RootStackParamList } from '../types/navigation';
-import { useDispatch } from '../redux/store';
-import { resendOtp, verifyOTP } from '../redux/user/userAction';
+import { useDispatch, useSelector } from '../redux/store';
+import { resendOtp, updateLocation, verifyOTP } from '../redux/user/userAction';
+import { setApiToken } from '../utils/axios';
+import {
+  setAuthTokenToAsyncStore,
+  setUserDetailsToAsyncStore,
+} from '../utils/storage';
+import { reset } from '../utils/navigationRef';
 
 const OTP_LENGTH = 6;
 const INITIAL_COUNTDOWN = 30;
@@ -101,6 +106,7 @@ const OtpAuthScreen = () => {
   const route = useRoute<OtpAuthRouteProp>();
   const otpInputRef = useRef<TextInput>(null);
   const phone: string = route.params?.phone || '';
+  const { userCurrentCoords } = useSelector(state => state.user);
 
   const [otp, setOtp] = useState('');
   const [countdown, setCountdown] = useState(INITIAL_COUNTDOWN);
@@ -138,13 +144,10 @@ const OtpAuthScreen = () => {
     }
     dispatch(resendOtp({ phone }))
       .unwrap()
-      .then(({ data }) => {
+      .then(() => {
         setCountdown(INITIAL_COUNTDOWN);
         setOtp('');
         focusOtpInput();
-        // if (data?.otp) {
-        //   Alert.alert(`OTP ${data?.otp}`);
-        // }
       });
   };
 
@@ -152,7 +155,23 @@ const OtpAuthScreen = () => {
     if (otp.length < OTP_LENGTH) {
       return;
     }
-    dispatch(verifyOTP({ phone, otp }));
+    dispatch(verifyOTP({ phone, otp }))
+      .unwrap()
+      .then(async ({ data }) => {
+        if (data) {
+          setApiToken(data.token);
+          await setAuthTokenToAsyncStore(data.token);
+          await setUserDetailsToAsyncStore(data.user);
+          if (
+            userCurrentCoords &&
+            userCurrentCoords?.latitude &&
+            userCurrentCoords?.longitude
+          ) {
+            dispatch(updateLocation(userCurrentCoords));
+          }
+          reset('Tabs');
+        }
+      });
   };
 
   return (

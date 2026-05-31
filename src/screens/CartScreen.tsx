@@ -14,7 +14,6 @@ import { useIsFocused } from '@react-navigation/native';
 import {
   ArrowRight,
   AlertTriangle,
-  Bolt,
   CreditCard,
   MapPin,
   Minus,
@@ -23,6 +22,9 @@ import {
   ShoppingCart,
   Tag,
   Wallet,
+  SquareCheckBig,
+  Square,
+  Zap,
 } from 'lucide-react-native';
 import {
   SafeAreaView,
@@ -44,6 +46,7 @@ import { Constant } from '../constants/Constant';
 import { navigate } from '../utils/navigationRef';
 import RazorpayCheckout from 'react-native-razorpay';
 import { showToaster } from '../utils/toaster';
+import Loader from '../components/Loader';
 
 const CartScreen = () => {
   const { cartValue, addProduct, removeProduct, getCartQtyCount, emptyCart } =
@@ -58,6 +61,8 @@ const CartScreen = () => {
 
   const [vipEnabled, setVipEnabled] = useState(true);
   const [paymentMethod, setPaymentMethod] = useState<IPaymentMethod | ''>('');
+  const [useWalletBalance, setUseWalletBalance] = useState(false);
+  const [isShowLoader, setIsShowLoader] = useState(true);
   const { isBadWeather } = useWeatherAlert();
 
   const [originalCartValue, setOriginalCartValue] =
@@ -78,11 +83,15 @@ const CartScreen = () => {
   useEffect(() => {
     if (cartValue && isFocused && isNonEmptyCart) {
       fetchCartDetails();
+    } else {
+      setIsShowLoader(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cartValue, isFocused, isNonEmptyCart]);
 
   const fetchCartDetails = () => {
+    setIsShowLoader(true);
+    setUseWalletBalance(false);
     dispatch(addCartItem(cartValue))
       .unwrap()
       .then(({ data }) => {
@@ -98,6 +107,9 @@ const CartScreen = () => {
       })
       .catch(error => {
         console.error('Error adding cart item:', error);
+      })
+      .finally(() => {
+        setIsShowLoader(false);
       });
   };
 
@@ -121,19 +133,22 @@ const CartScreen = () => {
         originalCartValue?.coupon?.discount
           ? originalCartValue.coupon.discount
           : 0;
-      const wallet_balance = originalCartValue.wallet_balance || 0;
-      return (
-        base +
-        extraCharges +
-        vipCharge +
-        paymentCharge -
-        discount -
-        wallet_balance
-      );
+      return base + extraCharges + vipCharge + paymentCharge - discount;
     } else {
       return 0;
     }
   }, [originalCartValue, vipEnabled, paymentMethod]);
+
+  const payableAmount = useMemo(() => {
+    if (useWalletBalance) {
+      return Math.max(
+        0,
+        totalAmount - (originalCartValue?.wallet_balance || 0),
+      );
+    } else {
+      return totalAmount;
+    }
+  }, [totalAmount, useWalletBalance, originalCartValue]);
 
   const handleCheckout = () => {
     if (!originalCartValue?.address) {
@@ -146,22 +161,22 @@ const CartScreen = () => {
         'Please select a payment method before proceeding to checkout.',
       );
     }
+    setIsShowLoader(true);
     dispatch(
       checkoutCart({
         is_vip: vipEnabled,
         payment_method: paymentMethod,
         tips: 0,
+        use_wallet_balance: useWalletBalance,
       }),
     )
       .unwrap()
       .then(({ data }) => {
         console.log('data', data);
         if (data && data?.payment_type === 'COD') {
+          setIsShowLoader(false);
           navigate('OrderConfirmed', {
-            orderId: 'LE-88291',
-            etaMinutes: 25,
-            itemName: 'Truffle Pasta',
-            chefName: 'Chef Antonio',
+            order_data: data,
           });
           emptyCart();
         } else {
@@ -198,36 +213,35 @@ const CartScreen = () => {
                 name: true,
               },
             };
-            paynow(options);
+            paynow({ options, orderCreateData: data });
           } else {
-            navigate('OrderFailed', {
-              message: 'Something went wrong!',
-            });
+            setIsShowLoader(false);
+            navigate('OrderFailed');
           }
         }
       })
       .catch(() => {
+        setIsShowLoader(false);
         navigate('OrderFailed');
       });
   };
 
-  const paynow = (options: any) => {
+  const paynow = ({ options, orderCreateData }: any) => {
     RazorpayCheckout.open(options)
       .then(data => {
         console.log('payment success', data);
         navigate('OrderConfirmed', {
-          orderId: 'LE-88291',
-          etaMinutes: 25,
-          itemName: 'Truffle Pasta',
-          chefName: 'Chef Antonio',
+          order_data: orderCreateData,
         });
+        emptyCart();
       })
       .catch(error => {
         console.log('error', error);
 
-        navigate('OrderFailed', {
-          message: error?.error?.description,
-        });
+        navigate('OrderFailed');
+      })
+      .finally(() => {
+        setIsShowLoader(false);
       });
   };
 
@@ -252,7 +266,7 @@ const CartScreen = () => {
               textTransform: 'uppercase',
             }}
           >
-            Today's picks
+            Your Cart
           </Text>
           <Text
             style={{
@@ -293,7 +307,8 @@ const CartScreen = () => {
           </TouchableOpacity>
         </View>
       </View>
-      {isNonEmptyCart ? (
+      {isShowLoader && <Loader />}
+      {isNonEmptyCart && originalCartValue?.cart_id ? (
         <>
           <ScrollView
             style={styles.scrollView}
@@ -348,7 +363,9 @@ const CartScreen = () => {
               <TouchableOpacity
                 style={styles.changeAddressButton}
                 activeOpacity={0.88}
-                onPress={() => navigate('SelectAddress')}
+                onPress={() =>
+                  navigate('AddressesScreen', { routeFor: 'checkout' })
+                }
               >
                 <Text style={styles.changeAddressButtonText}>Change</Text>
               </TouchableOpacity>
@@ -493,7 +510,7 @@ const CartScreen = () => {
               <View style={styles.vipCard}>
                 <View style={styles.vipLeftBlock}>
                   <View style={styles.vipIconBubble}>
-                    <Bolt
+                    <Zap
                       size={22}
                       color={colors.primary}
                       fill={colors.primary}
@@ -570,6 +587,29 @@ const CartScreen = () => {
         </View> */}
 
             <View style={styles.paymentSection}>
+              {originalCartValue?.wallet_balance &&
+              originalCartValue?.wallet_balance > 0 ? (
+                <View style={styles.walletSection}>
+                  <View style={styles.walletCopyBlock}>
+                    <Text style={styles.walletEyebrow}>Wallet balance</Text>
+                    <Text style={styles.walletAmount}>
+                      ₹{originalCartValue?.wallet_balance?.toFixed(2) || '0.00'}
+                    </Text>
+                  </View>
+
+                  <Pressable
+                    onPress={() => setUseWalletBalance(value => !value)}
+                    style={[]}
+                  >
+                    {useWalletBalance ? (
+                      <SquareCheckBig color={colors.primary} />
+                    ) : (
+                      <Square color={colors.primary} />
+                    )}
+                  </Pressable>
+                </View>
+              ) : null}
+
               <Text style={styles.sectionTitle}>Payment Method</Text>
 
               <View style={styles.paymentGrid}>
@@ -746,6 +786,17 @@ const CartScreen = () => {
                 <Text style={styles.totalLabel}>Total Amount</Text>
                 <Text style={styles.totalValue}>₹{totalAmount.toFixed(2)}</Text>
               </View>
+
+              {useWalletBalance ? (
+                <View style={styles.breakdownRow}>
+                  <Text style={styles.breakdownDiscountLabel}>
+                    Wallet Balance
+                  </Text>
+                  <Text style={styles.breakdownDiscountValue}>
+                    -₹{originalCartValue?.wallet_balance.toFixed(2)}
+                  </Text>
+                </View>
+              ) : null}
             </View>
           </ScrollView>
 
@@ -811,18 +862,18 @@ const CartScreen = () => {
                 <Text style={styles.checkoutButtonText}>
                   Proceed to Checkout
                 </Text>
-                <ArrowRight size={20} color="#111111" strokeWidth={2.8} />
-                {/* <View style={styles.checkoutRightBlock}>
+                {/* <ArrowRight size={20} color="#111111" strokeWidth={2.8} /> */}
+                <View style={styles.checkoutRightBlock}>
                   <Text style={styles.checkoutAmountText}>
-                    ₹{totalAmount.toFixed(2)}
+                    ₹{payableAmount.toFixed(2)}
                   </Text>
                   <ArrowRight size={20} color="#111111" strokeWidth={2.8} />
-                </View> */}
+                </View>
               </TouchableOpacity>
             </View>
           </View>
         </>
-      ) : (
+      ) : isShowLoader ? null : (
         <View style={styles.emptyCartContainer}>
           <View style={styles.emptyCartContent}>
             <View style={styles.emptyCartIconWrapper}>
@@ -1233,6 +1284,129 @@ const styles = StyleSheet.create({
   paymentSection: {
     gap: 14,
   },
+  walletSection: {
+    position: 'relative',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 173, 58, 0.16)',
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    gap: 14,
+    overflow: 'hidden',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  walletAccent: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 3,
+    backgroundColor: colors.primary,
+    opacity: 0.95,
+  },
+  walletTopRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  walletCopyBlock: {
+    flex: 1,
+  },
+  walletEyebrow: {
+    color: colors.primary,
+    fontSize: typography.caption,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 1.1,
+    marginBottom: 6,
+  },
+  walletAmount: {
+    color: colors.textPrimary,
+    fontSize: typography.titlePlus,
+    lineHeight: 30,
+    fontWeight: '800',
+    letterSpacing: -0.4,
+  },
+  walletBodyText: {
+    color: colors.textMuted,
+    fontSize: typography.captionPlus,
+    lineHeight: 16,
+    marginTop: 6,
+    maxWidth: 240,
+  },
+  walletCheckbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.24)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  walletCheckboxActive: {
+    borderColor: colors.primary,
+    backgroundColor: 'rgba(245, 158, 11, 0.14)',
+  },
+  walletCheckboxMark: {
+    width: 10,
+    height: 10,
+    borderRadius: 3,
+    backgroundColor: 'transparent',
+  },
+  walletCheckboxMarkActive: {
+    backgroundColor: colors.primary,
+  },
+  walletBottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    flexWrap: 'wrap',
+  },
+  walletAppliedPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.24)',
+    backgroundColor: 'rgba(245, 158, 11, 0.08)',
+  },
+  walletAppliedText: {
+    color: colors.primary,
+    fontSize: typography.captionPlus,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  walletHelperText: {
+    color: colors.textMuted,
+    fontSize: typography.captionPlus,
+    fontWeight: '600',
+  },
+  walletHintText: {
+    color: colors.textMuted,
+    fontSize: typography.caption,
+    fontWeight: '500',
+    opacity: 0.8,
+  },
+  walletTitle: {
+    color: colors.textPrimary,
+    fontSize: typography.bodyPlus,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  walletSubtitle: {
+    color: colors.textMuted,
+    fontSize: typography.captionPlus,
+    lineHeight: 16,
+  },
   sectionTitle: {
     color: colors.textPrimary,
     fontSize: typography.lg,
@@ -1464,7 +1638,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     gap: 12,
   },
   checkoutButtonText: {

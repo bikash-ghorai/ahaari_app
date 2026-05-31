@@ -78,3 +78,19 @@ export const fetchUserCurrentLocation = async () => {
     );
   });
 };
+
+export const currencyFormate = (
+  value: number | string,
+  decimals: number = 2,
+) => {
+  const numValue = typeof value === 'string' ? parseFloat(value) : value;
+  if (isNaN(numValue)) {
+    return '₹0.00';
+  }
+
+  if (numValue < 0) {
+    return '-₹' + Math.abs(numValue).toFixed(decimals);
+  }
+
+  return '₹' + numValue.toFixed(decimals);
+};

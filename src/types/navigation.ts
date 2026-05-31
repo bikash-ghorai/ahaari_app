@@ -22,7 +22,7 @@ export type RootStackParamList = {
   MyCircle: undefined;
   RateExperience: undefined;
   ReferEarn: undefined;
-  RestaurantDetails: { id: any };
+  RestaurantDetails: undefined | any;
   OrderConfirmed:
     | {
         orderId?: string;
@@ -44,6 +44,6 @@ export type RootStackParamList = {
   HelpCenter: undefined;
   AddressList: undefined;
   CouponList: { currentCode?: string } | undefined;
-  SelectAddress: undefined;
+  AddressesScreen: undefined;
   AddAddress: undefined;
 };

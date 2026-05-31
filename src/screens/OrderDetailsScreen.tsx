@@ -36,8 +36,14 @@ import { cancelOrder, getOrderDetails } from '../redux/app/appAction';
 import { IOrderDetails } from '../types';
 import { ImagePath } from '../constants/ImagePath';
 import { Constant } from '../constants/Constant';
-import { handleCall, handleWhatsapp, statusColors } from '../utils/helper';
+import {
+  currencyFormate,
+  handleCall,
+  handleWhatsapp,
+  statusColors,
+} from '../utils/helper';
 import { showToaster } from '../utils/toaster';
+import FastImage from 'react-native-fast-image';
 
 const OrderDetailsScreen = () => {
   const dispatch = useDispatch();
@@ -117,6 +123,13 @@ const OrderDetailsScreen = () => {
           <View style={styles.preparingCard}>
             <View style={styles.preparingCircle}>
               <CookingPot size={36} color={colors.primary} strokeWidth={2} />
+              {/* <FastImage
+                source={ImagePath.preparing}
+                style={{
+                  width: 64,
+                  height: 64,
+                }}
+              /> */}
               <Text style={styles.preparingLabel}>PREPARING</Text>
             </View>
 
@@ -408,7 +421,9 @@ const OrderDetailsScreen = () => {
                       </View>
 
                       <View style={styles.itemPriceColumn}>
-                        <Text style={styles.itemPrice}>₹{item?.price}</Text>
+                        <Text style={styles.itemPrice}>
+                          {currencyFormate(item?.price, 0)}
+                        </Text>
                         <Text style={styles.itemQty}>
                           Qty: {item?.quantity}
                         </Text>
@@ -420,11 +435,22 @@ const OrderDetailsScreen = () => {
           </View>
         </View>
 
+        {orderDetails?.instruction ? (
+          <View style={styles.estimateNoticeCard}>
+            <View style={styles.estimateTextWrapper}>
+              <Text style={styles.estimateLabel}>Order Instructions</Text>
+              <Text style={styles.estimateValue}>
+                {orderDetails?.instruction}
+              </Text>
+            </View>
+          </View>
+        ) : null}
+
         <View style={styles.breakdownCard}>
           <View style={styles.breakdownRow}>
             <Text style={styles.breakdownLabel}>Subtotal</Text>
             <Text style={styles.breakdownValue}>
-              ₹{orderDetails?.sub_total || '0.00'}
+              {currencyFormate(orderDetails?.sub_total || 0, 2)}
             </Text>
           </View>
 
@@ -433,14 +459,14 @@ const OrderDetailsScreen = () => {
               <Text style={styles.breakdownLabel}>Tax</Text>
             </View>
             <Text style={styles.breakdownValue}>
-              ₹{orderDetails?.tax || '0.00'}
+              {currencyFormate(orderDetails?.tax || 0, 2)}
             </Text>
           </View>
 
           <View style={styles.breakdownRow}>
             <Text style={styles.breakdownLabel}>Delivery Fee</Text>
             <Text style={styles.breakdownValue}>
-              ₹{orderDetails?.delivery_charge || '0.00'}
+              {currencyFormate(orderDetails?.delivery_charge || 0, 2)}
             </Text>
           </View>
 
@@ -450,7 +476,7 @@ const OrderDetailsScreen = () => {
                   <View style={styles.breakdownRow} key={index}>
                     <Text style={styles.breakdownLabel}>{item?.label}</Text>
                     <Text style={styles.breakdownValue}>
-                      ₹{item?.amount || '0.00'}
+                      {currencyFormate(item?.amount || 0, 2)}
                     </Text>
                   </View>
                 );
@@ -461,7 +487,7 @@ const OrderDetailsScreen = () => {
             <View style={styles.breakdownRow}>
               <Text style={styles.discountLabel}>Discount</Text>
               <Text style={styles.discountValue}>
-                -₹{orderDetails?.discount || '0.00'}
+                -{currencyFormate(orderDetails?.discount || 0, 2)}
               </Text>
             </View>
           ) : null}
@@ -472,7 +498,7 @@ const OrderDetailsScreen = () => {
             <View>
               <Text style={styles.totalCaption}>TOTAL AMOUNT</Text>
               <Text style={styles.totalValue}>
-                ₹{orderDetails?.total || '0.00'}
+                {currencyFormate(orderDetails?.total || 0, 2)}
               </Text>
             </View>
 
@@ -1189,7 +1215,7 @@ const styles = StyleSheet.create({
   },
   totalValue: {
     color: colors.primary,
-    fontSize: typography.display3xl,
+    fontSize: typography.displayXl,
     lineHeight: 50,
     fontWeight: '700',
     letterSpacing: -1,
@@ -1408,6 +1434,43 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: typography.captionPlus,
     lineHeight: 16,
+  },
+  /* -- Estimate Notice -- */
+  estimateNoticeCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 173, 58, 0.25)',
+    backgroundColor: 'rgba(255, 173, 58, 0.08)',
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  estimateIconWrapper: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  estimateIcon: {
+    fontSize: 24,
+  },
+  estimateTextWrapper: {
+    flex: 1,
+    gap: 2,
+  },
+  estimateLabel: {
+    color: colors.primary,
+    fontSize: typography.caption,
+    lineHeight: 15,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  estimateValue: {
+    color: colors.textPrimary,
+    fontSize: typography.body,
+    lineHeight: 20,
+    fontWeight: '500',
   },
 });
 

@@ -1,90 +1,94 @@
 import React from 'react';
-import { ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { CircleAlert, CreditCard, Headset, Wallet } from 'lucide-react-native';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import {
+  CircleAlert,
+  Computer,
+  CreditCard,
+  ServerCrash,
+} from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import GlassLayer from '../components/GlassLayer';
 import { colors, layout, typography } from '../constants/theme';
-import type { RootStackParamList } from '../types/navigation';
-
-type OrderFailedRouteProp = RouteProp<RootStackParamList, 'OrderFailed'>;
-
-type OrderFailedNavigationProp = NativeStackNavigationProp<RootStackParamList, 'OrderFailed'>;
+import { reset } from '../utils/navigationRef';
 
 type Issue = {
   id: string;
   title: string;
   description: string;
-  icon: React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
+  icon: React.ComponentType<{
+    size?: number;
+    color?: string;
+    strokeWidth?: number;
+  }>;
 };
 
 const issues: Issue[] = [
   {
-    id: 'balance',
-    title: 'Insufficient Balance',
-    description: 'Please check your account balance and ensure funds are available.',
-    icon: Wallet,
+    id: 'card',
+    title: 'Payment Declined',
+    description:
+      'Your payment method was declined by the bank. Please check with your provider or try a different payment method.',
+    icon: CreditCard,
   },
   {
     id: 'bank',
-    title: 'Bank Server Busy',
-    description: 'The bank server is currently unresponsive. Try again shortly.',
-    icon: CreditCard,
+    title: 'Payment Gateway Error',
+    description:
+      'The payment gateway is currently unresponsive. Try again shortly.',
+    icon: ServerCrash,
+  },
+  {
+    id: 'balance',
+    title: 'Technical Glitch',
+    description:
+      'A technical issue occurred while processing your order. Please retry.',
+    icon: Computer,
   },
 ];
 
 const OrderFailedScreen = () => {
-  const navigation = useNavigation<OrderFailedNavigationProp>();
-  const route = useRoute<OrderFailedRouteProp>();
-  const reason =
-    route.params?.reason ??
-    'Your payment could not be processed. Please try again or use a different payment method.';
-
-  const handleBack = () => {
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-      return;
-    }
-
-    navigation.navigate('Tabs', { screen: 'Cart' });
-  };
-
-  const handleRetry = () => {
-    navigation.navigate('Tabs', { screen: 'Cart' });
+  const handleReturnToHome = () => {
+    reset('Tabs', { screen: 'Home' });
   };
 
   const handleReturnToCart = () => {
-    navigation.navigate('Tabs', { screen: 'Cart' });
-  };
-
-  const handleHelp = () => {
-    navigation.navigate('Tabs', { screen: 'Orders' });
+    reset('Tabs', { screen: 'Cart' });
   };
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
-
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.heroSection}>
-            <View style={styles.warningWrap}>
+          <View style={styles.warningWrap}>
             <GlassLayer radius={46} tint="rgba(255, 115, 81, 0.12)" />
-            <CircleAlert size={48} color={colors.accentCoral} strokeWidth={2.4} />
+            <CircleAlert
+              size={48}
+              color={colors.accentCoral}
+              strokeWidth={2.4}
+            />
           </View>
 
           <Text style={styles.title}>Order Failed</Text>
-          <Text style={styles.subtitle}>{reason}</Text>
+          <Text style={styles.subtitle}>
+            Your order could not be processed. Please try again or use a
+            different payment method.
+          </Text>
         </View>
 
         <View style={styles.issueCard}>
           <GlassLayer radius={24} tint="rgba(35, 38, 44, 0.4)" />
-          <View pointerEvents="none" style={styles.issueGlow} />
 
           <Text style={styles.issueTitle}>Common Issues</Text>
           <View style={styles.issueList}>
@@ -93,7 +97,11 @@ const OrderFailedScreen = () => {
               return (
                 <View key={issue.id} style={styles.issueRow}>
                   <View style={styles.issueIconWrap}>
-                    <Icon size={18} color={colors.textPrimary} strokeWidth={2.2} />
+                    <Icon
+                      size={18}
+                      color={colors.textPrimary}
+                      strokeWidth={2.2}
+                    />
                   </View>
                   <View style={styles.issueTextBlock}>
                     <Text style={styles.issueLabel}>{issue.title}</Text>
@@ -106,24 +114,28 @@ const OrderFailedScreen = () => {
         </View>
 
         <View style={styles.actions}>
-          <TouchableOpacity style={styles.primaryButton} activeOpacity={0.92} onPress={handleRetry}>
+          <TouchableOpacity
+            style={styles.primaryButton}
+            activeOpacity={0.92}
+            onPress={handleReturnToCart}
+          >
             <LinearGradient
               colors={['#FFB53A', '#F59E0A']}
               start={{ x: 0, y: 0.5 }}
               end={{ x: 1, y: 0.5 }}
               style={styles.primaryGradient}
             >
-              <Text style={styles.primaryText}>Retry Payment</Text>
+              <Text style={styles.primaryText}>Try Again</Text>
             </LinearGradient>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.secondaryButton}
             activeOpacity={0.92}
-            onPress={handleReturnToCart}
+            onPress={handleReturnToHome}
           >
             <GlassLayer radius={16} tint="rgba(255, 255, 255, 0.03)" />
-            <Text style={styles.secondaryText}>Return to Cart</Text>
+            <Text style={styles.secondaryText}>Back to Home</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -160,7 +172,7 @@ const styles = StyleSheet.create({
     shadowColor: colors.primary,
     shadowOpacity: 0.3,
     shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 }
+    shadowOffset: { width: 0, height: 8 },
   },
   title: {
     color: colors.textPrimary,
@@ -235,7 +247,8 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   actions: {
-    gap: 12,
+    gap: 15,
+    marginTop: 50,
   },
   primaryButton: {
     height: 56,

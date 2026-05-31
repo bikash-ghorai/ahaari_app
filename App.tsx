@@ -25,9 +25,8 @@ import OrderDetailsScreen from './src/screens/OrderDetailsScreen';
 import OrderConfirmedScreen from './src/screens/OrderConfirmedScreen';
 import OrderFailedScreen from './src/screens/OrderFailedScreen';
 import WalletHistoryScreen from './src/screens/WalletHistoryScreen';
-import AddressListScreen from './src/screens/AddressListScreen';
 import CouponListScreen from './src/screens/CouponListScreen';
-import SelectAddressScreen from './src/screens/SelectAddressScreen';
+import AddressesScreen from './src/screens/AddressesScreen';
 import AddAddressScreen from './src/screens/AddAddressScreen';
 import MyCircleScreen from './src/screens/MyCircleScreen';
 import LoginScreen from './src/screens/LoginScreen';
@@ -209,18 +208,13 @@ function App() {
                     />
                     <Stack.Screen
                       options={{ freezeOnBlur: true, animation: 'none' }}
-                      name="AddressList"
-                      component={AddressListScreen}
-                    />
-                    <Stack.Screen
-                      options={{ freezeOnBlur: true, animation: 'none' }}
                       name="CouponList"
                       component={CouponListScreen}
                     />
                     <Stack.Screen
                       options={{ freezeOnBlur: true, animation: 'none' }}
-                      name="SelectAddress"
-                      component={SelectAddressScreen}
+                      name="AddressesScreen"
+                      component={AddressesScreen}
                     />
                     <Stack.Screen
                       options={{ freezeOnBlur: true, animation: 'none' }}

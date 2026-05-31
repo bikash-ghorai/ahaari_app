@@ -6,11 +6,26 @@ import {
   ICheckoutReq,
   ICheckoutRes,
   ICoupon,
+  IHomePageData,
   IOrderDetails,
   IOrderListRes,
   IRestaurant,
   IRestaurantDetails,
 } from '../../types';
+
+//For getting order details
+export const homePageAPI = createAsyncThunk(
+  'app/homePageAPI',
+  async (_, thunkAPI) => {
+    try {
+      const { data, message }: { data: IHomePageData; message: string } =
+        await axios.get('user/home');
+      return { data, message };
+    } catch (error: any) {
+      return thunkAPI.rejectWithValue(error);
+    }
+  },
+);
 
 //For getting restaurants
 export const getRestaurants = createAsyncThunk(
@@ -145,6 +160,20 @@ export const cancelOrder = createAsyncThunk(
     try {
       const { data, message }: { data: any; message: string } =
         await axios.post(`user/cancel-order`, params);
+      return { data, message };
+    } catch (error: any) {
+      return thunkAPI.rejectWithValue(error);
+    }
+  },
+);
+
+//For adding cooking instructions
+export const addCookingInstructions = createAsyncThunk(
+  'app/addCookingInstructions',
+  async (params: { order_id: string; instruction: string }, thunkAPI) => {
+    try {
+      const { data, message }: { data: any; message: string } =
+        await axios.post(`user/add-instruction`, params);
       return { data, message };
     } catch (error: any) {
       return thunkAPI.rejectWithValue(error);

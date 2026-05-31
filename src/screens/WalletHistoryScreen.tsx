@@ -1,10 +1,11 @@
-import React from 'react';
+/* eslint-disable react-native/no-inline-styles */
+import React, { useEffect, useRef } from 'react';
 import {
+  ActivityIndicator,
+  FlatList,
   Modal,
   Platform,
   Pressable,
-  ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -12,99 +13,54 @@ import {
   View,
 } from 'react-native';
 import { BlurView } from '@react-native-community/blur';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import {
-  ArrowLeft,
-  Undo2,
-  Plus,
-  Tag,
-  UtensilsCrossed,
-  Wallet,
-} from 'lucide-react-native';
+import { Plus, Wallet } from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, layout, typography } from '../constants/theme';
-import type { RootStackParamList } from '../types/navigation';
 import Header from '../components/Header';
+import { useDispatch } from '../redux/store';
+import { getWalletHistory } from '../redux/user/userAction';
+import moment from 'moment';
+import { currencyFormate } from '../utils/helper';
 
-type WalletEntryTone = 'credit' | 'debit' | 'muted';
-type WalletEntryIcon = 'order' | 'topup' | 'discount' | 'refund';
-
-type WalletEntry = {
-  id: string;
-  title: string;
-  time: string;
-  amount: string;
+type WalletHistoryItem = {
+  id: number;
+  txn_id: string;
+  type: 'Credit' | 'Debit';
+  amount: number;
+  description: string;
+  remarks: string;
   status: string;
-  tone: WalletEntryTone;
-  icon: WalletEntryIcon;
-  highlight?: boolean;
+  created_at: string;
 };
 
-const entries: WalletEntry[] = [
-  {
-    id: 'order-4291',
-    title: 'Order #4291',
-    time: 'Today, 2:45 PM',
-    amount: '-$32.40',
-    status: 'COMPLETED',
-    tone: 'debit',
-    icon: 'order',
-  },
-  {
-    id: 'wallet-topup-200',
-    title: 'Wallet Top Up',
-    time: 'Yesterday, 10:20 AM',
-    amount: '+$200.00',
-    status: 'BANK TRANSFER',
-    tone: 'credit',
-    icon: 'topup',
-  },
-  {
-    id: 'family-discount',
-    title: 'Family Discount Applied',
-    time: 'Mar 12, 8:15 PM',
-    amount: '+$15.00',
-    status: 'PROMO CREDIT',
-    tone: 'credit',
-    icon: 'discount',
-    highlight: true,
-  },
-  {
-    id: 'refund-order-4288',
-    title: 'Refund for Order #4288',
-    time: 'Mar 10, 11:30 AM',
-    amount: '+$45.20',
-    status: 'MERCHANT REFUND',
-    tone: 'credit',
-    icon: 'refund',
-  },
-  {
-    id: 'order-4288-cancelled',
-    title: 'Order #4288',
-    time: 'Mar 10, 9:00 AM',
-    amount: '-$45.20',
-    status: 'CANCELLED',
-    tone: 'muted',
-    icon: 'order',
-  },
-];
+type WalletHistoryResponse = {
+  balance: number;
+  history: WalletHistoryItem[];
+  pagination: {
+    total_data: number;
+    per_page: number;
+    current_page: number;
+    last_page: number;
+  };
+};
 
 const GlassLayer = ({ radius }: { radius: number }) => (
   <>
     {Platform.OS === 'ios' ? (
       <BlurView
         pointerEvents="none"
-        style={[{
-          position: 'absolute',
-          top: 0,
-          right: 0,
-          bottom: 0,
-          left: 0,
-          borderRadius: radius
-        }]}
+        style={[
+          {
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            bottom: 0,
+            left: 0,
+            borderRadius: radius,
+          },
+        ]}
         blurType="dark"
         blurAmount={26}
         reducedTransparencyFallbackColor="rgba(10, 12, 18, 0.5)"
@@ -129,10 +85,15 @@ const GlassLayer = ({ radius }: { radius: number }) => (
 );
 
 const WalletHistoryScreen = () => {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const dispatch = useDispatch();
   const [isTopUpOpen, setIsTopUpOpen] = React.useState(false);
   const [selectedAmount, setSelectedAmount] = React.useState(100);
+  const [walletData, setWalletData] =
+    React.useState<WalletHistoryResponse | null>(null);
+  const [isInitialLoading, setIsInitialLoading] = React.useState(false);
+  const [isLoadingMore, setIsLoadingMore] = React.useState(false);
   const amountOptions = [25, 50, 100, 200];
+  const isFetchingMoreRef = useRef(false);
 
   const openTopUpSheet = React.useCallback(() => {
     setIsTopUpOpen(true);
@@ -142,146 +103,254 @@ const WalletHistoryScreen = () => {
     setIsTopUpOpen(false);
   }, []);
 
-  const renderEntryIcon = (icon: WalletEntryIcon, muted: boolean) => {
-    if (icon === 'topup') {
-      return (
-        <View style={styles.topupIconWrap}>
-          <Wallet size={24} color={colors.primary} strokeWidth={2.25} />
-          <View style={styles.topupPlusChip}>
-            <Plus size={11} color={colors.primary} strokeWidth={2.6} />
-          </View>
-        </View>
-      );
+  const loadWalletHistory = React.useCallback(
+    async (pageNo: number, replace = false) => {
+      if (isFetchingMoreRef.current) {
+        return;
+      }
+
+      if (replace) {
+        setIsInitialLoading(true);
+      } else {
+        setIsLoadingMore(true);
+      }
+
+      isFetchingMoreRef.current = true;
+
+      try {
+        const response = await dispatch(
+          getWalletHistory({ page: pageNo }),
+        ).unwrap();
+        const payload: WalletHistoryResponse | undefined = response?.data;
+
+        if (payload) {
+          setWalletData(previous => {
+            if (replace || !previous) {
+              return payload;
+            }
+
+            return {
+              ...payload,
+              history: [...previous.history, ...payload.history],
+            };
+          });
+        }
+      } finally {
+        isFetchingMoreRef.current = false;
+        setIsInitialLoading(false);
+        setIsLoadingMore(false);
+      }
+    },
+    [dispatch],
+  );
+
+  useEffect(() => {
+    loadWalletHistory(1, true);
+  }, [loadWalletHistory]);
+
+  const handleLoadMore = React.useCallback(() => {
+    const currentPage = walletData?.pagination?.current_page || 1;
+    const lastPage = walletData?.pagination?.last_page || 1;
+
+    if (isFetchingMoreRef.current || isLoadingMore || currentPage >= lastPage) {
+      return;
     }
 
-    if (icon === 'discount') {
-      return <Tag size={25} color={colors.primary} strokeWidth={2.25} />;
-    }
+    loadWalletHistory(currentPage + 1, false);
+  }, [isLoadingMore, loadWalletHistory, walletData?.pagination]);
 
-    if (icon === 'refund') {
-      return <Undo2 size={23} color="#A9AFBA" strokeWidth={2.3} />;
-    }
-
-    return (
-      <UtensilsCrossed size={24} color={muted ? '#737A88' : '#99A0AF'} strokeWidth={2.1} />
-    );
-  };
+  const walletHistory = walletData?.history || [];
+  const walletBalance = walletData?.balance ?? 0;
+  const currentPage = walletData?.pagination?.current_page ?? 1;
+  const lastPage = walletData?.pagination?.last_page ?? 1;
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
-      <Header title="Restaurant Details" showBackButton={true} containerStyle={{ paddingHorizontal: layout.screenPadding }} />
-
-      <ScrollView
+      <Header
+        title="Wallet History"
+        showBackButton={true}
+        containerStyle={{ paddingHorizontal: layout.screenPadding }}
+      />
+      <FlatList
+        data={walletHistory}
+        keyExtractor={(_i, index) => index.toString()}
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.balanceCard}>
-          <GlassLayer radius={24} />
-          <LinearGradient
-            pointerEvents="none"
-            colors={['rgba(255, 176, 0, 0.12)', 'rgba(255, 176, 0, 0)']}
-            start={{ x: 0, y: 0.3 }}
-            end={{ x: 0.9, y: 0.7 }}
-            style={styles.balanceWarmOverlay}
-          />
-          <LinearGradient
-            pointerEvents="none"
-            colors={['rgba(20, 30, 56, 0)', 'rgba(20, 30, 56, 0.2)']}
-            start={{ x: 0.45, y: 0.1 }}
-            end={{ x: 1, y: 0.8 }}
-            style={styles.balanceCoolOverlay}
-          />
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.4}
+        ListEmptyComponent={
+          isInitialLoading ? null : (
+            <View style={styles.emptyStateWrap}>
+              <Text style={styles.emptyStateTitle}>No wallet history yet</Text>
+              <Text style={styles.emptyStateText}>
+                Your wallet transactions will appear here once you start using
+                the wallet.
+              </Text>
+            </View>
+          )
+        }
+        ListFooterComponent={
+          isLoadingMore && walletHistory.length > 0 ? (
+            <View style={styles.footerLoaderWrap}>
+              <ActivityIndicator color={colors.primary} />
+              <Text style={styles.footerLoaderText}>
+                Loading more history...
+              </Text>
+            </View>
+          ) : walletHistory.length > 0 && currentPage >= lastPage ? (
+            <Text style={styles.footerEndText}>End of wallet history</Text>
+          ) : null
+        }
+        renderItem={({ item }) => {
+          const sign = item?.type === 'Credit' ? '+' : '-';
+          const amountValue = Number(item.amount || 0).toFixed(2);
 
-          <Text style={styles.balanceCaption}>CURRENT BALANCE</Text>
-          <Text style={styles.balanceAmount} numberOfLines={1}>$425.50</Text>
+          const amountColor =
+            item?.type === 'Credit' ? styles.amountCredit : styles.amountDebit;
 
-          <TouchableOpacity style={styles.topUpButton} activeOpacity={0.92} onPress={openTopUpSheet}>
-            <Text style={styles.topUpButtonText}>Top Up</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.activityHeaderRow}>
-          <Text style={styles.activityHeading}>Recent Activity</Text>
-          <Text style={styles.activityMonth}>March 2024</Text>
-        </View>
-
-        <View style={styles.activityList}>
-          {entries.map(item => {
-            const muted = item.tone === 'muted';
-
-            const amountColor =
-              item.tone === 'credit'
-                ? styles.amountCredit
-                : item.tone === 'debit'
-                  ? styles.amountDebit
-                  : styles.amountMuted;
-
-            const statusColor =
-              item.tone === 'credit'
-                ? styles.statusCredit
-                : item.tone === 'debit'
-                  ? styles.statusDebit
-                  : styles.statusMuted;
-
-            return (
-              <View
-                key={item.id}
-                style={[
-                  styles.activityItem,
-                  item.highlight ? styles.activityItemHighlighted : null,
-                  muted ? styles.activityItemMuted : null,
+          return (
+            <View
+              style={[
+                styles.activityItem,
+                { opacity: item.status === 'Failed' ? 0.5 : 1 },
+              ]}
+            >
+              <GlassLayer radius={24} />
+              <LinearGradient
+                pointerEvents="none"
+                colors={[
+                  'rgba(255, 176, 0, 0.06)',
+                  ' rgba(13, 18, 28, 0)',
+                  'rgba(255, 124, 38, 0.06)',
                 ]}
-              >
-                <GlassLayer radius={24} />
-                <LinearGradient
-                  pointerEvents="none"
-                  colors={['rgba(255, 176, 0, 0.06)', 'rgba(13, 18, 28, 0)', 'rgba(255, 124, 38, 0.06)']}
-                  start={{ x: 0, y: 0.5 }}
-                  end={{ x: 1, y: 0.5 }}
-                  style={styles.activityOverlay}
-                />
+                start={{ x: 0, y: 0.5 }}
+                end={{ x: 1, y: 0.5 }}
+                style={styles.activityOverlay}
+              />
 
-                {item.highlight ? <View style={styles.activeIndicator} /> : null}
-
-                <View style={styles.activityRow}>
-                  <View
-                    style={[
-                      styles.activityIconWrap,
-                      item.icon === 'topup' ? styles.activityIconWrapTopup : null,
-                    ]}
-                  >
-                    {renderEntryIcon(item.icon, muted)}
-                  </View>
-
-                  <View style={styles.activityTextWrap}>
-                    <Text
-                      style={[styles.activityTitle, muted ? styles.activityTitleMuted : null]}
-                      numberOfLines={2}
-                    >
-                      {item.title}
-                    </Text>
-                    <Text style={styles.activityTime} numberOfLines={1}>{item.time}</Text>
-                  </View>
-
-                  <View style={styles.amountWrap}>
-                    <Text style={[styles.activityAmount, amountColor]} numberOfLines={1}>{item.amount}</Text>
-                    <Text
-                      style={[
-                        styles.activityStatus,
-                        statusColor,
-                        muted ? styles.activityStatusStriked : null,
-                      ]}
-                    >
-                      {item.status}
-                    </Text>
+              <View style={styles.activityRow}>
+                <View
+                  style={[
+                    styles.activityIconWrap,
+                    {
+                      backgroundColor:
+                        item?.type === 'Credit'
+                          ? 'rgba(255, 176, 0, 0.45)'
+                          : ' rgba(255, 255, 255, 0.2)',
+                    },
+                  ]}
+                >
+                  <View style={styles.topupIconWrap}>
+                    <Wallet
+                      size={24}
+                      color={
+                        item?.type === 'Credit'
+                          ? colors.primary
+                          : colors.textMutedAlt
+                      }
+                      strokeWidth={2.25}
+                    />
+                    <View style={styles.topupPlusChip}>
+                      {item?.type === 'Credit' ? (
+                        <Plus
+                          size={11}
+                          color={colors.primary}
+                          strokeWidth={2.6}
+                        />
+                      ) : null}
+                    </View>
                   </View>
                 </View>
+
+                <View style={styles.activityTextWrap}>
+                  <Text style={[styles.activityTitle]} numberOfLines={2}>
+                    {item?.description}
+                  </Text>
+                  <Text style={styles.activityTime} numberOfLines={1}>
+                    {item?.created_at
+                      ? moment(item.created_at).format('MMM D, h:mm A')
+                      : null}
+                  </Text>
+                </View>
+
+                <View style={styles.amountWrap}>
+                  <Text
+                    style={[styles.activityAmount, amountColor]}
+                    numberOfLines={1}
+                  >
+                    {sign}
+                    {currencyFormate(amountValue, 2)}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.activityStatus,
+                      {
+                        color:
+                          item?.status === 'Success'
+                            ? colors.success
+                            : item?.status === 'Failed'
+                            ? colors.red
+                            : colors.textMutedSoft2,
+                      },
+                    ]}
+                  >
+                    {item?.status}
+                  </Text>
+                </View>
               </View>
-            );
-          })}
-        </View>
-      </ScrollView>
+            </View>
+          );
+        }}
+        ItemSeparatorComponent={<View style={{ height: 10 }} />}
+        ListHeaderComponent={
+          <>
+            <View style={styles.balanceCard}>
+              <GlassLayer radius={24} />
+              <LinearGradient
+                pointerEvents="none"
+                colors={['rgba(255, 176, 0, 0.12)', 'rgba(255, 176, 0, 0)']}
+                start={{ x: 0, y: 0.3 }}
+                end={{ x: 0.9, y: 0.7 }}
+                style={styles.balanceWarmOverlay}
+              />
+              <LinearGradient
+                pointerEvents="none"
+                colors={['rgba(20, 30, 56, 0)', 'rgba(20, 30, 56, 0.2)']}
+                start={{ x: 0.45, y: 0.1 }}
+                end={{ x: 1, y: 0.8 }}
+                style={styles.balanceCoolOverlay}
+              />
+
+              <Text style={styles.balanceCaption}>CURRENT BALANCE</Text>
+              <Text style={styles.balanceAmount} numberOfLines={1}>
+                {currencyFormate(walletBalance || 0, 2)}
+              </Text>
+
+              <TouchableOpacity
+                style={styles.topUpButton}
+                activeOpacity={0.92}
+                onPress={openTopUpSheet}
+              >
+                <Text style={styles.topUpButtonText}>Top Up</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.activityHeaderRow}>
+              <Text style={styles.activityHeading}>Recent Activity</Text>
+            </View>
+
+            {isInitialLoading ? (
+              <View style={styles.initialLoaderWrap}>
+                <ActivityIndicator color={colors.primary} />
+                <Text style={styles.initialLoaderText}>
+                  Loading wallet history...
+                </Text>
+              </View>
+            ) : null}
+          </>
+        }
+      />
 
       <Modal
         transparent
@@ -296,48 +365,65 @@ const WalletHistoryScreen = () => {
               <View style={styles.sheetHandle} />
             </View>
             <View style={styles.sheetContent}>
-          <Text style={styles.sheetTitle}>Top Up Wallet</Text>
-          <Text style={styles.sheetSubtitle}>Choose an amount to add instantly.</Text>
+              <Text style={styles.sheetTitle}>Top Up Wallet</Text>
+              <Text style={styles.sheetSubtitle}>
+                Choose an amount to add instantly.
+              </Text>
 
-          <View style={styles.customAmountWrap}>
-            <GlassLayer radius={12} />
-            <Text style={styles.customAmountLabel}>CUSTOM AMOUNT</Text>
-            <View style={styles.customAmountInputRow}>
-              <Text style={styles.currencySymbol}>$</Text>
-              <TextInput
-                style={styles.customAmountInput}
-                placeholder="Enter amount"
-                placeholderTextColor={colors.textMuted}
-                keyboardType="numeric"
-              />
-            </View>
-          </View>
+              <View style={styles.customAmountWrap}>
+                <GlassLayer radius={12} />
+                <Text style={styles.customAmountLabel}>CUSTOM AMOUNT</Text>
+                <View style={styles.customAmountInputRow}>
+                  <Text style={styles.currencySymbol}>₹</Text>
+                  <TextInput
+                    style={styles.customAmountInput}
+                    placeholder="Enter amount"
+                    placeholderTextColor={colors.textMuted}
+                    keyboardType="numeric"
+                  />
+                </View>
+              </View>
 
-          <View style={styles.amountGrid}>
-            {amountOptions.map(amount => {
-              const isActive = amount === selectedAmount;
-              return (
+              <View style={styles.amountGrid}>
+                {amountOptions.map(amount => {
+                  const isActive = amount === selectedAmount;
+                  return (
+                    <TouchableOpacity
+                      key={amount}
+                      activeOpacity={0.9}
+                      style={[
+                        styles.amountChip,
+                        isActive ? styles.amountChipActive : null,
+                      ]}
+                      onPress={() => setSelectedAmount(amount)}
+                    >
+                      <Text
+                        style={[
+                          styles.amountChipText,
+                          isActive ? styles.amountChipTextActive : null,
+                        ]}
+                      >
+                        ₹{amount}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <View style={styles.sheetButtonWrap}>
                 <TouchableOpacity
-                  key={amount}
-                  activeOpacity={0.9}
-                  style={[styles.amountChip, isActive ? styles.amountChipActive : null]}
-                  onPress={() => setSelectedAmount(amount)}
+                  style={styles.topUpButton}
+                  activeOpacity={0.92}
+                  onPress={closeTopUpSheet}
                 >
-                  <Text style={[styles.amountChipText, isActive ? styles.amountChipTextActive : null]}>
-                    ${amount}
+                  <Text style={styles.sheetButtonText}>
+                    Continue to Payment
                   </Text>
                 </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          <View style={styles.sheetButtonWrap}>
-            <TouchableOpacity style={styles.topUpButton} activeOpacity={0.92} onPress={closeTopUpSheet}>
-              
-                <Text style={styles.sheetButtonText}>Continue to Payment</Text>
-            </TouchableOpacity>
-            <Text style={styles.sheetHint}>You will confirm the payment method next.</Text>
-          </View>
+                <Text style={styles.sheetHint}>
+                  You will confirm the payment method next.
+                </Text>
+              </View>
             </View>
           </View>
         </View>
@@ -410,14 +496,13 @@ const styles = StyleSheet.create({
     paddingBottom: 150,
   },
   balanceCard: {
-    minHeight: 238,
     borderRadius: 24,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
     overflow: 'hidden',
     paddingTop: 28,
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 30,
   },
   balanceWarmOverlay: {
     position: 'absolute',
@@ -682,12 +767,8 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 10,
-    backgroundColor: colors.surfaceBlueMuted,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  activityIconWrapTopup: {
-    backgroundColor: 'rgba(255, 176, 0, 0.2)',
   },
   topupIconWrap: {
     width: 24,
@@ -737,9 +818,10 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     fontSize: typography.caption,
     lineHeight: 13,
-    fontWeight: '700',
+    fontWeight: '900',
     letterSpacing: 0.8,
     textTransform: 'uppercase',
+    color: colors.textMutedSoft2,
   },
   activityStatusStriked: {
     textDecorationLine: 'line-through',
@@ -761,6 +843,52 @@ const styles = StyleSheet.create({
   },
   statusMuted: {
     color: colors.textMutedDark,
+  },
+  emptyStateWrap: {
+    paddingVertical: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyStateTitle: {
+    color: colors.textPrimary,
+    fontSize: typography.lg,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  emptyStateText: {
+    marginTop: 6,
+    color: colors.textMuted,
+    fontSize: typography.smPlus,
+    lineHeight: 20,
+    textAlign: 'center',
+  },
+  initialLoaderWrap: {
+    paddingVertical: 18,
+    alignItems: 'center',
+    gap: 10,
+  },
+  initialLoaderText: {
+    color: colors.textMuted,
+    fontSize: typography.smPlus,
+    fontWeight: '500',
+  },
+  footerLoaderWrap: {
+    paddingTop: 14,
+    alignItems: 'center',
+    gap: 8,
+  },
+  footerLoaderText: {
+    color: colors.textMuted,
+    fontSize: typography.sm,
+    fontWeight: '500',
+  },
+  footerEndText: {
+    paddingTop: 14,
+    textAlign: 'center',
+    color: colors.textMutedDark,
+    fontSize: typography.caption,
+    fontWeight: '600',
+    letterSpacing: 0.4,
   },
 });
 

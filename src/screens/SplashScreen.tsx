@@ -15,31 +15,47 @@ import { setUserCurrentCoords, setUserData } from '../redux/user/userSlice';
 import { useCart } from '../hooks';
 import BootSplash from 'react-native-bootsplash';
 import { fetchUserCurrentLocation } from '../utils/helper';
+import { updateLocation } from '../redux/user/userAction';
 
 const SplashScreen = () => {
   const { getCart, emptyCart } = useCart();
   const dispatch = useDispatch();
 
   useEffect(() => {
-    checkAuthStatus();
+    initiatApp();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const checkAuthStatus = async () => {
+  const initiatApp = async () => {
     try {
-      let coords = await fetchUserCurrentLocation();
-      dispatch(setUserCurrentCoords(coords));
+      let coords: any = await fetchUserCurrentLocation();
       console.log('coords fetch success', coords);
+      if (coords && coords?.latitude && coords?.longitude) {
+        dispatch(setUserCurrentCoords(coords));
+      }
+      checkAuthStatus(coords);
     } catch (error) {
-      console.error('Error fetching user location:', error);
+      console.log('Error fetching user location:', error);
       dispatch(setUserCurrentCoords(null));
+      checkAuthStatus();
     }
+  };
+
+  const checkAuthStatus = async (coords?: any) => {
     try {
       const token = await getAuthTokenFromAsyncStore();
       const userDetails: any = await getUserDetailsFromAsyncStore();
       if (token && userDetails) {
         setApiToken(token);
         dispatch(setUserData(userDetails));
+        if (coords && coords?.latitude && coords?.longitude) {
+          dispatch(
+            updateLocation({
+              latitude: coords.latitude,
+              longitude: coords.longitude,
+            }),
+          );
+        }
         getCart();
         reset('Tabs');
       } else {
@@ -47,16 +63,19 @@ const SplashScreen = () => {
         emptyCart();
         reset('Login');
       }
-      BootSplash.hide({ fade: true });
+      setTimeout(() => {
+        BootSplash.hide({ fade: true });
+      }, 100);
     } catch (error: any) {
       console.log('error', error);
       await deleteAuthTokenFromAsyncStore();
       emptyCart();
       reset('Login');
-      BootSplash.hide({ fade: true });
+      setTimeout(() => {
+        BootSplash.hide({ fade: true });
+      }, 100);
     }
   };
-
   return (
     <>
       <StatusBar

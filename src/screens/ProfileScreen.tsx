@@ -17,7 +17,6 @@ import {
   MapPin,
   Star,
   User,
-  UserPlus,
   Wallet,
 } from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
@@ -29,20 +28,22 @@ import { colors, layout, typography } from '../constants/theme';
 import type { RootStackParamList } from '../types/navigation';
 import { getMyProfile, logout } from '../redux/user/userAction';
 import { useDispatch, useSelector } from '../redux/store';
+import { navigate } from '../utils/navigationRef';
+import { currencyFormate } from '../utils/helper';
 
-const circleMembers = [
-  'https://api.dicebear.com/9.x/adventurer/png?seed=ava',
-  'https://api.dicebear.com/9.x/adventurer/png?seed=liam',
-  'https://api.dicebear.com/9.x/adventurer/png?seed=nora',
-  'https://api.dicebear.com/9.x/adventurer/png?seed=zoe',
-];
+// const circleMembers = [
+//   'https://api.dicebear.com/9.x/adventurer/png?seed=ava',
+//   'https://api.dicebear.com/9.x/adventurer/png?seed=liam',
+//   'https://api.dicebear.com/9.x/adventurer/png?seed=nora',
+//   'https://api.dicebear.com/9.x/adventurer/png?seed=zoe',
+// ];
 
-const memberAvatarOffsetStyles = [
-  { marginLeft: 0, zIndex: 4 },
-  { marginLeft: -12, zIndex: 3 },
-  { marginLeft: -12, zIndex: 2 },
-  { marginLeft: -12, zIndex: 1 },
-];
+// const memberAvatarOffsetStyles = [
+//   { marginLeft: 0, zIndex: 4 },
+//   { marginLeft: -12, zIndex: 3 },
+//   { marginLeft: -12, zIndex: 2 },
+//   { marginLeft: -12, zIndex: 1 },
+// ];
 
 const ProfileScreen = () => {
   const dispatch = useDispatch();
@@ -54,8 +55,8 @@ const ProfileScreen = () => {
   const memberBadgeText = hasActivePlan
     ? 'Premium\nMember'
     : 'Standard\nMember';
-  const vipStatusText = hasActivePlan ? 'Active' : 'Inactive';
-  const planButtonText = hasActivePlan ? 'Manage Plan' : 'Choose Plan';
+  // const vipStatusText = hasActivePlan ? 'Active' : 'Inactive';
+  // const planButtonText = hasActivePlan ? 'Manage Plan' : 'Choose Plan';
 
   useEffect(() => {
     if (isFocused) {
@@ -137,14 +138,14 @@ const ProfileScreen = () => {
                 <View>
                   <Text style={styles.walletVipLabel}>WALLET BALANCE</Text>
                   <Text style={styles.walletVipAmount}>
-                    ₹{userData?.balance ? userData?.balance.toFixed(2) : '0.00'}
+                    {currencyFormate(userData?.balance || 0, 2)}
                   </Text>
                 </View>
               </View>
 
               <TouchableOpacity
                 style={styles.topUpButton}
-                // onPress={() => navigation.navigate('WalletHistory')}
+                onPress={() => navigation.navigate('WalletHistory')}
               >
                 <Text style={styles.topUpButtonText}>Top Up</Text>
               </TouchableOpacity>
@@ -257,7 +258,11 @@ const ProfileScreen = () => {
 
             <TouchableOpacity
               style={styles.listRow}
-              onPress={() => navigation.navigate('SelectAddress')}
+              onPress={() =>
+                navigate('AddressesScreen', {
+                  routeFor: 'addressList',
+                })
+              }
             >
               <View style={styles.listRowLeft}>
                 <MapPin size={21} color={colors.textMuted} />
@@ -268,7 +273,7 @@ const ProfileScreen = () => {
 
             <View style={styles.listDivider} />
 
-            {/* <TouchableOpacity
+            <TouchableOpacity
               style={styles.listRow}
               onPress={() => navigation.navigate('WalletHistory')}
             >
@@ -279,7 +284,7 @@ const ProfileScreen = () => {
               <ChevronRight size={20} color="#6C7078" />
             </TouchableOpacity>
 
-            <View style={styles.listDivider} /> */}
+            <View style={styles.listDivider} />
 
             <TouchableOpacity
               style={styles.listRow}
