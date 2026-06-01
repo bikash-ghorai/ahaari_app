@@ -205,19 +205,14 @@ const SelectAddressScreen = (props: any) => {
                   ) : null}
                   {routeFor === 'addressList' ? (
                     <TouchableOpacity
-                      style={{
-                        position: 'absolute',
-                        right: 14,
-                        top: 14,
-                        padding: 6,
-                      }}
-                      activeOpacity={0.75}
+                      style={styles.deleteButton}
+                      activeOpacity={0.8}
                       onPress={() => setDeleteTarget(item)}
                     >
                       <Trash2Icon
-                        size={18}
-                        color={palette.iconMuted}
-                        strokeWidth={2.5}
+                        size={16}
+                        color="#F04A4A"
+                        strokeWidth={2.4}
                       />
                     </TouchableOpacity>
                   ) : null}
@@ -479,6 +474,20 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     textAlign: 'center',
     letterSpacing: 0.2,
+  },
+  deleteButton: {
+    position: 'absolute',
+    right: 14,
+    top: 14,
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: 'rgba(240, 74, 74, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(240, 74, 74, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
   },
 });
 

@@ -24,6 +24,7 @@ import {
   CircleCheck,
   Phone,
   Search,
+  ShoppingBag,
   Star,
   XCircle,
 } from 'lucide-react-native';
@@ -446,26 +447,32 @@ const OrdersScreen = () => {
           !(
             orderListData?.past_orders && orderListData.past_orders.length > 0
           ) ? (
-            <View style={styles.emptyWrap}>
-              <View style={styles.emptyCard}>
-                <AlertTriangle size={44} color={colors.textMuted} />
-                <Text style={styles.emptyTitle}>No orders yet</Text>
+            <View style={styles.emptyContainer}>
+              <View style={styles.emptyContent}>
+                <View style={styles.emptyIconWrapper}>
+                  <ShoppingBag
+                    size={64}
+                    color={colors.primary}
+                    strokeWidth={1.5}
+                  />
+                </View>
+
+                <Text style={styles.emptyTitle}>No Orders Yet</Text>
                 <Text style={styles.emptySubtitle}>
                   You don't have any active or past orders right now.
                 </Text>
-                <View style={styles.emptyActions}>
-                  <TouchableOpacity
-                    style={styles.emptyPrimaryButton}
+
+                <View style={styles.emptyActionsRow}>
+                  {/* <TouchableOpacity
+                    style={styles.emptyButton}
                     activeOpacity={0.88}
                     onPress={() => navigation.navigate('Restaurants')}
                   >
-                    <Text style={styles.emptyPrimaryButtonText}>
-                      Browse Restaurants
-                    </Text>
-                  </TouchableOpacity>
+                    <Text style={styles.emptyButtonText}>Browse Restaurants</Text>
+                  </TouchableOpacity> */}
 
-                  <TouchableOpacity
-                    style={styles.emptySecondaryButton}
+                  {/* <TouchableOpacity
+                    style={styles.emptySecondaryButtonNew}
                     activeOpacity={0.88}
                     onPress={() => {
                       dispatch(getOrders())
@@ -476,8 +483,10 @@ const OrdersScreen = () => {
                         .catch(() => {});
                     }}
                   >
-                    <Text style={styles.emptySecondaryButtonText}>Refresh</Text>
-                  </TouchableOpacity>
+                    <Text style={styles.emptySecondaryButtonTextNew}>
+                      Refresh
+                    </Text>
+                  </TouchableOpacity> */}
                 </View>
               </View>
             </View>
@@ -1128,57 +1137,80 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontWeight: '500',
   },
-  emptyWrap: {
+  emptyContainer: {
+    flex: 1,
     alignItems: 'center',
-    paddingVertical: 48,
+    paddingTop: 60,
+    paddingHorizontal: layout.screenPadding,
   },
-  emptyCard: {
-    width: '100%',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.04)',
-    backgroundColor: 'rgba(255,255,255,0.02)',
-    padding: 28,
+  emptyContent: {
     alignItems: 'center',
+    gap: 20,
+  },
+  emptyIconWrapper: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(245, 158, 11, 0.2)',
+    marginBottom: 12,
   },
   emptyTitle: {
     color: colors.textPrimary,
-    fontSize: typography.lg,
+    fontSize: typography.title,
     fontWeight: '700',
-    marginTop: 12,
+    letterSpacing: -0.5,
+    textAlign: 'center',
   },
   emptySubtitle: {
-    color: colors.textMuted,
+    color: colors.textSecondary,
     fontSize: typography.body,
-    marginTop: 8,
+    lineHeight: 22,
     textAlign: 'center',
-    lineHeight: 20,
+    maxWidth: 280,
   },
-  emptyActions: {
-    marginTop: 16,
+  emptyActionsRow: {
     flexDirection: 'row',
     gap: 12,
+    marginTop: 12,
+    alignItems: 'center',
   },
-  emptyPrimaryButton: {
+  emptyButton: {
+    height: 52,
+    borderRadius: 14,
     backgroundColor: colors.primary,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 999,
+    paddingHorizontal: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
   },
-  emptyPrimaryButtonText: {
+  emptyButtonText: {
     color: colors.black,
+    fontSize: typography.md,
     fontWeight: '700',
+    letterSpacing: 0.3,
   },
-  emptySecondaryButton: {
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 999,
+  emptySecondaryButtonNew: {
+    height: 52,
+    borderRadius: 14,
+    paddingHorizontal: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
-  emptySecondaryButtonText: {
+  emptySecondaryButtonTextNew: {
     color: colors.textPrimary,
+    fontSize: typography.md,
     fontWeight: '700',
+    letterSpacing: 0.3,
   },
 });
 

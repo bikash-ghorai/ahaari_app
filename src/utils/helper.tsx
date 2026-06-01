@@ -65,17 +65,28 @@ export const fetchUserCurrentLocation = async () => {
   return new Promise((resolve, reject) => {
     Geolocation.getCurrentPosition(
       position => {
-        console.log('current position', position);
         resolve(position.coords);
-        console.log('Fetching user location eeeee...', new Date().getSeconds());
       },
       error => {
         console.log('Geolocation error:', error);
-        reject(error);
+        Geolocation.getCurrentPosition(
+          (position) => {
+            resolve(position.coords);
+          },
+          (error) => {
+            console.log('Background update failed: ', error.message);
+            reject(error);
+          },
+          {
+            enableHighAccuracy: true,  // Use GPS hardware now for the exact pinpoint
+            timeout: 10000,            // Give hardware time to lock in background
+            maximumAge: 0,             // Force a brand new reading
+          }
+        )
       },
       {
         enableHighAccuracy: false, // Force it to use cellular/network cache
-        timeout: 10000, // Fail quickly if no cache exists
+        timeout: 3000, // Fail quickly if no cache exists
         maximumAge: 3600000, // Accept a cached location up to 1 hour old
       },
     );

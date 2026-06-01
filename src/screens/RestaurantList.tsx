@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 
-import { AlertTriangle, Bell, Heart, Search, Star } from 'lucide-react-native';
+import { AlertTriangle, Bell, Heart, Search, Star, Store } from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -269,22 +269,20 @@ const RestaurantList = () => {
               </TouchableOpacity>
             ))
           ) : isFetching ? null : (
-            <View style={styles.emptyWrap}>
-              <View style={styles.emptyCard}>
-                <AlertTriangle size={44} color={colors.textMuted} />
-                <Text style={styles.emptyTitle}>No restaurants found</Text>
+            <View style={styles.emptyContainer}>
+              <View style={styles.emptyContent}>
+                <View style={styles.emptyIconWrapper}>
+                  <Store
+                    size={64}
+                    color={colors.primary}
+                    strokeWidth={1.5}
+                  />
+                </View>
+
+                <Text style={styles.emptyTitle}>No Restaurants Found</Text>
                 <Text style={styles.emptySubtitle}>
                   We couldn't find any restaurants near your location.
                 </Text>
-                <View style={styles.emptyActions}>
-                  <TouchableOpacity
-                    style={styles.emptyPrimaryButton}
-                    onPress={getShopHandler}
-                    activeOpacity={0.85}
-                  >
-                    <Text style={styles.emptyPrimaryButtonText}>Retry</Text>
-                  </TouchableOpacity>
-                </View>
               </View>
             </View>
           )}
@@ -577,47 +575,41 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     letterSpacing: 1,
   },
-  emptyWrap: {
+  emptyContainer: {
+    flex: 1,
     alignItems: 'center',
-    paddingVertical: 48,
+    paddingTop: 60,
+    paddingHorizontal: layout.screenPadding,
   },
-  emptyCard: {
-    width: '100%',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.04)',
-    backgroundColor: 'rgba(255,255,255,0.02)',
-    padding: 28,
+  emptyContent: {
     alignItems: 'center',
+    gap: 20,
+  },
+  emptyIconWrapper: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(245, 158, 11, 0.2)',
+    marginBottom: 12,
   },
   emptyTitle: {
     color: colors.textPrimary,
-    fontSize: typography.lg,
+    fontSize: typography.title,
     fontWeight: '700',
-    marginTop: 12,
+    letterSpacing: -0.5,
+    textAlign: 'center',
   },
   emptySubtitle: {
-    color: colors.textMuted,
+    color: colors.textSecondary,
     fontSize: typography.body,
-    marginTop: 8,
+    lineHeight: 22,
     textAlign: 'center',
-    lineHeight: 20,
-  },
-  emptyActions: {
-    marginTop: 16,
-    flexDirection: 'row',
-    gap: 12,
-  },
-  emptyPrimaryButton: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 999,
-  },
-  emptyPrimaryButtonText: {
-    color: colors.black,
-    fontWeight: '700',
-  },
+    maxWidth: 280,
+  }
 });
 
 export default RestaurantList;

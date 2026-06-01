@@ -18,7 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 import MapView, { PROVIDER_GOOGLE } from 'react-native-maps';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
-import Geolocation from '@react-native-community/geolocation';
+import Geolocation from 'react-native-geolocation-service';
 
 import { colors, layout, typography } from '../constants/theme';
 import Header from '../components/Header';
@@ -123,7 +123,7 @@ const AddAddressScreen = () => {
         showToaster('Unable to fetch location');
         setIsLoadingLocation(false);
       },
-      { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
     );
   };
 
@@ -443,7 +443,7 @@ const AddAddressScreen = () => {
                   onPress={handleSaveAddress}
                 >
                   <LinearGradient
-                    colors={[colors.primary, '#FFC94D']}
+                    colors={[colors.primary, colors.primary]}
                     start={{ x: 0.47, y: 1 }}
                     end={{ x: 0.53, y: 0 }}
                     style={styles.primaryButtonGradient}
@@ -661,15 +661,17 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   primaryButtonGradient: {
-    paddingVertical: 16,
-    alignItems: 'center',
+    flex: 1,
+    borderRadius: 16,
     justifyContent: 'center',
+    alignItems: 'center',
   },
   primaryButtonText: {
     color: '#000000',
     fontSize: typography.lg,
     fontWeight: '700',
     letterSpacing: 0.3,
+    paddingVertical: 20,
   },
   actionHint: {
     color: colors.textMuted,

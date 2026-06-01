@@ -27,6 +27,8 @@ import {
   Calendar,
   ChevronDown,
   LocateFixed,
+  MapPin,
+  MapPinOff,
   Minus,
   Plus,
   Search,
@@ -206,20 +208,24 @@ const HomeScreen = () => {
       <View style={styles.header}>
         <View style={styles.userInfo}>
           <View style={styles.avatarContainer}>
-            <Image source={ImagePath.logoWithName} style={styles.avatar} />
+            <View style={styles.logoBadge}>
+              <GlassLayer />
+              <Image source={ImagePath.logo} style={styles.avatar} />
+            </View>
           </View>
-          <View style={{ width: '55%' }}>
+          <View style={styles.userTextContent}>
             <Text style={styles.welcomeText} numberOfLines={1}>
               Ahaari
             </Text>
             <TouchableOpacity
               activeOpacity={0.8}
-              style={styles.locationRow}
+              style={styles.locationSelector}
               onPress={() => {
                 setIsAddressSheetOpen(true);
                 handleGetAddress();
               }}
             >
+              <MapPin size={12} color={colors.primary} />
               <Text style={styles.locationText} numberOfLines={1}>
                 {resolvedLocationLabel}
               </Text>
@@ -227,41 +233,16 @@ const HomeScreen = () => {
             </TouchableOpacity>
           </View>
         </View>
-        <View
-          style={{
-            flexDirection: 'row',
-            gap: 12,
-          }}
-        >
+        <View style={styles.headerRight}>
           <TouchableOpacity
-            style={{
-              width: 44,
-              height: 44,
-              backgroundColor: colors.glass,
-              borderRadius: 24,
-              justifyContent: 'center',
-              alignItems: 'center',
-              borderWidth: 1,
-              borderColor: colors.glassBorder,
-              overflow: 'hidden',
-            }}
+            style={styles.headerRightSize}
             onPress={() => navigation.navigate('Search')}
           >
             <GlassLayer />
             <Search size={20} color="#FFF" />
           </TouchableOpacity>
           <TouchableOpacity
-            style={{
-              width: 44,
-              height: 44,
-              backgroundColor: colors.glass,
-              borderRadius: 24,
-              justifyContent: 'center',
-              alignItems: 'center',
-              borderWidth: 1,
-              borderColor: colors.glassBorder,
-              overflow: 'hidden',
-            }}
+            style={styles.headerRightSize}
             onPress={() => {
               if (isBadWeather) {
                 show();
@@ -630,50 +611,30 @@ const HomeScreen = () => {
         </ScrollView>
       ) : (
         <View style={styles.comingSoonSection}>
-          <LinearGradient
-            colors={['rgba(255, 176, 0, 0.18)', 'rgba(255, 87, 51, 0.12)']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.comingSoonCard}
+          <View style={styles.comingSoonIconContainer}>
+            <MapPinOff size={48} color={colors.primary} strokeWidth={1.5} />
+          </View>
+          <Text style={styles.comingSoonTitle}>We're not in your neighborhood</Text>
+          <Text style={styles.comingSoonSubTitle}>just yet.</Text>
+          
+          <Text style={styles.comingSoonSubtitle}>
+            We haven&apos;t reached this area yet. Our team is working hard to expand coverage to your neighborhood soon.
+          </Text>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            style={styles.comingSoonButton}
+            onPress={() => {
+              setIsAddressSheetOpen(true);
+              handleGetAddress();
+            }}
           >
-            <GlassLayer />
-            <View style={styles.comingSoonHeader}>
-              <View style={styles.comingSoonIconWrap}>
-                <LocateFixed size={20} color={colors.primary} />
-              </View>
-              <View style={styles.comingSoonPill}>
-                <Text style={styles.comingSoonPillText}>Coming soon</Text>
-              </View>
-            </View>
-            <Text style={styles.comingSoonTitle} numberOfLines={2}>
-              We are not serviceable in this area yet
-            </Text>
-            <Text style={styles.comingSoonSubtitle} numberOfLines={3}>
+            <Text style={styles.comingSoonButtonText}>Change Location</Text>
+          </TouchableOpacity>
+            {currentPlace && (
+            <Text style={styles.comingSoonPlaceText} numberOfLines={1}>
               {currentPlace}
-              {'\n'}
-              We&apos;re expanding soon, so you can order here once delivery
-              coverage opens up.
             </Text>
-            <View style={styles.comingSoonActions}>
-              <TouchableOpacity
-                activeOpacity={0.9}
-                style={styles.comingSoonPrimaryAction}
-                onPress={() => {
-                  setIsAddressSheetOpen(true);
-                  handleGetAddress();
-                }}
-              >
-                <Text style={styles.comingSoonPrimaryActionText}>
-                  Change location
-                </Text>
-              </TouchableOpacity>
-              <View style={styles.comingSoonSecondaryChip}>
-                <Text style={styles.comingSoonSecondaryChipText}>
-                  More zones arriving soon
-                </Text>
-              </View>
-            </View>
-          </LinearGradient>
+          )}
         </View>
       )}
 
@@ -842,36 +803,68 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: layout.screenPadding,
-    paddingVertical: 8,
+    paddingVertical: 12,
+    minHeight: 70,
   },
   userInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    gap: 12,
+    flexShrink: 1,
   },
   avatarContainer: {
     position: 'relative',
   },
+  logoBadge: {
+    width: 50,
+    height: 50,
+    borderRadius: 16,
+    backgroundColor: colors.glass,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
   avatar: {
-    width: 48,
-    height: 48,
-    // borderRadius: 24,
-    // borderWidth: 2,
-    // borderColor: colors.primary,
+    width: 38,
+    height: 38,
+    resizeMode: 'contain',
+  },
+  userTextContent: {
+    gap: 2,
   },
   welcomeText: {
     color: colors.textPrimary,
     fontSize: typography.xl,
-    fontWeight: 'bold',
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  locationSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   locationText: {
     color: colors.textMuted,
     fontSize: typography.sm,
+    maxWidth: "70%",
   },
-  locationRow: {
+  headerRight: {
     flexDirection: 'row',
+    gap: 12,
     alignItems: 'center',
-    gap: 6,
+  },
+  headerRightSize: {
+    width: 44,
+    height: 44,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    overflow: 'hidden',
   },
   heroCard: {
     marginHorizontal: layout.screenPadding,
@@ -1099,87 +1092,76 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   comingSoonSection: {
-    paddingHorizontal: layout.screenPadding,
-    marginTop: 8,
-  },
-  comingSoonCard: {
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 176, 0, 0.3)',
-    overflow: 'hidden',
-    padding: 18,
-    gap: 14,
-  },
-  comingSoonHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  comingSoonIconWrap: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: 'center',
+    flex: 1,
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 176, 0, 0.16)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 176, 0, 0.28)',
+    alignItems: 'center',
+    paddingHorizontal: 40,
   },
-  comingSoonPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255, 87, 51, 0.16)',
+  comingSoonIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255, 176, 0, 0.08)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 32,
     borderWidth: 1,
-    borderColor: 'rgba(255, 87, 51, 0.28)',
-  },
-  comingSoonPillText: {
-    color: colors.primary,
-    fontSize: typography.caption,
-    fontWeight: '700',
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
+    borderColor: 'rgba(255, 176, 0, 0.15)',
+    boxShadow: '0px 2px 100px rgba(255, 176, 0, 0.2)',
   },
   comingSoonTitle: {
     color: colors.textPrimary,
-    fontSize: typography.xl,
+    fontSize: 26,
     fontWeight: '800',
-    lineHeight: 28,
+    textAlign: 'center',
+    // marginBottom: 12,
+  },
+  comingSoonSubTitle: {
+    color: colors.primary,
+    fontSize: 26,
+    fontWeight: '800',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginBottom: 15,
+  },
+  comingSoonPlaceText: {
+    color: colors.primary,
+    fontSize: typography.sm,
+    // fontWeight: '700',
+    textAlign: 'center',
+    marginTop: 15,
+    marginBottom: 80,
+    // backgroundColor: 'rgba(255, 176, 0, 0.08)',
+    // paddingHorizontal: 16,
+    // paddingVertical: 6,
+    // borderRadius: 20,
+    // borderWidth: 1,
+    // borderColor: 'rgba(255, 176, 0, 0.12)',
   },
   comingSoonSubtitle: {
     color: colors.textSecondary,
     fontSize: typography.body,
-    lineHeight: 20,
+    lineHeight: 22,
+    textAlign: 'center',
+    marginBottom: 40,
   },
-  comingSoonActions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    alignItems: 'center',
-  },
-  comingSoonPrimaryAction: {
+  comingSoonButton: {
+    width: '100%',
     backgroundColor: colors.primary,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 14,
+    height: 56,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  comingSoonPrimaryActionText: {
+  comingSoonButtonText: {
     color: colors.black,
-    fontSize: typography.sm,
-    fontWeight: '700',
-  },
-  comingSoonSecondaryChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  comingSoonSecondaryChipText: {
-    color: colors.textMuted,
-    fontSize: typography.sm,
-    fontWeight: '600',
+    // fontSize: typography.md,
+    fontWeight: 'bold',
   },
   //---New
   promoBanner: {

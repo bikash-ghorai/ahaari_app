@@ -2,6 +2,7 @@
 import React, { useEffect } from 'react';
 import {
   Image,
+  Linking,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -286,9 +287,9 @@ const ProfileScreen = () => {
 
             <View style={styles.listDivider} />
 
-            <TouchableOpacity
+            {/* <TouchableOpacity
               style={styles.listRow}
-              // onPress={() => navigation.navigate('ReferEarn')}
+              onPress={() => navigation.navigate('ReferEarn')}
             >
               <View style={styles.listRowLeft}>
                 <Gift size={21} color={colors.textMuted} />
@@ -301,7 +302,7 @@ const ProfileScreen = () => {
                 </View>
                 <ChevronRight size={20} color="#6C7078" />
               </View>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
 
             <TouchableOpacity
               style={styles.listRow}
@@ -320,14 +321,18 @@ const ProfileScreen = () => {
           <Text style={styles.sectionTitle}>Legal</Text>
 
           <View style={styles.listCard}>
-            <TouchableOpacity style={styles.listRow}>
+            <TouchableOpacity style={styles.listRow} onPress={() => {
+                Linking.openURL('https://ahaari.com/privacy-policy');
+            }}>
               <Text style={styles.listRowLabelMuted}>Terms & Condition</Text>
               <ExternalLink size={20} color="#6C7078" />
             </TouchableOpacity>
 
             <View style={styles.listDivider} />
 
-            <TouchableOpacity style={styles.listRow}>
+            <TouchableOpacity style={styles.listRow} onPress={() => {
+                Linking.openURL('https://ahaari.com/privacy-policy');
+            }}>
               <Text style={styles.listRowLabelMuted}>Privacy Policy</Text>
               <ExternalLink size={20} color="#6C7078" />
             </TouchableOpacity>

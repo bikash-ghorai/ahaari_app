@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   Image,
+  Linking,
   ScrollView,
   StyleSheet,
   Text,
@@ -118,22 +119,26 @@ const AboutScreen = () => {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Legal & support</Text>
 
-          <TouchableOpacity style={styles.linkRow} activeOpacity={0.8}>
+          <TouchableOpacity style={styles.linkRow} activeOpacity={0.8} onPress={() => {
+              Linking.openURL('https://ahaari.com/privacy-policy');
+          }}>
             <Text style={styles.linkLabel}>Privacy policy</Text>
             <ExternalLink size={18} color={colors.textMuted} />
           </TouchableOpacity>
           <View style={styles.cardDivider} />
 
-          <TouchableOpacity style={styles.linkRow} activeOpacity={0.8}>
+          <TouchableOpacity style={styles.linkRow} activeOpacity={0.8} onPress={() => {
+              Linking.openURL('https://ahaari.com/terms-of-service');
+          }}>
             <Text style={styles.linkLabel}>Terms of service</Text>
             <ExternalLink size={18} color={colors.textMuted} />
           </TouchableOpacity>
-          <View style={styles.cardDivider} />
+          {/* <View style={styles.cardDivider} /> */}
 
-          <TouchableOpacity style={styles.linkRow} activeOpacity={0.8}>
+          {/* <TouchableOpacity style={styles.linkRow} activeOpacity={0.8}>
             <Text style={styles.linkLabel}>Help center</Text>
             <ExternalLink size={18} color={colors.textMuted} />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
 
         <View style={styles.card}>
@@ -143,7 +148,7 @@ const AboutScreen = () => {
             delivery even better.
           </Text>
 
-          <TouchableOpacity style={styles.primaryButton} activeOpacity={0.92}>
+          {/* <TouchableOpacity style={styles.primaryButton} activeOpacity={0.92}>
             <LinearGradient
               colors={[colors.primary, '#FFC94D']}
               start={{ x: 0.45, y: 1 }}
@@ -152,7 +157,7 @@ const AboutScreen = () => {
             >
               <Text style={styles.primaryButtonText}>Send feedback</Text>
             </LinearGradient>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
       </ScrollView>
     </SafeAreaView>
