@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { StatusBar, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { DefaultTheme, NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { useInAppUpdate } from './src/hooks/useInAppUpdate';
 
 import AppBackground from './src/components/AppBackground';
 import BottomNav from './src/components/BottomNav';
 import NoInternetToast from './src/components/NoInternetToast';
+import UpdatePopup from './src/components/UpdatePopup';
 import { colors } from './src/constants/theme';
 import { WeatherAlertProvider } from './src/contexts/WeatherAlertContext';
 import CartScreen from './src/screens/CartScreen';
@@ -74,6 +76,9 @@ const MainTabs = () => {
 function App() {
   const [currentRouteName, setCurrentRouteName] = React.useState('Splash');
   const [isConnected, setIsConnected] = useState<boolean>(true);
+
+  // Check for in-app updates
+  const { isUpdateAvailable, triggerUpdate } = useInAppUpdate();
 
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener(state => {
@@ -223,6 +228,11 @@ function App() {
                     />
                   </Stack.Navigator>
                 </NavigationContainer>
+
+                <UpdatePopup 
+                  isVisible={isUpdateAvailable} 
+                  onUpdate={triggerUpdate} 
+                />
 
                 <NoInternetToast isConnected={isConnected} />
               </View>
