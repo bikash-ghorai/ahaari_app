@@ -25,6 +25,8 @@ import {
   SquareCheckBig,
   Square,
   Zap,
+  Circle,
+  Triangle,
 } from 'lucide-react-native';
 import {
   SafeAreaView,
@@ -434,60 +436,119 @@ const CartScreen = () => {
               originalCartValue?.items.length > 0 ? (
                 originalCartValue?.items?.map((item, index) => (
                   <View key={index} style={styles.itemCard}>
-                    <Image
-                      source={
-                        item?.image
-                          ? { uri: Constant.ImageURL + item.image }
-                          : ImagePath.noProductPlaceholder
-                      }
-                      style={styles.itemImage}
-                    />
+                    <View>
+                      <Image
+                        source={
+                          item?.image
+                            ? { uri: Constant.ImageURL + item.image }
+                            : ImagePath.noProductPlaceholder
+                        }
+                        style={styles.itemImage}
+                      />
+                      <View
+                        style={{
+                          position: 'absolute',
+                          top: 6,
+                          left: 6,
+                        }}
+                      >
+                        {item?.type === 'Veg' ? (
+                          <View
+                            style={{
+                              height: 20,
+                              width: 20,
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                              borderRadius: 4,
+                              borderWidth: 3,
+                              borderColor: colors.success,
+                            }}
+                          >
+                            <Circle
+                              size={10}
+                              color={colors.success}
+                              fill={colors.success}
+                            />
+                          </View>
+                        ) : (
+                          <View
+                            style={{
+                              height: 20,
+                              width: 20,
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                              borderRadius: 4,
+                              borderWidth: 3,
+                              borderColor: colors.red,
+                            }}
+                          >
+                            <Triangle
+                              size={10}
+                              color={colors.red}
+                              fill={colors.red}
+                            />
+                          </View>
+                        )}
+                      </View>
+                    </View>
 
                     <View style={styles.itemInfo}>
                       <View style={styles.itemTopRow}>
                         <Text style={styles.itemName}>{item?.name}</Text>
                       </View>
 
-                      <Text style={styles.itemSubtitle}>
+                      <Text style={styles.itemSubtitle} numberOfLines={2}>
                         {item?.description}
                       </Text>
 
                       <View style={styles.itemBottomRow}>
                         <Text style={styles.itemPrice}>
-                          ₹{item.price.toFixed(2)}
+                          ₹
+                          {item?.status === 'Available'
+                            ? item.price.toFixed(2)
+                            : '0.00'}
                         </Text>
-
-                        <View style={styles.qtyControl}>
-                          <Pressable
-                            style={styles.qtyButton}
-                            onPress={() => {
-                              removeProduct({
-                                product_id: item?.product_id || '',
-                                variant_id: item?.variant_id,
-                                shop_id: originalCartValue?.shop?.shop_id || '',
-                                quantity: 1,
-                              });
-                            }}
-                          >
-                            <Minus size={18} color="#9BA3B5" />
-                          </Pressable>
-                          <Text style={styles.qtyText}>
-                            {getCartQtyCount({ variant_id: item.variant_id })}
-                          </Text>
-                          <Pressable
-                            onPress={() => {
-                              addProduct({
-                                product_id: item?.product_id || '',
-                                variant_id: item?.variant_id,
-                                shop_id: originalCartValue?.shop?.shop_id || '',
-                                quantity: 1,
-                              });
-                            }}
-                            style={styles.qtyButton}
-                          >
-                            <Plus size={18} color="#9BA3B5" />
-                          </Pressable>
-                        </View>
+                        {item?.status === 'Available' ? (
+                          <View style={styles.qtyControl}>
+                            <Pressable
+                              style={styles.qtyButton}
+                              onPress={() => {
+                                removeProduct({
+                                  product_id: item?.product_id || '',
+                                  variant_id: item?.variant_id,
+                                  shop_id:
+                                    originalCartValue?.shop?.shop_id || '',
+                                  quantity: 1,
+                                });
+                              }}
+                            >
+                              <Minus size={18} color="#9BA3B5" />
+                            </Pressable>
+                            <Text style={styles.qtyText}>
+                              {getCartQtyCount({ variant_id: item.variant_id })}
+                            </Text>
+                            <Pressable
+                              onPress={() => {
+                                addProduct({
+                                  product_id: item?.product_id || '',
+                                  variant_id: item?.variant_id,
+                                  shop_id:
+                                    originalCartValue?.shop?.shop_id || '',
+                                  quantity: 1,
+                                });
+                              }}
+                              style={styles.qtyButton}
+                            >
+                              <Plus size={18} color="#9BA3B5" />
+                            </Pressable>
+                          </View>
+                        ) : (
+                          <View style={styles.outOfStockBadge}>
+                            <Text style={styles.outOfStockBadgeText}>
+                              Out of stock
+                            </Text>
+                          </View>
+                        )}
                       </View>
                     </View>
                   </View>
@@ -855,9 +916,17 @@ const CartScreen = () => {
           </View> */}
 
               <TouchableOpacity
-                style={styles.checkoutButton}
+                style={[
+                  styles.checkoutButton,
+                  {
+                    backgroundColor: originalCartValue?.checkout
+                      ? colors.primary
+                      : colors.primary + '80',
+                  },
+                ]}
                 activeOpacity={0.92}
                 onPress={handleCheckout}
+                disabled={!originalCartValue?.checkout}
               >
                 <Text style={styles.checkoutButtonText}>
                   Proceed to Checkout
@@ -1708,6 +1777,24 @@ const styles = StyleSheet.create({
     fontSize: typography.md,
     fontWeight: '700',
     letterSpacing: 0.3,
+  },
+  //------
+
+  outOfStockBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 82, 82, 0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 82, 82, 0.28)',
+  },
+  outOfStockBadgeText: {
+    color: '#FF9C9C',
+    fontSize: typography.captionPlus,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
   },
 });
 

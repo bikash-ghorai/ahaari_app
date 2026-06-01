@@ -119,6 +119,8 @@ export type IUpdateLocationReq = {
   address_id?: string;
 };
 
+export type IVariantStatus = 'Available' | 'Unavailable' | 'Out Of Stock';
+
 export type IVariant = {
   variant_id: string;
   product_id: string;
@@ -128,13 +130,13 @@ export type IVariant = {
   menu_price: number | string;
   container_charge: number | string;
   container_charge_on_qty: number | string;
-  status: string;
+  status: IVariantStatus;
 };
 
 export type IProduct = {
   product_id: string;
   name: string;
-  type: string;
+  type: 'Veg' | 'Non-Veg';
   description: string;
   image: string;
   category_id: string;
@@ -190,6 +192,7 @@ export type ICartItemRes = {
     image: null;
     price: number;
     quantity: number;
+    status: IVariantStatus;
   }>;
   addons_products: [];
   payment_method: {
@@ -215,6 +218,7 @@ export type ICartItemRes = {
     label: string;
     amount: number;
   }>;
+  checkout: boolean;
 };
 
 export type ICoupon = {

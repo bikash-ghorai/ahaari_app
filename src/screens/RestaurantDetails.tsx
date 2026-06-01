@@ -11,7 +11,15 @@ import {
   View,
 } from 'react-native';
 import { BlurView } from '@react-native-community/blur';
-import { Clock3, Minus, Plus, Search, Star } from 'lucide-react-native';
+import {
+  Circle,
+  Clock3,
+  Minus,
+  Plus,
+  Search,
+  Star,
+  Triangle,
+} from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
@@ -424,6 +432,9 @@ const RestaurantDetails = (props: IProps) => {
             <View style={styles.sommelierList}>
               {filteredProducts && filteredProducts.length > 0 ? (
                 filteredProducts.map((item, ind) => {
+                  const isOneItemAvailable = item.variants.some(
+                    (variant: IVariant) => variant.status === 'Available',
+                  );
                   return (
                     <TouchableOpacity
                       key={ind}
@@ -432,14 +443,61 @@ const RestaurantDetails = (props: IProps) => {
                       onPress={() => openPreview(item)}
                     >
                       <View style={styles.menuCardSmallContent}>
-                        <Image
-                          source={
-                            item?.image
-                              ? { uri: Constant.ImageURL + item.image }
-                              : ImagePath.noProductPlaceholder
-                          }
-                          style={styles.menuImageSmall}
-                        />
+                        <View>
+                          <Image
+                            source={
+                              item?.image
+                                ? { uri: Constant.ImageURL + item.image }
+                                : ImagePath.noProductPlaceholder
+                            }
+                            style={styles.menuImageSmall}
+                          />
+                          <View
+                            style={{
+                              position: 'absolute',
+                              top: 6,
+                              left: 6,
+                            }}
+                          >
+                            {item?.type === 'Veg' ? (
+                              <View
+                                style={{
+                                  height: 20,
+                                  width: 20,
+                                  justifyContent: 'center',
+                                  alignItems: 'center',
+                                  borderRadius: 4,
+                                  borderWidth: 3,
+                                  borderColor: colors.success,
+                                }}
+                              >
+                                <Circle
+                                  size={10}
+                                  color={colors.success}
+                                  fill={colors.success}
+                                />
+                              </View>
+                            ) : (
+                              <View
+                                style={{
+                                  height: 20,
+                                  width: 20,
+                                  justifyContent: 'center',
+                                  alignItems: 'center',
+                                  borderRadius: 4,
+                                  borderWidth: 3,
+                                  borderColor: colors.red,
+                                }}
+                              >
+                                <Triangle
+                                  size={10}
+                                  color={colors.red}
+                                  fill={colors.red}
+                                />
+                              </View>
+                            )}
+                          </View>
+                        </View>
 
                         <View style={styles.smallTextArea}>
                           <View style={styles.smallTitleRow}>
@@ -456,8 +514,15 @@ const RestaurantDetails = (props: IProps) => {
                           <View style={styles.smallBottomRow}>
                             {/* <Text style={styles.smallTag}>{item.tag}</Text> */}
                             <View />
-                            {getCartQtyCount({ product_id: item.product_id }) >
-                            0 ? (
+                            {!isOneItemAvailable ? (
+                              <View style={styles.outOfStockBadge}>
+                                <Text style={styles.outOfStockBadgeText}>
+                                  Out of stock
+                                </Text>
+                              </View>
+                            ) : getCartQtyCount({
+                                product_id: item.product_id,
+                              }) > 0 ? (
                               <View style={styles.qtyPillSmall}>
                                 <TouchableOpacity
                                   style={styles.qtyButtonSmall}
@@ -689,10 +754,30 @@ const RestaurantDetails = (props: IProps) => {
                 )}
 
                 <View style={styles.sheetActions}>
-                  {getCartQtyCount({
-                    product_id: selectedItem.product_id,
-                    variant_id: selectedTempVariant?.variant_id,
-                  }) > 0 ? (
+                  {!selectedTempVariant ||
+                  selectedTempVariant.status !== 'Available' ? (
+                    <View style={styles.sheetAddButton}>
+                      <View
+                        style={[
+                          styles.sheetAddGradient,
+                          { backgroundColor: 'rgba(255, 82, 82, 0.24)' },
+                        ]}
+                      >
+                        <Text
+                          style={{
+                            color: '#FF9C9C',
+                            fontSize: typography.body,
+                            fontWeight: '700',
+                          }}
+                        >
+                          Out of Stock
+                        </Text>
+                      </View>
+                    </View>
+                  ) : getCartQtyCount({
+                      product_id: selectedItem.product_id,
+                      variant_id: selectedTempVariant?.variant_id,
+                    }) > 0 ? (
                     <View style={styles.sheetQtyPill}>
                       <TouchableOpacity
                         style={styles.sheetQtyButton}
@@ -752,11 +837,11 @@ const RestaurantDetails = (props: IProps) => {
                         })
                       }
                     >
-                      <LinearGradient
-                        colors={[colors.primary, '#FFC94D']}
-                        start={{ x: 0.35, y: 1 }}
-                        end={{ x: 0.65, y: 0 }}
-                        style={styles.sheetAddGradient}
+                      <View
+                        style={[
+                          styles.sheetAddGradient,
+                          { backgroundColor: colors.primary },
+                        ]}
                       >
                         <Plus
                           size={16}
@@ -766,7 +851,7 @@ const RestaurantDetails = (props: IProps) => {
                         <Text style={styles.sheetAddText}>
                           Add to cart ₹{selectedTempVariant?.price || 0}
                         </Text>
-                      </LinearGradient>
+                      </View>
                     </TouchableOpacity>
                   )}
 
@@ -1460,6 +1545,23 @@ const styles = StyleSheet.create({
     fontSize: typography.body,
     fontWeight: '700',
     lineHeight: 20,
+  },
+  //
+  outOfStockBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 82, 82, 0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 82, 82, 0.28)',
+  },
+  outOfStockBadgeText: {
+    color: '#FF9C9C',
+    fontSize: typography.captionPlus,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
   },
 });
 
