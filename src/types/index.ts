@@ -60,6 +60,7 @@ export type IHomePageData = {
     rating: number | string;
   }>;
   event: null | any;
+  topRated: null | any;
 };
 
 export type IRestaurant = {

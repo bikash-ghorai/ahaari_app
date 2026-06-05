@@ -614,7 +614,7 @@ const RestaurantDetails = (props: IProps) => {
                       fontSize: typography.body,
                     }}
                   >
-                    No products found matching "{searchText}"
+                    {searchText ? `No products found matching "${searchText}"` : 'No products found!'}
                   </Text>
                 </View>
               )}
