@@ -22,6 +22,7 @@ import { IRestaurant } from '../types';
 import { getRestaurants } from '../redux/app/appAction';
 import { Constant } from '../constants/Constant';
 import { ImagePath } from '../constants/ImagePath';
+import Loader from '../components/Loader';
 
 const cuisineChips = [
   'All Cuisines',
@@ -30,28 +31,43 @@ const cuisineChips = [
   'Japanese Fusion',
 ];
 
-const RestaurantList = () => {
+const RestaurantList = (props: any) => {
   const dispatch = useDispatch();
   const navigation = useNavigation<any>();
   const isFocused = useIsFocused();
   const { isBadWeather, show } = useWeatherAlert();
 
+  const category_id_params = props?.route?.params?.category_id || "";
+
   const [restaurants, setRestaurants] = useState<Array<IRestaurant>>([]);
+  const [categories, setCategories] = useState<Array<{ category_id: string; name: string }>>([]);
   const [isFetching, setIsFetching] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(category_id_params);
+
+  useEffect(() => {
+    if (category_id_params) {
+      setSelectedCategory(category_id_params);
+    }
+  }, [category_id_params]);
 
   useEffect(() => {
     if (isFocused) {
-      getShopHandler();
+      getShopHandler(selectedCategory);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isFocused]);
+  }, [isFocused, selectedCategory]);
 
-  const getShopHandler = () => {
+  const getShopHandler = (categoryId: string | null) => {
     setIsFetching(true);
-    dispatch(getRestaurants())
+    dispatch(getRestaurants(categoryId))
       .unwrap()
       .then(({ data }: any) => {
-        setRestaurants(data);
+        setRestaurants(data?.shops || []);
+        let cats = [{ category_id: '', name: 'All Cuisines' }];
+        if (data?.categories && data?.categories.length > 0) {
+          cats = [{ category_id: '', name: 'All Cuisines' }, ...data?.categories];
+        }
+        setCategories(cats);
       })
       .catch((error: any) => {
         console.log('Error fetching restaurants:', error);
@@ -60,6 +76,11 @@ const RestaurantList = () => {
         setIsFetching(false);
       });
   };
+
+  const handleSelectCategory = (categoryId: string | null) => {
+    setSelectedCategory(categoryId);
+    // getShopHandler(categoryId);
+  }
   return (
     <SafeAreaView style={styles.container}>
       <WeatherAlertTooltip />
@@ -160,6 +181,8 @@ const RestaurantList = () => {
         </View>
       </View>
 
+      {isFetching && <Loader />}
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -172,24 +195,25 @@ const RestaurantList = () => {
           contentContainerStyle={styles.chipsContent}
           showsHorizontalScrollIndicator={false}
         >
-          {cuisineChips.map((chip, index) => {
-            const active = index === 0;
+          {categories && categories.length > 0 ? categories.map((item, index) => {
+            const active = item?.category_id == selectedCategory;
             return (
               <TouchableOpacity
-                key={chip}
+                key={index}
                 activeOpacity={0.88}
                 style={active ? styles.chipActive : styles.chipInactive}
+                onPress={() => handleSelectCategory(item?.category_id)}
               >
                 <Text
                   style={
                     active ? styles.chipTextActive : styles.chipTextInactive
                   }
                 >
-                  {chip}
+                  {item?.name}
                 </Text>
               </TouchableOpacity>
             );
-          })}
+          }) : null}
         </ScrollView>
 
         {/* -- Restaurant cards -- */}
@@ -374,11 +398,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     paddingHorizontal: layout.screenPadding,
     paddingVertical: 13,
-    shadowColor: colors.primary,
-    shadowOpacity: 0.35,
-    shadowRadius: 15,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 8,
   },
   chipInactive: {
     borderRadius: 999,

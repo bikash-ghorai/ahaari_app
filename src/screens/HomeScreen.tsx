@@ -42,7 +42,7 @@ import { colors, layout, typography } from '../constants/theme';
 import WeatherAlertTooltip from '../components/WeatherAlertTooltip';
 import { useWeatherAlert } from '../contexts/WeatherAlertContext';
 import type { RootStackParamList, RootTabParamList } from '../types/navigation';
-import { navigate } from '../utils/navigationRef';
+import { navigate, reset } from '../utils/navigationRef';
 import { useDispatch, useSelector } from '../redux/store';
 import { getAddressList, updateLocation } from '../redux/user/userAction';
 import { Constant } from '../constants/Constant';
@@ -54,6 +54,7 @@ import { showToaster } from '../utils/toaster';
 import { fetchUserCurrentLocation } from '../utils/helper';
 import { setUserCurrentCoords } from '../redux/user/userSlice';
 import Loader from '../components/Loader';
+import { setIsBadWeather } from '../redux/app/appSlice';
 
 
 type HomeScreenNavigationProp = CompositeNavigationProp<
@@ -105,6 +106,9 @@ const HomeScreen = () => {
       .unwrap()
       .then(({ data }) => {
         setHomePageData(data);
+        dispatch(
+          setIsBadWeather(data?.bad_weather)
+        );
       })
       .catch(error => {
         console.log('Error fetching home page data:', error);
@@ -361,9 +365,9 @@ const HomeScreen = () => {
                       key={index}
                       activeOpacity={0.8}
                       style={styles.categoryItem}
-                    // onPress={() => {
-                    //   navigation.navigate('Search', { initialQuery: cat.name });
-                    // }}
+                      onPress={() => {
+                        reset('Tabs', { screen: 'Restaurants', params: { category_id: cat?.category_id || null } });
+                      }}
                     >
                       <View
                         style={[
@@ -527,14 +531,14 @@ const HomeScreen = () => {
                 contentContainerStyle={styles.horizontalScrollContent}
               >
                 {homePageData?.coupons.map((coupon, index) => (
-                  <View style={styles.offerCard}  key={index}>
+                  <View style={styles.offerCard} key={index}>
                     {/* <View style={styles.offerGlowBlob} /> */}
                     <Text style={styles.offerTag}>{coupon?.expire_on}</Text>
                     <Text style={styles.offerTitle} numberOfLines={1}>{coupon?.title}</Text>
                     <Text style={styles.offerDesc}>{coupon?.description}</Text>
                     <TouchableOpacity style={styles.offerAction} activeOpacity={0.9}
                       onPress={() => {
-                              navigate('Cart');
+                        navigate('Cart');
                       }}>
                       <Text style={styles.offerActionText}>Claim Now</Text>
                       <ArrowRight size={14} color={colors.primary} />

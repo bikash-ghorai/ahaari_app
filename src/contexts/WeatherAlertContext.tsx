@@ -1,4 +1,5 @@
 import React from 'react';
+import { useSelector } from '../redux/store';
 
 type WeatherAlertContextValue = {
   isBadWeather: boolean;
@@ -17,7 +18,7 @@ export const WeatherAlertProvider = ({
   children: React.ReactNode;
 }) => {
   const [isVisible, setIsVisible] = React.useState(false);
-  const isBadWeather = true;
+  const { isBadWeather } = useSelector((state) => state.app);
 
   const show = React.useCallback(() => {
     if (isBadWeather) {

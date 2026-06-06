@@ -641,7 +641,7 @@ const styles = StyleSheet.create({
   formContent: {
     paddingHorizontal: layout.screenPadding,
     paddingTop: 8,
-    paddingBottom: 64,
+    paddingBottom: 150,
   },
   formTitle: {
     color: colors.textPrimary,

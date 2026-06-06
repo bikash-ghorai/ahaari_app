@@ -37,18 +37,11 @@ import { IProduct, IRestaurantDetails, IVariant } from '../types';
 import { Constant } from '../constants/Constant';
 import { useCart } from '../hooks';
 import PopupMessage from '../components/PopupMessage';
+import Loader from '../components/Loader';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
-interface IProps {
-  route: {
-    params: {
-      shopId: string;
-    };
-  };
-}
-
-const RestaurantDetails = (props: IProps) => {
+const RestaurantDetails = (props: any) => {
   const dispatch = useDispatch();
   const shopId = props?.route?.params?.shopId || '';
 
@@ -659,7 +652,7 @@ const RestaurantDetails = (props: IProps) => {
             </View>
           </View>
         </ScrollView>
-      ) : null}
+      ) : <Loader/>}
       <PopupMessage
         title={'Replace cart items?'}
         description={

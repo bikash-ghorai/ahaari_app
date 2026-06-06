@@ -42,6 +42,7 @@ import { ImagePath } from '../constants/ImagePath';
 import { Constant } from '../constants/Constant';
 import { handleCall, statusColors } from '../utils/helper';
 import { useCart } from '../hooks';
+import Loader from '../components/Loader';
 
 const GlassLayer = ({
   radius,
@@ -101,6 +102,7 @@ const OrdersScreen = () => {
   const [orderListData, setOrderListData] = useState<IOrderListRes | null>(
     null,
   );
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const shimmerLoop = Animated.loop(
@@ -119,10 +121,13 @@ const OrdersScreen = () => {
 
   useEffect(() => {
     if (isFocused) {
+      setIsLoading(true);
       dispatch(getOrders())
         .unwrap()
         .then(({ data }) => {
           setOrderListData(data);
+        }).finally(() => {
+          setIsLoading(false);
         });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -252,6 +257,8 @@ const OrdersScreen = () => {
           </TouchableOpacity>
         </View>
       </View>
+
+      {isLoading && <Loader />}
 
       <ScrollView
         style={styles.scrollView}
@@ -461,33 +468,6 @@ const OrdersScreen = () => {
                 <Text style={styles.emptySubtitle}>
                   You don't have any active or past orders right now.
                 </Text>
-
-                <View style={styles.emptyActionsRow}>
-                  {/* <TouchableOpacity
-                    style={styles.emptyButton}
-                    activeOpacity={0.88}
-                    onPress={() => navigation.navigate('Restaurants')}
-                  >
-                    <Text style={styles.emptyButtonText}>Browse Restaurants</Text>
-                  </TouchableOpacity> */}
-
-                  {/* <TouchableOpacity
-                    style={styles.emptySecondaryButtonNew}
-                    activeOpacity={0.88}
-                    onPress={() => {
-                      dispatch(getOrders())
-                        .unwrap()
-                        .then(({ data }) => {
-                          setOrderListData(data);
-                        })
-                        .catch(() => {});
-                    }}
-                  >
-                    <Text style={styles.emptySecondaryButtonTextNew}>
-                      Refresh
-                    </Text>
-                  </TouchableOpacity> */}
-                </View>
               </View>
             </View>
           ) : null}

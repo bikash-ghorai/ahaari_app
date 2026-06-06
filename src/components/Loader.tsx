@@ -37,7 +37,7 @@ const Loader: React.FC<LoaderProps> = ({
 const styles = StyleSheet.create({
   fullScreen: {
     position: 'absolute',
-    height: '100%',
+    height: '110%',
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',

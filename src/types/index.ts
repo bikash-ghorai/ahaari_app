@@ -26,6 +26,7 @@ export type ILoginReq = {
 export type IVerifyUserReq = {
   phone: string | number;
   otp: string | number;
+  device_token?: string;
 };
 
 export type IHomePageData = {
@@ -66,6 +67,7 @@ export type IHomePageData = {
   }>;
   event: null | any;
   topRated: null | any;
+  bad_weather: boolean;
 };
 
 export type IRestaurant = {
@@ -92,6 +94,14 @@ export type IRestaurant = {
   updated_at: string;
   type: string;
   delivery_time: string;
+};
+
+export type IRestaurantRes = {
+  shops: Array<IRestaurant>;
+  categories: Array<{
+    category_id: string;
+    name: string;
+  }>
 };
 
 export type IAddress = {

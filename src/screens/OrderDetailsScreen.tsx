@@ -22,6 +22,7 @@ import {
   MapPin,
   AlertTriangle,
   InfoIcon,
+  IndianRupee,
 } from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -31,8 +32,8 @@ import MapViewDirections from 'react-native-maps-directions';
 import { colors, layout, typography } from '../constants/theme';
 import type { RootStackParamList } from '../types/navigation';
 import Header from '../components/Header';
-import { useDispatch } from '../redux/store';
-import { cancelOrder, getOrderDetails } from '../redux/app/appAction';
+import { useDispatch, useSelector } from '../redux/store';
+import { cancelOrder, getOrderDetails, prePayment } from '../redux/app/appAction';
 import { IOrderDetails } from '../types';
 import { ImagePath } from '../constants/ImagePath';
 import { Constant } from '../constants/Constant';
@@ -43,12 +44,16 @@ import {
   statusColors,
 } from '../utils/helper';
 import { showToaster } from '../utils/toaster';
+import RazorpayCheckout from 'react-native-razorpay';
+import Loader from '../components/Loader';
 
 const OrderDetailsScreen = () => {
   const dispatch = useDispatch();
   const route = useRoute<RouteProp<RootStackParamList, 'OrderDetails'>>();
   const orderId = route.params?.orderId ?? '';
+  const { userData } = useSelector(state => state.user);
 
+  const [isShowLoader, setIsShowLoader] = useState(false);
   const [orderDetails, setOrderDetails] = useState<IOrderDetails | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancellationReason, setCancellationReason] = useState('');
@@ -56,18 +61,95 @@ const OrderDetailsScreen = () => {
   const mapRef = React.useRef<any>(null);
 
   useEffect(() => {
+    fetchOrderDetails(orderId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderId]);
+
+
+  const fetchOrderDetails = (orderId: string) => {
     if (orderId) {
+      setIsShowLoader(true);
       dispatch(getOrderDetails(orderId))
         .unwrap()
         .then(res => {
           setOrderDetails(res.data);
+        })
+        .finally(() => {
+          setIsShowLoader(false);
         });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orderId]);
+  }
+
 
   const handleCancelOrder = () => {
     setShowCancelModal(true);
+  };
+
+  const handlePayment = () => {
+    setIsShowLoader(true);
+    dispatch(
+      prePayment({
+        order_id: orderId,
+      }),
+    )
+      .unwrap()
+      .then(({ data }) => {
+        console.log('data', data);
+        if (data?.key) {
+          var options = {
+            description: data?.order_id,
+            currency: 'INR',
+            key: data?.key,
+            amount: data?.amount,
+            name: 'Ahaari',
+            order_id: data?.order_id,
+            prefill: {
+              email: userData?.first_name,
+              contact: userData?.phone,
+              name: userData?.first_name + ' ' + userData?.last_name,
+            },
+            theme: {
+              color: colors.primary,
+              hide_topbar: true,
+              backdrop_color: '#000',
+            },
+            modal: {
+              escape: false,
+              confirm_close: true,
+            },
+            hidden: {
+              email: true,
+              contact: true,
+            },
+            readonly: {
+              contact: true,
+              email: true,
+              name: true,
+            },
+          };
+          paynow({ options, orderCreateData: data });
+
+        }
+      })
+      .catch(() => {
+        setIsShowLoader(false);
+      });
+  };
+
+
+  const paynow = ({ options, orderCreateData }: any) => {
+    RazorpayCheckout.open(options)
+      .then(data => {
+        console.log('payment success', data);
+        fetchOrderDetails(orderId);
+      })
+      .catch(error => {
+        console.log('error', error);
+        showToaster('Payment failed. Please try again.');
+      })
+      .finally(() => {
+        setIsShowLoader(false);
+      });
   };
 
   const handleSubmitCancellation = () => {
@@ -80,11 +162,7 @@ const OrderDetailsScreen = () => {
       .then(({ message }) => {
         console.log('message', message);
         showToaster(message);
-        dispatch(getOrderDetails(orderId))
-          .unwrap()
-          .then(res => {
-            setOrderDetails(res.data);
-          });
+        fetchOrderDetails(orderId);
       })
       .catch(error => {
         console.log('error', error);
@@ -104,7 +182,11 @@ const OrderDetailsScreen = () => {
       orderDetails?.status !== 'Pending' &&
       orderDetails?.payment_type === 'COD');
 
-  const isCancelOrderBtnShow =
+  const showPaymentBtnShow = orderDetails?.status !== 'Processing' &&
+    orderDetails?.status !== 'Pending' &&
+    orderDetails?.payment_type === 'COD'
+
+  const isCancelOrPaymentBtnShow =
     orderDetails?.status !== 'Cancelled' &&
     orderDetails?.status !== 'Delivered' &&
     orderDetails?.status !== 'Undelivered';
@@ -112,282 +194,284 @@ const OrderDetailsScreen = () => {
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
       <Header title="Order Details" showNotificationButton={true} />
+      {isShowLoader && <Loader />}
 
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {orderDetails?.status === 'Preparing' ? (
-          <View style={styles.preparingCard}>
-            <View style={styles.preparingCircle}>
-              <CookingPot size={36} color={colors.primary} strokeWidth={2} />
-              {/* <FastImage
+      {orderDetails ?
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {orderDetails?.status === 'Preparing' ? (
+            <View style={styles.preparingCard}>
+              <View style={styles.preparingCircle}>
+                <CookingPot size={36} color={colors.primary} strokeWidth={2} />
+                {/* <FastImage
                 source={ImagePath.preparing}
                 style={{
                   width: 64,
                   height: 64,
                 }}
               /> */}
-              <Text style={styles.preparingLabel}>PREPARING</Text>
-            </View>
-
-            <Text style={styles.preparingTitle}>
-              {orderDetails?.message?.title || 'Chef is cooking!'}
-            </Text>
-            <Text style={styles.preparingSubtitle}>
-              {orderDetails?.message?.description ||
-                'Hang tight! Your delicious meal is being prepared with love and care.'}
-            </Text>
-          </View>
-        ) : orderDetails?.status === 'On The Way' ? (
-          <View style={styles.onwayTopCard}>
-            {orderDetails?.shop_coordinate &&
-            orderDetails?.delivery_coordinate ? (
-              <View style={styles.mapViewContainer}>
-                <MapView
-                  ref={mapRef}
-                  provider={PROVIDER_GOOGLE}
-                  style={styles.mapView}
-                  initialRegion={{
-                    latitude: parseFloat(
-                      orderDetails.shop_coordinate.latitude as string,
-                    ),
-                    longitude: parseFloat(
-                      orderDetails.shop_coordinate.longitude as string,
-                    ),
-                    latitudeDelta: 0.001,
-                    longitudeDelta: 0.001,
-                  }}
-                >
-                  {/* Shop/Origin Marker */}
-                  <Marker
-                    coordinate={{
-                      latitude: parseFloat(
-                        orderDetails.shop_coordinate.latitude as string,
-                      ),
-                      longitude: parseFloat(
-                        orderDetails.shop_coordinate.longitude as string,
-                      ),
-                    }}
-                    title="Restaurant"
-                    description={orderDetails.shop_name}
-                  >
-                    <View style={styles.markerOrigin}>
-                      <MapPin
-                        size={40}
-                        color={colors.primary}
-                        fill={'rgba(255, 173, 58, 0.2)'}
-                        strokeWidth={1.5}
-                      />
-                    </View>
-                  </Marker>
-
-                  {/* Delivery/Destination Marker */}
-                  <Marker
-                    coordinate={{
-                      latitude: parseFloat(
-                        orderDetails.delivery_coordinate.latitude as string,
-                      ),
-                      longitude: parseFloat(
-                        orderDetails.delivery_coordinate.longitude as string,
-                      ),
-                    }}
-                    title="Delivery Location"
-                    description={orderDetails.delivery_address}
-                  >
-                    <View style={styles.markerOrigin}>
-                      <MapPin
-                        size={40}
-                        color={colors.primary}
-                        fill={'rgba(255, 173, 58, 0.2)'}
-                        strokeWidth={1.5}
-                      />
-                    </View>
-                  </Marker>
-
-                  {/* Direction Route */}
-                  <MapViewDirections
-                    origin={{
-                      latitude: parseFloat(
-                        orderDetails.shop_coordinate.latitude as string,
-                      ),
-                      longitude: parseFloat(
-                        orderDetails.shop_coordinate.longitude as string,
-                      ),
-                    }}
-                    destination={{
-                      latitude: parseFloat(
-                        orderDetails.delivery_coordinate.latitude as string,
-                      ),
-                      longitude: parseFloat(
-                        orderDetails.delivery_coordinate.longitude as string,
-                      ),
-                    }}
-                    apikey={Constant.MapKey}
-                    strokeWidth={4}
-                    strokeColor={colors.primary}
-                    optimizeWaypoints={true}
-                    onStart={() => {
-                      console.log('Route calculation started');
-                    }}
-                    onReady={result => {
-                      if (mapRef.current) {
-                        mapRef.current.fitToCoordinates(result.coordinates, {
-                          edgePadding: {
-                            right: 20,
-                            bottom: 150,
-                            left: 20,
-                            top: 50,
-                          },
-                        });
-                      }
-                    }}
-                    onError={errorMessage => {
-                      console.log('Route error:', errorMessage);
-                    }}
-                  />
-                </MapView>
-                <View style={styles.onwayMapDim} />
-              </View>
-            ) : (
-              <View style={styles.mapErrorContainer}>
-                <Text style={styles.mapErrorText}>
-                  Location data unavailable
-                </Text>
-              </View>
-            )}
-
-            <View style={styles.arrivalCard}>
-              <View>
-                <Text style={styles.arrivalLabel}>ESTIMATED ARRIVAL</Text>
-                <Text style={styles.arrivalValue}>
-                  Arriving in {orderDetails?.estimate_delivery_time} mins
-                </Text>
+                <Text style={styles.preparingLabel}>PREPARING</Text>
               </View>
 
-              {orderDetails?.is_vip && (
-                <View style={styles.priorityPill}>
-                  <Rocket size={12} color="#FFAD3A" strokeWidth={2.2} />
-                  <Text style={styles.priorityText}>PRIORITY</Text>
-                </View>
-              )}
-            </View>
-          </View>
-        ) : (
-          <View style={styles.summaryCard}>
-            <View style={styles.summaryTopBlock}>
-              <Text style={styles.orderNumber}>
-                ORDER #{orderDetails?.order_id_label}
+              <Text style={styles.preparingTitle}>
+                {orderDetails?.message?.title || 'Chef is cooking!'}
               </Text>
-              {orderDetails?.status ? (
-                <View
-                  style={[
-                    styles.arrivedPill,
-                    {
-                      backgroundColor: statusColors[orderDetails.status] + '22',
-                      borderColor: statusColors[orderDetails.status] + '35',
-                    },
-                  ]}
-                >
-                  <CheckCircle2
-                    size={12}
-                    color={statusColors[orderDetails.status]}
-                    strokeWidth={2.6}
-                  />
-                  <Text
-                    style={[
-                      styles.arrivedText,
-                      { color: statusColors[orderDetails.status] },
-                    ]}
+              <Text style={styles.preparingSubtitle}>
+                {orderDetails?.message?.description ||
+                  'Hang tight! Your delicious meal is being prepared with love and care.'}
+              </Text>
+            </View>
+          ) : orderDetails?.status === 'On The Way' ? (
+            <View style={styles.onwayTopCard}>
+              {orderDetails?.shop_coordinate &&
+                orderDetails?.delivery_coordinate ? (
+                <View style={styles.mapViewContainer}>
+                  <MapView
+                    ref={mapRef}
+                    provider={PROVIDER_GOOGLE}
+                    style={styles.mapView}
+                    initialRegion={{
+                      latitude: parseFloat(
+                        orderDetails.shop_coordinate.latitude as string,
+                      ),
+                      longitude: parseFloat(
+                        orderDetails.shop_coordinate.longitude as string,
+                      ),
+                      latitudeDelta: 0.001,
+                      longitudeDelta: 0.001,
+                    }}
                   >
-                    {orderDetails.status.toUpperCase()}
+                    {/* Shop/Origin Marker */}
+                    <Marker
+                      coordinate={{
+                        latitude: parseFloat(
+                          orderDetails.shop_coordinate.latitude as string,
+                        ),
+                        longitude: parseFloat(
+                          orderDetails.shop_coordinate.longitude as string,
+                        ),
+                      }}
+                      title="Restaurant"
+                      description={orderDetails.shop_name}
+                    >
+                      <View style={styles.markerOrigin}>
+                        <MapPin
+                          size={40}
+                          color={colors.primary}
+                          fill={'rgba(255, 173, 58, 0.2)'}
+                          strokeWidth={1.5}
+                        />
+                      </View>
+                    </Marker>
+
+                    {/* Delivery/Destination Marker */}
+                    <Marker
+                      coordinate={{
+                        latitude: parseFloat(
+                          orderDetails.delivery_coordinate.latitude as string,
+                        ),
+                        longitude: parseFloat(
+                          orderDetails.delivery_coordinate.longitude as string,
+                        ),
+                      }}
+                      title="Delivery Location"
+                      description={orderDetails.delivery_address}
+                    >
+                      <View style={styles.markerOrigin}>
+                        <MapPin
+                          size={40}
+                          color={colors.primary}
+                          fill={'rgba(255, 173, 58, 0.2)'}
+                          strokeWidth={1.5}
+                        />
+                      </View>
+                    </Marker>
+
+                    {/* Direction Route */}
+                    <MapViewDirections
+                      origin={{
+                        latitude: parseFloat(
+                          orderDetails.shop_coordinate.latitude as string,
+                        ),
+                        longitude: parseFloat(
+                          orderDetails.shop_coordinate.longitude as string,
+                        ),
+                      }}
+                      destination={{
+                        latitude: parseFloat(
+                          orderDetails.delivery_coordinate.latitude as string,
+                        ),
+                        longitude: parseFloat(
+                          orderDetails.delivery_coordinate.longitude as string,
+                        ),
+                      }}
+                      apikey={Constant.MapKey}
+                      strokeWidth={4}
+                      strokeColor={colors.primary}
+                      optimizeWaypoints={true}
+                      onStart={() => {
+                        console.log('Route calculation started');
+                      }}
+                      onReady={result => {
+                        if (mapRef.current) {
+                          mapRef.current.fitToCoordinates(result.coordinates, {
+                            edgePadding: {
+                              right: 20,
+                              bottom: 150,
+                              left: 20,
+                              top: 50,
+                            },
+                          });
+                        }
+                      }}
+                      onError={errorMessage => {
+                        console.log('Route error:', errorMessage);
+                      }}
+                    />
+                  </MapView>
+                  <View style={styles.onwayMapDim} />
+                </View>
+              ) : (
+                <View style={styles.mapErrorContainer}>
+                  <Text style={styles.mapErrorText}>
+                    Location data unavailable
                   </Text>
                 </View>
-              ) : null}
-            </View>
-            <Text style={styles.restaurantName}>{orderDetails?.shop_name}</Text>
-            <Text style={styles.deliveryTime}>{orderDetails?.date}</Text>
+              )}
 
-            <View style={styles.summaryDivider} />
+              <View style={styles.arrivalCard}>
+                <View>
+                  <Text style={styles.arrivalLabel}>ESTIMATED ARRIVAL</Text>
+                  <Text style={styles.arrivalValue}>
+                    Arriving in {orderDetails?.estimate_delivery_time} mins
+                  </Text>
+                </View>
 
-            <View style={styles.courierRow}>
-              <View style={styles.courierIconWrap}>
-                <UtensilsIcon
-                  size={18}
-                  color={colors.primary}
-                  strokeWidth={2.2}
-                />
-              </View>
-              <View style={{ width: '80%' }}>
-                <Text style={styles.courierTitle}>
-                  {orderDetails?.message?.title}
-                </Text>
-                <Text style={styles.courierSubtitle}>
-                  {orderDetails?.message?.description}
-                </Text>
+                {orderDetails?.is_vip && (
+                  <View style={styles.priorityPill}>
+                    <Rocket size={12} color="#FFAD3A" strokeWidth={2.2} />
+                    <Text style={styles.priorityText}>PRIORITY</Text>
+                  </View>
+                )}
               </View>
             </View>
-          </View>
-        )}
+          ) : (
+            <View style={styles.summaryCard}>
+              <View style={styles.summaryTopBlock}>
+                <Text style={styles.orderNumber}>
+                  ORDER #{orderDetails?.order_id_label}
+                </Text>
+                {orderDetails?.status ? (
+                  <View
+                    style={[
+                      styles.arrivedPill,
+                      {
+                        backgroundColor: statusColors[orderDetails.status] + '22',
+                        borderColor: statusColors[orderDetails.status] + '35',
+                      },
+                    ]}
+                  >
+                    <CheckCircle2
+                      size={12}
+                      color={statusColors[orderDetails.status]}
+                      strokeWidth={2.6}
+                    />
+                    <Text
+                      style={[
+                        styles.arrivedText,
+                        { color: statusColors[orderDetails.status] },
+                      ]}
+                    >
+                      {orderDetails.status.toUpperCase()}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+              <Text style={styles.restaurantName}>{orderDetails?.shop_name}</Text>
+              <Text style={styles.deliveryTime}>{orderDetails?.date}</Text>
 
-        {orderDetails?.partner_info ? (
-          <View style={styles.courierCard}>
-            <View style={styles.courierInfoRow}>
-              <View style={styles.courierAvatarFrame}>
-                <Image
-                  source={
-                    orderDetails?.partner_info?.picture
-                      ? {
+              <View style={styles.summaryDivider} />
+
+              <View style={styles.courierRow}>
+                <View style={styles.courierIconWrap}>
+                  <UtensilsIcon
+                    size={18}
+                    color={colors.primary}
+                    strokeWidth={2.2}
+                  />
+                </View>
+                <View style={{ width: '80%' }}>
+                  <Text style={styles.courierTitle}>
+                    {orderDetails?.message?.title}
+                  </Text>
+                  <Text style={styles.courierSubtitle}>
+                    {orderDetails?.message?.description}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {orderDetails?.partner_info ? (
+            <View style={styles.courierCard}>
+              <View style={styles.courierInfoRow}>
+                <View style={styles.courierAvatarFrame}>
+                  <Image
+                    source={
+                      orderDetails?.partner_info?.picture
+                        ? {
                           uri:
                             Constant.ImageURL +
                             orderDetails.partner_info.picture,
                         }
-                      : ImagePath.noProfile
-                  }
-                  style={styles.courierAvatar}
-                />
-              </View>
-
-              <View>
-                <Text style={styles.courierCaption}>Your Delivery Partner</Text>
-                <Text style={styles.courierName}>
-                  {orderDetails?.partner_info?.name}
-                </Text>
-                <View style={styles.ratingRow}>
-                  <Star
-                    size={12}
-                    color={colors.primary}
-                    fill={colors.primary}
-                    strokeWidth={1.8}
+                        : ImagePath.noProfile
+                    }
+                    style={styles.courierAvatar}
                   />
-                  <Text style={styles.ratingText}>
-                    {orderDetails?.partner_info?.rating || '0.0'}
+                </View>
+
+                <View>
+                  <Text style={styles.courierCaption}>Your Delivery Partner</Text>
+                  <Text style={styles.courierName}>
+                    {orderDetails?.partner_info?.name}
                   </Text>
+                  <View style={styles.ratingRow}>
+                    <Star
+                      size={12}
+                      color={colors.primary}
+                      fill={colors.primary}
+                      strokeWidth={1.8}
+                    />
+                    <Text style={styles.ratingText}>
+                      {orderDetails?.partner_info?.rating || '0.0'}
+                    </Text>
+                  </View>
                 </View>
               </View>
+
+              <View style={styles.courierActions}>
+                <TouchableOpacity
+                  style={styles.courierIconButton}
+                  activeOpacity={0.88}
+                  onPress={() => {
+                    handleCall(orderDetails?.partner_info?.contact || '');
+                  }}
+                >
+                  <Phone size={16} color="#FFFFFF" strokeWidth={2} />
+                </TouchableOpacity>
+              </View>
             </View>
+          ) : null}
 
-            <View style={styles.courierActions}>
-              <TouchableOpacity
-                style={styles.courierIconButton}
-                activeOpacity={0.88}
-                onPress={() => {
-                  handleCall(orderDetails?.partner_info?.contact || '');
-                }}
-              >
-                <Phone size={16} color="#FFFFFF" strokeWidth={2} />
-              </TouchableOpacity>
-            </View>
-          </View>
-        ) : null}
+          <View style={styles.itemsSection}>
+            <Text style={styles.sectionLabel}>ORDER ITEMS</Text>
 
-        <View style={styles.itemsSection}>
-          <Text style={styles.sectionLabel}>ORDER ITEMS</Text>
-
-          <View style={styles.itemsList}>
-            {orderDetails?.items && orderDetails?.items.length > 0
-              ? orderDetails.items.map((item, index) => (
+            <View style={styles.itemsList}>
+              {orderDetails?.items && orderDetails?.items.length > 0
+                ? orderDetails.items.map((item, index) => (
                   <View key={index} style={styles.itemCard}>
                     <LinearGradient
                       pointerEvents="none"
@@ -430,47 +514,47 @@ const OrderDetailsScreen = () => {
                     </View>
                   </View>
                 ))
-              : null}
+                : null}
+            </View>
           </View>
-        </View>
 
-        {orderDetails?.instruction ? (
-          <View style={styles.estimateNoticeCard}>
-            <View style={styles.estimateTextWrapper}>
-              <Text style={styles.estimateLabel}>Order Instructions</Text>
-              <Text style={styles.estimateValue}>
-                {orderDetails?.instruction}
+          {orderDetails?.instruction ? (
+            <View style={styles.estimateNoticeCard}>
+              <View style={styles.estimateTextWrapper}>
+                <Text style={styles.estimateLabel}>Order Instructions</Text>
+                <Text style={styles.estimateValue}>
+                  {orderDetails?.instruction}
+                </Text>
+              </View>
+            </View>
+          ) : null}
+
+          <View style={styles.breakdownCard}>
+            <View style={styles.breakdownRow}>
+              <Text style={styles.breakdownLabel}>Subtotal</Text>
+              <Text style={styles.breakdownValue}>
+                {currencyFormate(orderDetails?.sub_total || 0, 2)}
               </Text>
             </View>
-          </View>
-        ) : null}
 
-        <View style={styles.breakdownCard}>
-          <View style={styles.breakdownRow}>
-            <Text style={styles.breakdownLabel}>Subtotal</Text>
-            <Text style={styles.breakdownValue}>
-              {currencyFormate(orderDetails?.sub_total || 0, 2)}
-            </Text>
-          </View>
-
-          <View style={styles.breakdownRow}>
-            <View style={styles.feeLabelGroup}>
-              <Text style={styles.breakdownLabel}>Tax</Text>
+            <View style={styles.breakdownRow}>
+              <View style={styles.feeLabelGroup}>
+                <Text style={styles.breakdownLabel}>Tax</Text>
+              </View>
+              <Text style={styles.breakdownValue}>
+                {currencyFormate(orderDetails?.tax || 0, 2)}
+              </Text>
             </View>
-            <Text style={styles.breakdownValue}>
-              {currencyFormate(orderDetails?.tax || 0, 2)}
-            </Text>
-          </View>
 
-          <View style={styles.breakdownRow}>
-            <Text style={styles.breakdownLabel}>Delivery Fee</Text>
-            <Text style={styles.breakdownValue}>
-              {currencyFormate(orderDetails?.delivery_charge || 0, 2)}
-            </Text>
-          </View>
+            <View style={styles.breakdownRow}>
+              <Text style={styles.breakdownLabel}>Delivery Fee</Text>
+              <Text style={styles.breakdownValue}>
+                {currencyFormate(orderDetails?.delivery_charge || 0, 2)}
+              </Text>
+            </View>
 
-          {orderDetails?.extra_charges && orderDetails?.extra_charges.length > 0
-            ? orderDetails?.extra_charges.map((item, index) => {
+            {orderDetails?.extra_charges && orderDetails?.extra_charges.length > 0
+              ? orderDetails?.extra_charges.map((item, index) => {
                 return (
                   <View style={styles.breakdownRow} key={index}>
                     <Text style={styles.breakdownLabel}>{item?.label}</Text>
@@ -480,89 +564,106 @@ const OrderDetailsScreen = () => {
                   </View>
                 );
               })
-            : null}
+              : null}
 
-          {orderDetails?.discount ? (
-            <View style={styles.breakdownRow}>
-              <Text style={styles.discountLabel}>Discount</Text>
-              <Text style={styles.discountValue}>
-                -{currencyFormate(orderDetails?.discount || 0, 2)}
-              </Text>
-            </View>
-          ) : null}
-
-          <View style={styles.divider} />
-
-          <View style={styles.totalRow}>
-            <View>
-              <Text style={styles.totalCaption}>TOTAL AMOUNT</Text>
-              <Text style={styles.totalValue}>
-                {currencyFormate(orderDetails?.total || 0, 2)}
-              </Text>
-            </View>
-
-            <View style={styles.paymentMethodWrapper}>
-              <View
-                style={[
-                  styles.paymentBadge,
-                  orderDetails?.payment_type === 'COD'
-                    ? styles.paymentCOD
-                    : styles.paymentOnline,
-                ]}
-              >
-                <Text style={styles.paymentBadgeText}>
-                  {orderDetails?.payment_type === 'COD' ? 'COD' : 'Online'}
+            {orderDetails?.discount ? (
+              <View style={styles.breakdownRow}>
+                <Text style={styles.discountLabel}>Discount</Text>
+                <Text style={styles.discountValue}>
+                  -{currencyFormate(orderDetails?.discount || 0, 2)}
                 </Text>
               </View>
-              <Text style={styles.paymentLabel}>Payment Method</Text>
+            ) : null}
+
+            <View style={styles.divider} />
+
+            <View style={styles.totalRow}>
+              <View>
+                <Text style={styles.totalCaption}>TOTAL AMOUNT</Text>
+                <Text style={styles.totalValue}>
+                  {currencyFormate(orderDetails?.total || 0, 2)}
+                </Text>
+              </View>
+
+              <View style={styles.paymentMethodWrapper}>
+                <View
+                  style={[
+                    styles.paymentBadge,
+                    orderDetails?.payment_type === 'COD'
+                      ? styles.paymentCOD
+                      : styles.paymentOnline,
+                  ]}
+                >
+                  <Text style={styles.paymentBadgeText}>
+                    {orderDetails?.payment_type === 'COD' ? 'COD' : 'Online'}
+                  </Text>
+                </View>
+                <Text style={styles.paymentLabel}>Payment Method</Text>
+              </View>
             </View>
           </View>
-        </View>
 
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 10,
-          }}
-        >
-          {isCancelOrderBtnShow && (
-            <TouchableOpacity
-              activeOpacity={0.92}
-              style={styles.reorderButton}
-              onPress={handleCancelOrder}
-            >
-              <LinearGradient
-                colors={['#FFB53A', '#F59E0B']}
-                start={{ x: 0, y: 0.4 }}
-                end={{ x: 1, y: 0.6 }}
-                style={styles.reorderGradient}
-              >
-                <InfoIcon size={20} color="#2A1700" strokeWidth={2.2} />
-                <Text style={styles.reorderText}>Cancel Order</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          )}
-
-          <TouchableOpacity
-            activeOpacity={0.9}
-            style={[
-              styles.supportButton,
-              { width: isCancelOrderBtnShow ? '48%' : '100%' },
-            ]}
-            onPress={() => {
-              handleWhatsapp(
-                'Hello, I need help with my order id: ' +
-                  orderDetails?.order_id_label,
-              );
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 10,
             }}
           >
-            <Headset size={18} color="#E5E7EB" strokeWidth={2.1} />
-            <Text style={styles.supportButtonText}>Contact Support</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+            {isCancelOrPaymentBtnShow ? (
+              showPaymentBtnShow ?
+                <TouchableOpacity
+                  activeOpacity={0.92}
+                  style={styles.reorderButton}
+                  onPress={handlePayment}
+                >
+                  <LinearGradient
+                    colors={['#FFB53A', '#F59E0B']}
+                    start={{ x: 0, y: 0.4 }}
+                    end={{ x: 1, y: 0.6 }}
+                    style={styles.reorderGradient}
+                  >
+                    <IndianRupee size={20} color="#2A1700" strokeWidth={2.2} />
+                    <Text style={styles.reorderText}>Pay Now</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+                :
+                <TouchableOpacity
+                  activeOpacity={0.92}
+                  style={styles.reorderButton}
+                  onPress={handleCancelOrder}
+                >
+                  <LinearGradient
+                    colors={['#FFB53A', '#F59E0B']}
+                    start={{ x: 0, y: 0.4 }}
+                    end={{ x: 1, y: 0.6 }}
+                    style={styles.reorderGradient}
+                  >
+                    <InfoIcon size={20} color="#2A1700" strokeWidth={2.2} />
+                    <Text style={styles.reorderText}>Cancel Order</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+            ) : null}
+
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={[
+                styles.supportButton,
+                { width: isCancelOrPaymentBtnShow ? '48%' : '100%' },
+              ]}
+              onPress={() => {
+                handleWhatsapp(
+                  'Hello, I need help with my order id: ' +
+                  orderDetails?.order_id_label,
+                );
+              }}
+            >
+              <Headset size={18} color="#E5E7EB" strokeWidth={2.1} />
+              <Text style={styles.supportButtonText}>Contact Support</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView> : null}
 
       {/* Cancel Order Modal */}
       <Modal
@@ -594,7 +695,7 @@ const OrderDetailsScreen = () => {
               />
 
               {orderDetails?.status === 'Processing' ||
-              orderDetails?.status === 'Pending' ? null : (
+                orderDetails?.status === 'Pending' ? null : (
                 <View style={styles.weatherNotice}>
                   <View style={styles.weatherIconWrap}>
                     <AlertTriangle size={16} color={colors.accentCoral} />

@@ -35,6 +35,7 @@ import {
   setUserDetailsToAsyncStore,
 } from '../utils/storage';
 import { reset } from '../utils/navigationRef';
+import messaging from '@react-native-firebase/messaging'
 
 const OTP_LENGTH = 6;
 const INITIAL_COUNTDOWN = 30;
@@ -151,11 +152,12 @@ const OtpAuthScreen = () => {
       });
   };
 
-  const handleVerify = () => {
+  const handleVerify = async () => {
     if (otp.length < OTP_LENGTH) {
       return;
     }
-    dispatch(verifyOTP({ phone, otp }))
+    const fcmToken = await messaging().getToken();
+    dispatch(verifyOTP({ phone, otp, device_token: fcmToken || '' }))
       .unwrap()
       .then(async ({ data }) => {
         if (data) {

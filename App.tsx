@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StatusBar, StyleSheet, View } from 'react-native';
+import { PermissionsAndroid, StatusBar, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -45,6 +45,7 @@ import { navigationRef } from './src/utils/navigationRef';
 import { Provider } from 'react-redux';
 import { store } from './src/redux/store';
 import NetInfo from '@react-native-community/netinfo';
+import messaging from '@react-native-firebase/messaging';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -95,6 +96,34 @@ function App() {
     }
   };
 
+  useEffect(() => {
+    requestNotificationPermission();
+    messaging().registerDeviceForRemoteMessages().then(r => { });
+    messaging()
+      .getToken()
+      .then((token) => {
+        console.log("Token", token);
+        // store.dispatch(setFCMToken(token));
+      })
+      .catch((err) => {
+        console.error(err);
+      });
+    return messaging().onMessage((remoteMessage) => {
+      // Alert.alert("A new FCM message arrived!", JSON.stringify(remoteMessage));
+      // onDisplayNotification(remoteMessage?.notification);
+    });
+  }, []);
+
+  const requestNotificationPermission = async () => {
+    try {
+      await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+      );
+    } catch (err) {
+      console.log('requestNotificationPermission error: ', err);
+    }
+  };
+
   return (
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
@@ -106,7 +135,7 @@ function App() {
             />
             <View style={styles.container}>
               {currentRouteName !== 'Login' &&
-              currentRouteName !== 'OtpAuth' ? (
+                currentRouteName !== 'OtpAuth' ? (
                 <AppBackground />
               ) : null}
 
@@ -229,9 +258,9 @@ function App() {
                   </Stack.Navigator>
                 </NavigationContainer>
 
-                <UpdatePopup 
-                  isVisible={isUpdateAvailable} 
-                  onUpdate={triggerUpdate} 
+                <UpdatePopup
+                  isVisible={isUpdateAvailable}
+                  onUpdate={triggerUpdate}
                 />
 
                 <NoInternetToast isConnected={isConnected} />

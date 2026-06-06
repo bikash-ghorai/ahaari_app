@@ -12,7 +12,12 @@
           "package_name": "com.ahaari"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "466386389074-5pkd0o52jiil685832nbjornbumhesg7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDwQHV6fYnS2bCXOstfvqtnfp6Zh3YR2jg"
@@ -20,7 +25,86 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "466386389074-5pkd0o52jiil685832nbjornbumhesg7.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:466386389074:android:57c63e6bed031b8100378b",
+        "android_client_info": {
+          "package_name": "com.ahaari.deliverypartner"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "466386389074-5pkd0o52jiil685832nbjornbumhesg7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDwQHV6fYnS2bCXOstfvqtnfp6Zh3YR2jg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "466386389074-5pkd0o52jiil685832nbjornbumhesg7.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:466386389074:android:b1e3e491e326c2f500378b",
+        "android_client_info": {
+          "package_name": "com.ahaari.restaurantpartner"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "466386389074-5vlcgg668eo3v5dnav3og8b0a4i7uem7.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ahaari.restaurantpartner",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "466386389074-9snlsk6nd0987ln64a5c0dahc5lr5t15.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ahaari.restaurantpartner",
+            "certificate_hash": "99d3838982c8d92ac0c581210e899b6a05f46189"
+          }
+        },
+        {
+          "client_id": "466386389074-5pkd0o52jiil685832nbjornbumhesg7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDwQHV6fYnS2bCXOstfvqtnfp6Zh3YR2jg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "466386389074-5pkd0o52jiil685832nbjornbumhesg7.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

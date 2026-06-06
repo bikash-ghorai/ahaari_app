@@ -11,6 +11,7 @@ import {
   IOrderListRes,
   IRestaurant,
   IRestaurantDetails,
+  IRestaurantRes,
 } from '../../types';
 
 //For getting order details
@@ -30,10 +31,10 @@ export const homePageAPI = createAsyncThunk(
 //For getting restaurants
 export const getRestaurants = createAsyncThunk(
   'app/getRestaurants',
-  async (_, thunkAPI) => {
+  async (categoryId: string | null, thunkAPI) => {
     try {
-      const { data, message }: { data: Array<IRestaurant>; message: string } =
-        await axios.get('user/shops');
+      const { data, message }: { data: IRestaurantRes; message: string } =
+        await axios.get(`user/shops${categoryId ? `?category_id=${categoryId}` : ''}`);
       return { data, message };
     } catch (error: any) {
       return thunkAPI.rejectWithValue(error);
@@ -153,13 +154,27 @@ export const getOrderDetails = createAsyncThunk(
   },
 );
 
-//For getting order details
+//For cancelling order (after payment is done)
 export const cancelOrder = createAsyncThunk(
   'app/cancelOrder',
   async (params: { order_id: string; reason: string }, thunkAPI) => {
     try {
       const { data, message }: { data: any; message: string } =
         await axios.post(`user/cancel-order`, params);
+      return { data, message };
+    } catch (error: any) {
+      return thunkAPI.rejectWithValue(error);
+    }
+  },
+);
+
+//For pre-payment cancellation (before payment is done)
+export const prePayment = createAsyncThunk(
+  'app/prePayment',
+  async (params: { order_id: string; }, thunkAPI) => {
+    try {
+      const { data, message }: { data: any; message: string } =
+        await axios.post(`user/order-pre-payment`, params);
       return { data, message };
     } catch (error: any) {
       return thunkAPI.rejectWithValue(error);
