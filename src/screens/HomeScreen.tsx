@@ -53,35 +53,13 @@ import { useCart } from '../hooks';
 import { showToaster } from '../utils/toaster';
 import { fetchUserCurrentLocation } from '../utils/helper';
 import { setUserCurrentCoords } from '../redux/user/userSlice';
+import Loader from '../components/Loader';
 
-const GlassLayer = () =>
-  Platform.OS === 'ios' ? (
-    <BlurView
-      pointerEvents="none"
-      style={StyleSheet.absoluteFill}
-      blurType="dark"
-      blurAmount={25}
-      reducedTransparencyFallbackColor="rgba(18, 20, 24, 0.18)"
-    />
-  ) : null;
 
 type HomeScreenNavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<RootTabParamList, 'Home'>,
   NativeStackNavigationProp<RootStackParamList>
 >;
-
-const CATEGORIES = [
-  { id: '1', name: 'Biryani', emoji: '🍛' },
-  { id: '2', name: 'Pizza', emoji: '🍕' },
-  { id: '3', name: 'Burger', emoji: '🍔' },
-  { id: '4', name: 'Chinese', emoji: '🥡' },
-  { id: '5', name: 'Dessert', emoji: '🍰' },
-  { id: '6', name: 'Rolls', emoji: '🌯' },
-  { id: '7', name: 'Thali', emoji: '🍱' },
-  { id: '8', name: 'Momos', emoji: '🥟' },
-  { id: '9', name: 'Drinks', emoji: '🥤' },
-  { id: '10', name: 'Ice Cream', emoji: '🍦' },
-];
 
 const HomeScreen = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
@@ -91,7 +69,8 @@ const HomeScreen = () => {
   const { isBadWeather, show } = useWeatherAlert();
   const { getCartQtyCount, removeProduct, addProduct } = useCart();
 
-  const [homePageData, setHomePageData] = useState<IHomePageData | null>(null);
+  const [homePageData, setHomePageData] = useState<IHomePageData | null>();
+  const [isHomePageDataFetching, setIsHomePageDataFetching] = useState<boolean>(true);
 
   const [activeHeroIndex, setActiveHeroIndex] = React.useState(0);
   const heroFadeAnim = React.useRef(new Animated.Value(0)).current;
@@ -130,6 +109,8 @@ const HomeScreen = () => {
       .catch(error => {
         console.log('Error fetching home page data:', error);
         setHomePageData(null);
+      }).finally(() => {
+        setIsHomePageDataFetching(false);
       });
   };
 
@@ -223,7 +204,6 @@ const HomeScreen = () => {
         <View style={styles.userInfo}>
           <View style={styles.avatarContainer}>
             <View style={styles.logoBadge}>
-              <GlassLayer />
               <Image source={ImagePath.logo} style={styles.avatar} />
             </View>
           </View>
@@ -252,7 +232,6 @@ const HomeScreen = () => {
             style={styles.headerRightSize}
             onPress={() => navigation.navigate('Search')}
           >
-            <GlassLayer />
             <Search size={20} color="#FFF" />
           </TouchableOpacity>
           <TouchableOpacity
@@ -264,7 +243,6 @@ const HomeScreen = () => {
             }}
             accessibilityLabel="Weather warning"
           >
-            <GlassLayer />
             {isBadWeather ? (
               <AlertTriangle size={20} color={colors.accentCoral} />
             ) : (
@@ -295,7 +273,6 @@ const HomeScreen = () => {
         >
           {homePageData?.event ? (
             <View style={styles.heroCard}>
-              <GlassLayer />
               <View style={styles.heroImageContainer}>
                 <Image
                   source={{
@@ -329,7 +306,6 @@ const HomeScreen = () => {
             </View>
           ) : (
             <View style={styles.heroCard}>
-              <GlassLayer />
               <View style={styles.heroImageContainer}>
                 {homePageData?.slides &&
                   homePageData?.slides[activeHeroIndex] ? (
@@ -368,54 +344,53 @@ const HomeScreen = () => {
           )}
 
           {/* ── Category List ──────────────────────────────────── */}
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Categories</Text>
-          </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.horizontalScroll}
-            contentContainerStyle={styles.categoryScrollContent}
-          >
-            {CATEGORIES.map((cat, index) => {
-              const isActive = index === 0;
-              return (
-                <TouchableOpacity
-                  key={cat.id}
-                  activeOpacity={0.8}
-                  style={styles.categoryItem}
-                  onPress={() => {
-                    navigation.navigate('Search');
-                  }}
-                >
-                  <View
-                    style={[
-                      styles.categoryIconContainer,
-                      isActive ? styles.categoryIconContainerActive : null,
-                    ]}
-                  >
-                    <GlassLayer />
-                    {/* <Image
-                      source={{
-                        uri: `https://delico.definescreen.com/uploads/categories/CAT1770731544.jpg`,
-                      }}
-                      style={styles.categoryIcon}
-                    /> */}
-                    <Text style={styles.categoryEmoji}>{cat.emoji}</Text>
-                  </View>
-                  <Text
-                    style={[
-                      styles.categoryLabel,
-                      isActive ? styles.categoryLabelActive : null,
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {cat.name}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
+          {homePageData?.categories && homePageData?.categories.length > 0 ?
+            <>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Categories</Text>
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.horizontalScroll}
+                contentContainerStyle={styles.categoryScrollContent}
+              >
+                {homePageData?.categories.map((cat, index) => {
+                  return (
+                    <TouchableOpacity
+                      key={index}
+                      activeOpacity={0.8}
+                      style={styles.categoryItem}
+                    // onPress={() => {
+                    //   navigation.navigate('Search', { initialQuery: cat.name });
+                    // }}
+                    >
+                      <View
+                        style={[
+                          styles.categoryIconContainer,
+                        ]}
+                      >{cat?.emoji ?
+                        <Text style={styles.categoryEmoji}>{cat?.emoji}</Text> :
+                        <Image
+                          source={{
+                            uri: `https://delico.definescreen.com/uploads/categories/CAT1770731544.jpg`,
+                          }}
+                          style={styles.categoryIcon}
+                        />}
+                      </View>
+                      <Text
+                        style={[
+                          styles.categoryLabel,
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {cat?.name}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </> : null}
 
           {homePageData?.todaySpecials &&
             homePageData?.todaySpecials.length > 0 ? (
@@ -432,7 +407,6 @@ const HomeScreen = () => {
                 {homePageData?.todaySpecials.map((item, index) => (
                   <View key={index} style={styles.specialCard}>
                     <View style={styles.specialImageContainer}>
-                      <GlassLayer />
                       <Image
                         source={
                           item?.image
@@ -442,97 +416,98 @@ const HomeScreen = () => {
                         style={styles.specialImage}
                       />
                       <View style={styles.priceBadge}>
-                        <GlassLayer />
                         <Text style={styles.priceText}>₹{item?.price}</Text>
                       </View>
                     </View>
-                    <View style={styles.smallBottomRow}>
-                      <Text style={styles.specialTitle}>{item?.name}</Text>
-                      {getCartQtyCount({ product_id: item.product_id }) > 0 ? (
-                        <View style={styles.qtyPillSmall}>
+                    <View style={styles.specialContent}>
+                      <View style={styles.smallBottomRow}>
+                        <Text style={styles.specialTitle}>{item?.name}</Text>
+                        {getCartQtyCount({ product_id: item.product_id }) > 0 ? (
+                          <View style={styles.qtyPillSmall}>
+                            <TouchableOpacity
+                              style={styles.qtyButtonSmall}
+                              activeOpacity={0.85}
+                              onPress={() => {
+                                removeProduct({
+                                  product_id: item?.product_id,
+                                  variant_id: item?.variant_id,
+                                  shop_id: item?.shop_id || '',
+                                  quantity: 1,
+                                });
+                              }}
+                            >
+                              <Minus
+                                size={12}
+                                color={colors.primary}
+                                strokeWidth={2.6}
+                              />
+                            </TouchableOpacity>
+                            <Text style={styles.qtyTextSmall}>
+                              {getCartQtyCount({
+                                product_id: item.product_id,
+                              })}
+                            </Text>
+                            <TouchableOpacity
+                              style={styles.qtyButtonSmall}
+                              activeOpacity={0.85}
+                              onPress={() => {
+                                addProduct({
+                                  product_id: item.product_id,
+                                  variant_id: item?.variant_id,
+                                  shop_id: item?.shop_id || '',
+                                  quantity: 1,
+                                });
+                              }}
+                            >
+                              <Plus
+                                size={12}
+                                color={colors.primary}
+                                strokeWidth={2.6}
+                              />
+                            </TouchableOpacity>
+                          </View>
+                        ) : (
                           <TouchableOpacity
-                            style={styles.qtyButtonSmall}
-                            activeOpacity={0.85}
-                            onPress={() => {
-                              removeProduct({
-                                product_id: item?.product_id,
-                                variant_id: item?.variant_id,
-                                shop_id: item?.shop_id || '',
-                                quantity: 1,
-                              });
-                            }}
-                          >
-                            <Minus
-                              size={12}
-                              color={colors.primary}
-                              strokeWidth={2.6}
-                            />
-                          </TouchableOpacity>
-                          <Text style={styles.qtyTextSmall}>
-                            {getCartQtyCount({
-                              product_id: item.product_id,
-                            })}
-                          </Text>
-                          <TouchableOpacity
-                            style={styles.qtyButtonSmall}
-                            activeOpacity={0.85}
+                            style={styles.addButtonSmall}
+                            activeOpacity={0.9}
                             onPress={() => {
                               addProduct({
                                 product_id: item.product_id,
                                 variant_id: item?.variant_id,
                                 shop_id: item?.shop_id || '',
                                 quantity: 1,
+                              }).then(res => {
+                                console.log('ress', res);
+                                if (res.type === 'different_shop_error') {
+                                  showToaster(
+                                    'Replaced cart items with the new product from a different restaurant.',
+                                  );
+                                  addProduct({
+                                    product_id: item.product_id,
+                                    variant_id: item?.variant_id,
+                                    shop_id: item?.shop_id || '',
+                                    quantity: 1,
+                                    isRecreateCart: true,
+                                  });
+                                }
                               });
                             }}
                           >
                             <Plus
                               size={12}
-                              color={colors.primary}
-                              strokeWidth={2.6}
+                              color={colors.background}
+                              strokeWidth={3}
                             />
                           </TouchableOpacity>
-                        </View>
-                      ) : (
-                        <TouchableOpacity
-                          style={styles.addButtonSmall}
-                          activeOpacity={0.9}
-                          onPress={() => {
-                            addProduct({
-                              product_id: item.product_id,
-                              variant_id: item?.variant_id,
-                              shop_id: item?.shop_id || '',
-                              quantity: 1,
-                            }).then(res => {
-                              console.log('ress', res);
-                              if (res.type === 'different_shop_error') {
-                                showToaster(
-                                  'Replaced cart items with the new product from a different restaurant.',
-                                );
-                                addProduct({
-                                  product_id: item.product_id,
-                                  variant_id: item?.variant_id,
-                                  shop_id: item?.shop_id || '',
-                                  quantity: 1,
-                                  isRecreateCart: true,
-                                });
-                              }
-                            });
-                          }}
-                        >
-                          <Plus
-                            size={12}
-                            color={colors.background}
-                            strokeWidth={3}
-                          />
-                        </TouchableOpacity>
-                      )}
+                        )}
+                      </View>
+                      <Text style={styles.shopName} numberOfLines={2}>
+                        By {item?.shop_name}
+                      </Text>
+                      <Text style={styles.descText} numberOfLines={2}>
+                        {item?.description}
+                      </Text>
                     </View>
-                    <Text style={styles.shopName} numberOfLines={2}>
-                      By Kolkata Biriyani House
-                    </Text>
-                    <Text style={styles.descText} numberOfLines={2}>
-                      {item?.description}
-                    </Text>
                   </View>
                 ))}
               </ScrollView>
@@ -541,8 +516,9 @@ const HomeScreen = () => {
 
           {homePageData?.coupons && homePageData?.coupons.length > 0 ? (
             <>
+              {/* --- EXCLUSIVE OFFERS --- */}
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Active Promotions</Text>
+                <Text style={styles.sectionTitle}>Exclusive Offers</Text>
               </View>
               <ScrollView
                 horizontal
@@ -550,51 +526,20 @@ const HomeScreen = () => {
                 style={styles.horizontalScroll}
                 contentContainerStyle={styles.horizontalScrollContent}
               >
-                {homePageData?.coupons.map((promo, index) => {
-                  return (
-                    <View key={index} style={styles.promoBanner}>
-                      <View style={styles.promoBannerContent}>
-                        <>
-                          <View style={styles.promoBannerDiscount}>
-                            <LinearGradient
-                              colors={['#FF7351', '#FF5733']}
-                              start={{ x: 0, y: 0 }}
-                              end={{ x: 1, y: 1 }}
-                              style={styles.discountGradient}
-                            >
-                              {promo?.discount_type === 'Percentage' ? (
-                                <Text style={styles.discountValue}>
-                                  {promo?.discount}%
-                                </Text>
-                              ) : (
-                                <Text style={styles.discountValue}>
-                                  ₹{promo?.discount}
-                                </Text>
-                              )}
-                              <Text style={styles.discountLabel}>OFF</Text>
-                            </LinearGradient>
-                          </View>
-                          <View style={styles.promoBannerText}>
-                            <Text
-                              style={styles.promoBannerTitle}
-                              numberOfLines={2}
-                            >
-                              {promo?.title}
-                            </Text>
-                            <View style={styles.promoCodeChip}>
-                              <Text style={styles.promoCodeChipText}>
-                                {promo?.code}
-                              </Text>
-                            </View>
-                            <Text style={styles.promoExpiry}>
-                              {promo?.expire_on}
-                            </Text>
-                          </View>
-                        </>
-                      </View>
-                    </View>
-                  );
-                })}
+                {homePageData?.coupons.map((coupon, index) => (
+                  <View style={styles.offerCard}  key={index}>
+                    {/* <View style={styles.offerGlowBlob} /> */}
+                    <Text style={styles.offerTag}>{coupon?.expire_on}</Text>
+                    <Text style={styles.offerTitle} numberOfLines={1}>{coupon?.title}</Text>
+                    <Text style={styles.offerDesc}>{coupon?.description}</Text>
+                    <TouchableOpacity style={styles.offerAction} activeOpacity={0.9}
+                      onPress={() => {
+                              navigate('Cart');
+                      }}>
+                      <Text style={styles.offerActionText}>Claim Now</Text>
+                      <ArrowRight size={14} color={colors.primary} />
+                    </TouchableOpacity>
+                  </View>))}
               </ScrollView>
             </>
           ) : null}
@@ -615,7 +560,6 @@ const HomeScreen = () => {
                       })
                     }
                   >
-                    <GlassLayer />
                     <Image
                       source={
                         restaurant?.image
@@ -677,14 +621,11 @@ const HomeScreen = () => {
           ) : null}
 
 
-          <View style={styles.sectionHeader}>
+          {/* <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Chef's Recommendation</Text>
           </View>
 
           <View style={styles.chefsPickCard}>
-            <GlassLayer />
-
-            {/* Hero image */}
             <View style={styles.chefsPickImageWrap}>
               <Image
                 source={ImagePath.noProductPlaceholder}
@@ -697,10 +638,7 @@ const HomeScreen = () => {
                 style={StyleSheet.absoluteFill}
               />
             </View>
-
-            {/* Content */}
             <View style={styles.chefsPickContent}>
-              {/* Meta row */}
               <View style={styles.chefsPickMetaRow}>
                 <View style={styles.chefsChoiceBadge}>
                   <Text style={styles.chefsChoiceBadgeText}>CHEF'S CHOICE</Text>
@@ -716,16 +654,10 @@ const HomeScreen = () => {
                   </Text>
                 </View>
               </View>
-
-              {/* Dish name */}
               <Text style={styles.chefsPickName}>Dish Name</Text>
-
-              {/* Description */}
               <Text style={styles.chefsPickDesc} numberOfLines={2}>
                 Indulge in our chef's special - a heavenly chocolate lava cake with a gooey center, topped with a scoop of vanilla ice cream. A perfect blend of rich chocolate and creamy sweetness that will melt your heart.
               </Text>
-
-              {/* Price + CTA row */}
               <View style={styles.chefsPickFooter}>
                 <Text style={styles.chefsPickPrice}>
                   ₹1000
@@ -739,72 +671,38 @@ const HomeScreen = () => {
                 </TouchableOpacity>
               </View>
             </View>
-          </View>
+          </View> */}
 
-
-          {/* --- EXCLUSIVE OFFERS --- */}
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Exclusive Offers</Text>
-          </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.horizontalScroll}
-            contentContainerStyle={styles.horizontalScrollContent}
-          >
-            <TouchableOpacity style={styles.offerCard} activeOpacity={0.9}>
-              <GlassLayer />
-              <View style={styles.offerGlowBlob} />
-              <Text style={styles.offerTag}>LIMITED TIME</Text>
-              <Text style={styles.offerTitle}>50% Off First Order</Text>
-              <Text style={styles.offerDesc}>Experience gourmet dining at half the price.</Text>
-              <View style={styles.offerAction}>
-                <Text style={styles.offerActionText}>Claim Now</Text>
-                <ArrowRight size={14} color={colors.primary} />
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.offerCard} activeOpacity={0.9}>
-              <GlassLayer />
-              <View style={styles.offerGlowBlob} />
-              <Text style={styles.offerTag}>PREMIUM PERK</Text>
-              <Text style={styles.offerTitle}>Free Delivery</Text>
-              <Text style={styles.offerDesc}>On all gourmet selections this weekend.</Text>
-              <View style={styles.offerAction}>
-                <Text style={styles.offerActionText}>Order Now</Text>
-                <ArrowRight size={14} color={colors.primary} />
-              </View>
-            </TouchableOpacity>
-          </ScrollView>
         </ScrollView>
-      ) : (
-        <View style={styles.comingSoonSection}>
-          <View style={styles.comingSoonIconContainer}>
-            <MapPinOff size={48} color={colors.primary} strokeWidth={1.5} />
-          </View>
-          <Text style={styles.comingSoonTitle}>We're not in your neighborhood</Text>
-          <Text style={styles.comingSoonSubTitle}>just yet.</Text>
+      ) :
+        isHomePageDataFetching ? <Loader /> : (
+          <View style={styles.comingSoonSection}>
+            <View style={styles.comingSoonIconContainer}>
+              <MapPinOff size={48} color={colors.primary} strokeWidth={1.5} />
+            </View>
+            <Text style={styles.comingSoonTitle}>We're not in your neighborhood</Text>
+            <Text style={styles.comingSoonSubTitle}>just yet.</Text>
 
-          <Text style={styles.comingSoonSubtitle}>
-            We haven&apos;t reached this area yet. Our team is working hard to expand coverage to your neighborhood soon.
-          </Text>
-          <TouchableOpacity
-            activeOpacity={0.8}
-            style={styles.comingSoonButton}
-            onPress={() => {
-              setIsAddressSheetOpen(true);
-              handleGetAddress();
-            }}
-          >
-            <Text style={styles.comingSoonButtonText}>Change Location</Text>
-          </TouchableOpacity>
-          {currentPlace && (
-            <Text style={styles.comingSoonPlaceText} numberOfLines={1}>
-              {currentPlace}
+            <Text style={styles.comingSoonSubtitle}>
+              We haven&apos;t reached this area yet. Our team is working hard to expand coverage to your neighborhood soon.
             </Text>
-          )}
-        </View>
-      )}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              style={styles.comingSoonButton}
+              onPress={() => {
+                setIsAddressSheetOpen(true);
+                handleGetAddress();
+              }}
+            >
+              <Text style={styles.comingSoonButtonText}>Change Location</Text>
+            </TouchableOpacity>
+            {currentPlace && (
+              <Text style={styles.comingSoonPlaceText} numberOfLines={1}>
+                {currentPlace}
+              </Text>
+            )}
+          </View>
+        )}
 
       <Modal
         transparent
@@ -818,7 +716,6 @@ const HomeScreen = () => {
             onPress={() => setIsAddressSheetOpen(false)}
           />
           <View style={styles.sheetContainer}>
-            <GlassLayer />
             <View style={styles.sheetHandle} />
             <Text style={styles.sheetTitle}>Choose delivery address</Text>
 
@@ -851,7 +748,6 @@ const HomeScreen = () => {
                   });
               }}
             >
-              <GlassLayer />
               <View
                 style={{
                   flexDirection: 'row',
@@ -899,7 +795,6 @@ const HomeScreen = () => {
                           });
                       }}
                     >
-                      <GlassLayer />
                       <View style={styles.addressOptionHeader}>
                         <Text style={styles.addressTag}>{option?.type}</Text>
                         {isSelected ? (
@@ -1209,21 +1104,28 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   specialCard: {
-    width: 280,
+    width: 300,
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    backgroundColor: colors.glass,
   },
   specialImageContainer: {
     backgroundColor: colors.glass,
     // padding: 8,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: colors.glassBorder,
+    // borderRadius: 24,
     aspectRatio: 4 / 3,
     overflow: 'hidden',
   },
   specialImage: {
     width: '100%',
     height: '100%',
-    borderRadius: 8,
+  },
+  specialContent: {
+    padding: 15,
+    flex: 1,
+    paddingTop: 0
   },
   priceBadge: {
     position: 'absolute',
@@ -1737,7 +1639,7 @@ const styles = StyleSheet.create({
 
   // --- EXCLUSIVE OFFERS ---
   offerCard: {
-    minWidth: 300,
+    maxWidth: 300,
     backgroundColor: 'rgba(255, 255, 255, 0.03)',
     borderRadius: 24,
     borderWidth: 1,

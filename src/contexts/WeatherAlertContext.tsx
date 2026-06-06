@@ -17,7 +17,7 @@ export const WeatherAlertProvider = ({
   children: React.ReactNode;
 }) => {
   const [isVisible, setIsVisible] = React.useState(false);
-  const isBadWeather = false;
+  const isBadWeather = true;
 
   const show = React.useCallback(() => {
     if (isBadWeather) {

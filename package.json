@@ -1,5 +1,5 @@
 {
-  "name": "Ahaari",
+  "name": "ahaari",
   "version": "0.0.1",
   "private": true,
   "scripts": {
@@ -13,7 +13,6 @@
     "releaseApk": "cd android && gradlew assembleRelease"
   },
   "dependencies": {
-    "@gorhom/bottom-sheet": "^5.2.13",
     "@react-native-async-storage/async-storage": "^3.0.2",
     "@react-native-community/blur": "^4.4.1",
     "@react-native-community/netinfo": "^12.0.1",
@@ -43,13 +42,11 @@
     "react-native-maps-directions": "^1.9.0",
     "react-native-radial-gradient": "^1.2.1",
     "react-native-razorpay": "^3.0.0",
-    "react-native-reanimated": "^4.3.0",
     "react-native-safe-area-context": "^5.5.2",
     "react-native-screens": "^4.24.0",
     "react-native-simple-toast": "^3.3.2",
     "react-native-svg": "^15.15.4",
     "react-native-vector-icons": "^10.3.0",
-    "react-native-worklets": "^0.9.1",
     "react-redux": "^9.3.0",
     "socket.io-client": "^4.8.3",
     "sp-react-native-in-app-updates": "^1.5.0"

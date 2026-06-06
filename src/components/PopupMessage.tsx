@@ -1,7 +1,7 @@
-import { View, Text, Modal, TouchableOpacity, StyleSheet } from 'react-native';
 import React from 'react';
+import { View, Text, Modal, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { AlertTriangle } from 'lucide-react-native';
-import { colors, layout, typography } from '../constants/theme';
+import { colors, layout, typography, radius, spacing } from '../constants/theme';
 
 type Props = {
   title?: string;
@@ -21,8 +21,8 @@ const PopupMessage: React.FC<Props> = ({
   title,
   description,
   isVisible,
-  onBtn1Press = () => {},
-  onBtn2Press = () => {},
+  onBtn1Press = () => { },
+  onBtn2Press = () => { },
   btn1Name = 'Cancel',
   btn2Name = 'Okay',
   hideBtn1 = false,
@@ -32,45 +32,44 @@ const PopupMessage: React.FC<Props> = ({
 }) => {
   return (
     <Modal visible={isVisible} transparent={true} animationType="fade">
-      <View style={styles.deleteModalOverlay}>
-        <View style={styles.deleteModalContainer}>
-          <View style={styles.deleteModalIconWrap}>
-            <AlertTriangle
-              size={24}
-              color={colors.accentTan}
-              strokeWidth={2.2}
-            />
-          </View>
+      <View style={styles.overlay}>
+        <View style={styles.cardWrapper}>
+          {/* Subtle amber glow behind icon */}
+          <View style={styles.card}>
+            {/* Icon */}
+            <View style={styles.iconCircle}>
+              <AlertTriangle size={26} color={colors.primary} strokeWidth={2} />
+            </View>
 
-          <Text style={styles.deleteModalTitle}>{title}</Text>
-          <Text style={styles.deleteModalSubtitle}>{description}</Text>
+            {/* Text */}
+            <Text style={styles.title}>{title}</Text>
+            <Text style={styles.subtitle}>{description}</Text>
 
-          <View style={styles.deleteModalActions}>
-            {hideBtn1 ? null : (
-              <TouchableOpacity
-                activeOpacity={0.9}
-                style={[
-                  styles.deleteModalCancelButton,
-                  btn1Style && { ...btn1Style },
-                ]}
-                onPress={onBtn1Press}
-              >
-                <Text style={styles.deleteModalCancelText}>{btn1Name}</Text>
-              </TouchableOpacity>
-            )}
+            {/* Divider */}
+            <View style={styles.divider} />
 
-            {hideBtn2 ? null : (
-              <TouchableOpacity
-                activeOpacity={0.9}
-                style={[
-                  styles.deleteModalDeleteButton,
-                  btn2Style && { ...btn2Style },
-                ]}
-                onPress={onBtn2Press}
-              >
-                <Text style={styles.deleteModalDeleteText}>{btn2Name}</Text>
-              </TouchableOpacity>
-            )}
+            {/* Actions */}
+            <View style={styles.actions}>
+              {!hideBtn1 && (
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  style={[styles.cancelButton, btn1Style]}
+                  onPress={onBtn1Press}
+                >
+                  <Text style={styles.cancelText}>{btn1Name}</Text>
+                </TouchableOpacity>
+              )}
+
+              {!hideBtn2 && (
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  style={[styles.primaryButton, btn2Style]}
+                  onPress={onBtn2Press}
+                >
+                  <Text style={styles.primaryText}>{btn2Name}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         </View>
       </View>
@@ -79,79 +78,130 @@ const PopupMessage: React.FC<Props> = ({
 };
 
 const styles = StyleSheet.create({
-  deleteModalOverlay: {
+  overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    backgroundColor: 'rgba(0, 0, 0, 0.82)',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: layout.screenPadding,
   },
-  deleteModalContainer: {
+
+  /* Card shell — matches UpdatePopup cardWrapper pattern */
+  cardWrapper: {
     width: '100%',
-    maxWidth: 360,
-    borderRadius: 24,
-    backgroundColor: colors.surfaceDark,
+    maxWidth: 340,
+    borderRadius: radius.xl,
+    overflow: 'hidden',
+    backgroundColor: '#14161B',
     borderWidth: 1,
-    borderColor: colors.glassBorder,
-    padding: 20,
+    borderColor: 'rgba(255, 255, 255, 0.10)',
   },
-  deleteModalIconWrap: {
+
+  /* Subtle amber radial glow — top centre, echoes AppBackground */
+  glowOrb: {
+    position: 'absolute',
+    top: -40,
+    alignSelf: 'center',
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: colors.primary,
+    opacity: 0.07,
+  },
+
+  card: {
+    padding: spacing.xl,
+    paddingTop: spacing.xl * 1.5,
+    alignItems: 'center',
+  },
+
+  /* Amber-tinted icon circle — mirrors UpdatePopup iconCircle */
+  iconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: 'rgba(255, 176, 0, 0.10)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 176, 0, 0.28)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xl,
+  },
+
+  iconInner: {
     width: 52,
     height: 52,
     borderRadius: 26,
+    backgroundColor: 'rgba(255, 176, 0, 0.08)',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(245, 158, 11, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.24)',
-    alignSelf: 'center',
-    marginBottom: 14,
   },
-  deleteModalTitle: {
+
+  title: {
     color: colors.textPrimary,
     fontSize: typography.xl,
     fontWeight: '800',
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
+    letterSpacing: 0.2,
   },
-  deleteModalSubtitle: {
-    color: colors.textMuted,
+
+  subtitle: {
+    color: colors.textMutedCool,
     fontSize: typography.body,
     lineHeight: 22,
     textAlign: 'center',
-    marginBottom: 16,
+    paddingHorizontal: spacing.sm,
   },
-  deleteModalActions: {
+
+  divider: {
+    width: '100%',
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    marginVertical: spacing.xl,
+  },
+
+  actions: {
     flexDirection: 'row',
-    gap: 12,
+    width: '100%',
+    gap: spacing.md,
   },
-  deleteModalCancelButton: {
+
+  /* Ghost / cancel button — glass surface */
+  cancelButton: {
     flex: 1,
-    borderRadius: 14,
+    borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.glassBorder,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderColor: 'rgba(255, 255, 255, 0.10)',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
+    paddingVertical: spacing.lg,
   },
-  deleteModalCancelText: {
-    color: colors.textPrimary,
+
+  cancelText: {
+    color: colors.textSecondary,
     fontSize: typography.body,
     fontWeight: '700',
   },
-  deleteModalDeleteButton: {
+
+  /* Primary / confirm button — amber with glow shadow */
+  primaryButton: {
     flex: 1,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.glassBorder,
-    backgroundColor: 'rgb(255, 254, 254)',
+    borderRadius: radius.md,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
+    paddingVertical: spacing.lg,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.45,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 8,
   },
-  deleteModalDeleteText: {
-    color: colors.black,
+
+  primaryText: {
+    color: colors.onPrimaryDeep,
     fontSize: typography.body,
     fontWeight: '800',
   },

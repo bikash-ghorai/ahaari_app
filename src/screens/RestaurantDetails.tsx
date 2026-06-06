@@ -1,13 +1,17 @@
 /* eslint-disable react-native/no-inline-styles */
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  Animated,
   Dimensions,
   Image,
+  Modal,
+  PanResponder,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import { BlurView } from '@react-native-community/blur';
@@ -22,7 +26,7 @@ import {
 } from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
+
 
 import { colors, layout, typography } from '../constants/theme';
 import Header from '../components/Header';
@@ -35,36 +39,6 @@ import { useCart } from '../hooks';
 import PopupMessage from '../components/PopupMessage';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
-// const signatureDishes: MenuItem[] = [
-//   {
-//     id: 'truffle-zen-garden',
-//     title: 'Truffle Zen Garden',
-//     description:
-//       'Micro-greens, black truffle shavings,\nand honey balsamic glaze.',
-//     price: '$24',
-//     calories: '180 kcal',
-//     image:
-//       'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&w=320&q=80',
-//   },
-//   {
-//     id: 'midnight-wagyu',
-//     title: 'Midnight Wagyu',
-//     description: 'A5 Grade Wagyu with a charcoal-\ninfused butter reduction.',
-//     price: '$85',
-//     calories: '420 kcal',
-//     image:
-//       'https://images.unsplash.com/photo-1558030006-450675393462?auto=format&fit=crop&w=320&q=80',
-//   },
-//   {
-//     id: 'saffron-scallops',
-//     title: 'Saffron Scallops',
-//     description: 'Hand-dived scallops with a molecular\nsaffron cloud.',
-//     price: '$42',
-//     calories: '210 kcal',
-//     image:
-//       'https://images.unsplash.com/photo-1482049016688-2d3e1b311543?auto=format&fit=crop&w=320&q=80',
-//   },
-// ];
 
 interface IProps {
   route: {
@@ -85,10 +59,60 @@ const RestaurantDetails = (props: IProps) => {
   const [selectedItem, setSelectedItem] = useState<IProduct | null>(null);
   const [selectedTempVariant, setSelectedTempVariant] =
     useState<IVariant | null>(null);
-  const sheetRef = useRef<BottomSheet>(null);
+  const [sheetVisible, setSheetVisible] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const heroHeightRef = useRef<number>(0);
-  // const snapPoints = useMemo(() => ['48%', '72%'], []);
+
+  // ── Custom bottom sheet animation (native driver → 60 fps) ──
+  const SHEET_HEIGHT = SCREEN_HEIGHT * 0.50;
+  const translateY = useRef(new Animated.Value(SHEET_HEIGHT)).current;
+
+  const snapOpen = () => {
+    Animated.spring(translateY, {
+      toValue: 0,
+      useNativeDriver: true,
+      overshootClamping: true,
+      restDisplacementThreshold: 0.5,
+      restSpeedThreshold: 0.5,
+    }).start();
+  };
+
+  const snapClose = (onDone?: () => void) => {
+    Animated.timing(translateY, {
+      toValue: SHEET_HEIGHT,
+      duration: 280,
+      useNativeDriver: true,
+    }).start(() => {
+      setSheetVisible(false);
+      setSelectedItem(null);
+      setSelectedTempVariant(null);
+      onDone?.();
+    });
+  };
+
+  const sheetPan = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gs) => gs.dy > 4,
+      onPanResponderGrant: () => {
+        translateY.stopAnimation(val => {
+          translateY.setOffset(val);
+          translateY.setValue(0);
+        });
+      },
+      onPanResponderMove: (_, gs) => {
+        if (gs.dy > 0) { translateY.setValue(gs.dy); }
+      },
+      onPanResponderRelease: (_, gs) => {
+        translateY.flattenOffset();
+        if (gs.dy > 80 || gs.vy > 0.5) {
+          snapClose();
+        } else {
+          snapOpen();
+        }
+      },
+    }),
+  ).current;
 
   const [shopDetails, setShopDetails] = useState<IRestaurantDetails | null>(
     null,
@@ -123,11 +147,17 @@ const RestaurantDetails = (props: IProps) => {
   const openPreview = (item: IProduct) => {
     setSelectedItem(item);
     setSelectedTempVariant(item.variants?.[0] || null);
-    sheetRef.current?.snapToIndex(0);
+    translateY.setValue(SCREEN_HEIGHT * 0.72); // reset before opening
+    setSheetVisible(true);
   };
 
+  useEffect(() => {
+    if (sheetVisible) { snapOpen(); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sheetVisible]);
+
   const closePreview = () => {
-    sheetRef.current?.close();
+    snapClose();
   };
 
   const handleScrollToStickyHeader = () => {
@@ -274,39 +304,39 @@ const RestaurantDetails = (props: IProps) => {
               >
                 {shopDetails?.categories && shopDetails?.categories.length > 0
                   ? shopDetails?.categories.map((category, index) => {
-                      const isActive =
-                        selectedCategory?.category_id === category?.category_id;
+                    const isActive =
+                      selectedCategory?.category_id === category?.category_id;
 
-                      return (
-                        <TouchableOpacity
-                          key={index}
-                          activeOpacity={0.9}
+                    return (
+                      <TouchableOpacity
+                        key={index}
+                        activeOpacity={0.9}
+                        style={
+                          isActive
+                            ? styles.categoryPillActive
+                            : styles.categoryPill
+                        }
+                        onPress={() => {
+                          setSelectedCategory(category);
+                          handleSearch(
+                            searchText || '',
+                            category?.products || [],
+                          );
+                          handleScrollToStickyHeader();
+                        }}
+                      >
+                        <Text
                           style={
                             isActive
-                              ? styles.categoryPillActive
-                              : styles.categoryPill
+                              ? styles.categoryPillTextActive
+                              : styles.categoryPillText
                           }
-                          onPress={() => {
-                            setSelectedCategory(category);
-                            handleSearch(
-                              searchText || '',
-                              category?.products || [],
-                            );
-                            handleScrollToStickyHeader();
-                          }}
                         >
-                          <Text
-                            style={
-                              isActive
-                                ? styles.categoryPillTextActive
-                                : styles.categoryPillText
-                            }
-                          >
-                            {category?.name}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })
+                          {category?.name}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })
                   : null}
               </ScrollView>
 
@@ -521,8 +551,8 @@ const RestaurantDetails = (props: IProps) => {
                                 </Text>
                               </View>
                             ) : getCartQtyCount({
-                                product_id: item.product_id,
-                              }) > 0 ? (
+                              product_id: item.product_id,
+                            }) > 0 ? (
                               <View style={styles.qtyPillSmall}>
                                 <TouchableOpacity
                                   style={styles.qtyButtonSmall}
@@ -641,173 +671,192 @@ const RestaurantDetails = (props: IProps) => {
         btn2Name="Replace"
       />
 
-      <BottomSheet
-        ref={sheetRef}
-        index={-1}
-        // snapPoints={snapPoints}
-        enablePanDownToClose={true}
-        backgroundStyle={styles.sheetBackground}
-        handleIndicatorStyle={styles.sheetHandle}
-        onClose={() => {
-          setSelectedItem(null);
-          setSelectedTempVariant(null);
-        }}
-      >
-        <BlurView
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            borderRadius: 10,
-          }}
-          blurType="dark"
-          blurAmount={24}
-          reducedTransparencyFallbackColor="rgba(18, 20, 24, 0.22)"
-        />
-        <BottomSheetView style={styles.sheetContent}>
-          {selectedItem ? (
-            <>
-              <View style={styles.sheetImageWrap}>
-                <Image
-                  source={
-                    selectedItem?.image
-                      ? { uri: Constant?.ImageURL + selectedItem.image }
-                      : ImagePath.noProductPlaceholder
-                  }
-                  style={styles.sheetImage}
-                />
-                <LinearGradient
-                  colors={['rgba(12, 14, 18, 0.1)', 'rgba(12, 14, 18, 0.6)']}
-                  start={{ x: 0.5, y: 0 }}
-                  end={{ x: 0.5, y: 1 }}
-                  style={styles.sheetImageOverlay}
-                />
-              </View>
+      {/* ── Custom bottom sheet modal ── */}
+      <Modal
+        visible={sheetVisible}
+        transparent
+        animationType="none"
+        onRequestClose={closePreview}
+        statusBarTranslucent>
+        {/* Backdrop */}
+        <TouchableWithoutFeedback onPress={closePreview}>
+          <View style={styles.sheetBackdrop} />
+        </TouchableWithoutFeedback>
 
-              <View style={styles.sheetBody}>
-                <View style={styles.sheetTitleRow}>
-                  <Text style={styles.sheetTitle}>{selectedItem?.name}</Text>
-                  {selectedItem?.variants &&
-                    selectedItem.variants.length === 1 && (
-                      <Text style={styles.sheetPrice}>
-                        ₹{selectedItem.variants[0].price}
-                      </Text>
-                    )}
+        {/* Sheet panel */}
+        <Animated.View
+          style={[
+            styles.sheetPanel,
+            { height: SCREEN_HEIGHT * 0.72, transform: [{ translateY }] },
+          ]}>
+          {/* Blur background */}
+          <BlurView
+            pointerEvents="none"
+            style={StyleSheet.absoluteFill}
+            blurType="dark"
+            blurAmount={24}
+            reducedTransparencyFallbackColor="rgba(18, 20, 24, 0.95)"
+          />
+
+          {/* Drag handle */}
+          <View style={styles.sheetHandleWrap} {...sheetPan.panHandlers}>
+            <View style={styles.sheetHandle} />
+          </View>
+
+          {/* Content */}
+          <View style={styles.sheetContent}>
+            {selectedItem ? (
+              <>
+                <View style={styles.sheetImageWrap}>
+                  <Image
+                    source={
+                      selectedItem?.image
+                        ? { uri: Constant?.ImageURL + selectedItem.image }
+                        : ImagePath.noProductPlaceholder
+                    }
+                    style={styles.sheetImage}
+                  />
+                  <LinearGradient
+                    colors={['rgba(12, 14, 18, 0.1)', 'rgba(12, 14, 18, 0.6)']}
+                    start={{ x: 0.5, y: 0 }}
+                    end={{ x: 0.5, y: 1 }}
+                    style={styles.sheetImageOverlay}
+                  />
                 </View>
-                <Text style={styles.sheetDescription}>
-                  {selectedItem?.description}
-                </Text>
 
-                {/* <View style={styles.sheetMetaRow}>
-                  <View style={styles.sheetMetaPill}>
-                    <Text style={styles.sheetMetaText}>
-                      {selectedItem?.metaLabel}
-                    </Text>
-                  </View>
-                </View> */}
-
-                {selectedItem?.variants && selectedItem.variants.length > 1 && (
-                  <View style={styles.variantsSection}>
-                    <View style={styles.variantsList}>
-                      {selectedItem.variants.map((variant, index) => {
-                        const isSelected =
-                          selectedTempVariant?.variant_id ===
-                          variant.variant_id;
-
-                        return (
-                          <TouchableOpacity
-                            key={index}
-                            style={styles.variantItem}
-                            activeOpacity={0.7}
-                            onPress={() => setSelectedTempVariant(variant)}
-                          >
-                            <View style={styles.variantRadio}>
-                              <View
-                                style={[
-                                  styles.radioOuter,
-                                  isSelected && styles.radioOuterActive,
-                                ]}
-                              >
-                                {isSelected && (
-                                  <View style={styles.radioInner} />
-                                )}
-                              </View>
-                            </View>
-
-                            <View style={styles.variantTextContent}>
-                              <Text style={styles.variantName}>
-                                {variant.name}
-                              </Text>
-                            </View>
-
-                            <Text style={styles.variantItemPrice}>
-                              ₹{variant.price}
-                            </Text>
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </View>
-                  </View>
-                )}
-
-                <View style={styles.sheetActions}>
-                  {!selectedTempVariant ||
-                  selectedTempVariant.status !== 'Available' ? (
-                    <View style={styles.sheetAddButton}>
-                      <View
-                        style={[
-                          styles.sheetAddGradient,
-                          { backgroundColor: 'rgba(255, 82, 82, 0.24)' },
-                        ]}
-                      >
-                        <Text
-                          style={{
-                            color: '#FF9C9C',
-                            fontSize: typography.body,
-                            fontWeight: '700',
-                          }}
-                        >
-                          Out of Stock
+                <View style={styles.sheetBody}>
+                  <View style={styles.sheetTitleRow}>
+                    <Text style={styles.sheetTitle}>{selectedItem?.name}</Text>
+                    {selectedItem?.variants &&
+                      selectedItem.variants.length === 1 && (
+                        <Text style={styles.sheetPrice}>
+                          ₹{selectedItem.variants[0].price}
                         </Text>
+                      )}
+                  </View>
+                  <Text style={styles.sheetDescription}>
+                    {selectedItem?.description}
+                  </Text>
+
+                  {selectedItem?.variants && selectedItem.variants.length > 1 && (
+                    <View style={styles.variantsSection}>
+                      <View style={styles.variantsList}>
+                        {selectedItem.variants.map((variant, index) => {
+                          const isSelected =
+                            selectedTempVariant?.variant_id ===
+                            variant.variant_id;
+
+                          return (
+                            <TouchableOpacity
+                              key={index}
+                              style={styles.variantItem}
+                              activeOpacity={0.7}
+                              onPress={() => setSelectedTempVariant(variant)}
+                            >
+                              <View style={styles.variantRadio}>
+                                <View
+                                  style={[
+                                    styles.radioOuter,
+                                    isSelected && styles.radioOuterActive,
+                                  ]}
+                                >
+                                  {isSelected && (
+                                    <View style={styles.radioInner} />
+                                  )}
+                                </View>
+                              </View>
+
+                              <View style={styles.variantTextContent}>
+                                <Text style={styles.variantName}>
+                                  {variant.name}
+                                </Text>
+                              </View>
+
+                              <Text style={styles.variantItemPrice}>
+                                ₹{variant.price}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
                       </View>
                     </View>
-                  ) : getCartQtyCount({
+                  )}
+
+                  <View style={styles.sheetActions}>
+                    {!selectedTempVariant ||
+                      selectedTempVariant.status !== 'Available' ? (
+                      <View style={styles.sheetAddButton}>
+                        <View
+                          style={[
+                            styles.sheetAddGradient,
+                            { backgroundColor: 'rgba(255, 82, 82, 0.24)' },
+                          ]}
+                        >
+                          <Text
+                            style={{
+                              color: '#FF9C9C',
+                              fontSize: typography.body,
+                              fontWeight: '700',
+                            }}
+                          >
+                            Out of Stock
+                          </Text>
+                        </View>
+                      </View>
+                    ) : getCartQtyCount({
                       product_id: selectedItem.product_id,
                       variant_id: selectedTempVariant?.variant_id,
                     }) > 0 ? (
-                    <View style={styles.sheetQtyPill}>
-                      <TouchableOpacity
-                        style={styles.sheetQtyButton}
-                        activeOpacity={0.85}
-                        onPress={() =>
-                          removeProduct({
+                      <View style={styles.sheetQtyPill}>
+                        <TouchableOpacity
+                          style={styles.sheetQtyButton}
+                          activeOpacity={0.85}
+                          onPress={() =>
+                            removeProduct({
+                              product_id: selectedItem.product_id,
+                              variant_id: selectedTempVariant?.variant_id || '',
+                              shop_id: shopDetails?.shop?.shop_id || '',
+                              quantity: 1,
+                            }).then(res => {
+                              console.log('clg', res);
+                            })
+                          }
+                        >
+                          <Minus
+                            size={16}
+                            color={colors.primary}
+                            strokeWidth={2.6}
+                          />
+                        </TouchableOpacity>
+                        <Text style={styles.sheetQtyText}>
+                          {getCartQtyCount({
                             product_id: selectedItem.product_id,
-                            variant_id: selectedTempVariant?.variant_id || '',
-                            shop_id: shopDetails?.shop?.shop_id || '',
-                            quantity: 1,
-                          }).then(res => {
-                            console.log('clg', res);
-                          })
-                        }
-                      >
-                        <Minus
-                          size={16}
-                          color={colors.primary}
-                          strokeWidth={2.6}
-                        />
-                      </TouchableOpacity>
-                      <Text style={styles.sheetQtyText}>
-                        {getCartQtyCount({
-                          product_id: selectedItem.product_id,
-                          variant_id: selectedTempVariant?.variant_id,
-                        })}
-                      </Text>
+                            variant_id: selectedTempVariant?.variant_id,
+                          })}
+                        </Text>
+                        <TouchableOpacity
+                          style={styles.sheetQtyButton}
+                          activeOpacity={0.85}
+                          onPress={() =>
+                            handleAddToCart({
+                              product_id: selectedItem.product_id,
+                              variant_id: selectedTempVariant?.variant_id || '',
+                              shop_id: shopDetails?.shop?.shop_id || '',
+                              quantity: 1,
+                            })
+                          }
+                        >
+                          <Plus
+                            size={16}
+                            color={colors.primary}
+                            strokeWidth={2.6}
+                          />
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
                       <TouchableOpacity
-                        style={styles.sheetQtyButton}
-                        activeOpacity={0.85}
+                        style={styles.sheetAddButton}
+                        activeOpacity={0.9}
                         onPress={() =>
                           handleAddToCart({
                             product_id: selectedItem.product_id,
@@ -817,57 +866,38 @@ const RestaurantDetails = (props: IProps) => {
                           })
                         }
                       >
-                        <Plus
-                          size={16}
-                          color={colors.primary}
-                          strokeWidth={2.6}
-                        />
+                        <View
+                          style={[
+                            styles.sheetAddGradient,
+                            { backgroundColor: colors.primary },
+                          ]}
+                        >
+                          <Plus
+                            size={16}
+                            color={colors.onPrimaryDeep}
+                            strokeWidth={2.6}
+                          />
+                          <Text style={styles.sheetAddText}>
+                            Add to cart ₹{selectedTempVariant?.price || 0}
+                          </Text>
+                        </View>
                       </TouchableOpacity>
-                    </View>
-                  ) : (
-                    <TouchableOpacity
-                      style={styles.sheetAddButton}
-                      activeOpacity={0.9}
-                      onPress={() =>
-                        handleAddToCart({
-                          product_id: selectedItem.product_id,
-                          variant_id: selectedTempVariant?.variant_id || '',
-                          shop_id: shopDetails?.shop?.shop_id || '',
-                          quantity: 1,
-                        })
-                      }
-                    >
-                      <View
-                        style={[
-                          styles.sheetAddGradient,
-                          { backgroundColor: colors.primary },
-                        ]}
-                      >
-                        <Plus
-                          size={16}
-                          color={colors.onPrimaryDeep}
-                          strokeWidth={2.6}
-                        />
-                        <Text style={styles.sheetAddText}>
-                          Add to cart ₹{selectedTempVariant?.price || 0}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  )}
+                    )}
 
-                  <TouchableOpacity
-                    style={styles.sheetCloseButton}
-                    activeOpacity={0.9}
-                    onPress={closePreview}
-                  >
-                    <Text style={styles.sheetCloseText}>Close</Text>
-                  </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.sheetCloseButton}
+                      activeOpacity={0.9}
+                      onPress={closePreview}
+                    >
+                      <Text style={styles.sheetCloseText}>Close</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </View>
-            </>
-          ) : null}
-        </BottomSheetView>
-      </BottomSheet>
+              </>
+            ) : null}
+          </View>
+        </Animated.View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -987,10 +1017,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   stickySection: {
-    width: '100%',
-    // paddingTop: 16,
-    // paddingHorizontal: layout.screenPadding,
-    // paddingBottom: 24,
+    width: '100%'
   },
   stickyCard: {
     borderRadius: 24,
@@ -1319,12 +1346,36 @@ const styles = StyleSheet.create({
     fontSize: typography.smPlus,
     fontWeight: '700',
   },
-  sheetBackground: {
+  // ── Custom sheet styles ──
+  sheetBackdrop: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    right: 0,
+    left: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+  },
+  sheetPanel: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     backgroundColor: colors.glass,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
+    overflow: 'hidden',
+    elevation: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+  },
+  sheetHandleWrap: {
+    alignItems: 'center',
+    paddingTop: 12,
+    paddingBottom: 6,
   },
   sheetHandle: {
     width: 44,
@@ -1335,7 +1386,7 @@ const styles = StyleSheet.create({
   sheetContent: {
     flex: 1,
     paddingHorizontal: layout.screenPadding,
-    paddingTop: 8,
+    paddingTop: 4,
     paddingBottom: 18,
     gap: 16,
   },

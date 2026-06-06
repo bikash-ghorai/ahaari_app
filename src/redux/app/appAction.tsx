@@ -180,3 +180,18 @@ export const addCookingInstructions = createAsyncThunk(
     }
   },
 );
+
+//For searching products and shops
+export const searchAPI = createAsyncThunk(
+  'app/search',
+  async (query: string, thunkAPI) => {
+    try {
+      const { data, message }: { data: { products: any[]; shops: any[] }; message: string } =
+        await axios.get(`user/search?keyword=${query}`);
+      return { data, message };
+    } catch (error: any) {
+      return thunkAPI.rejectWithValue(error);
+    }
+  },
+);
+

@@ -1,6 +1,7 @@
-import React, { useMemo, useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   KeyboardAvoidingView,
+  PanResponder,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,11 +12,11 @@ import {
   Platform,
   ActivityIndicator,
   Dimensions,
+  Animated,
 } from 'react-native';
 import { Locate, MapPin } from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 import MapView, { PROVIDER_GOOGLE } from 'react-native-maps';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import Geolocation from 'react-native-geolocation-service';
@@ -32,14 +33,122 @@ import { Constant } from '../constants/Constant';
 
 const { height } = Dimensions.get('window');
 
+// Two snap heights: collapsed = 55 %, expanded = 90 %
+const MAP_CONTAINER_HEIGHT = height * 0.35;
+const SNAP_COLLAPSED = height * 0.55;
+const SNAP_EXPANDED = height * 0.80;
+
 const AddressType: any = [
   { label: 'Home', value: 'Home' },
   { label: 'Work', value: 'Work' },
   { label: 'Other', value: 'Other' },
 ];
 
+// ─── Custom Bottom Sheet ──────────────────────────────────────────────────────
+interface CustomBottomSheetProps {
+  visible: boolean;
+  children: React.ReactNode;
+}
+
+// translateY=0 → fully expanded (SNAP_EXPANDED tall, top edge high)
+// translateY=OFFSET → collapsed (only SNAP_COLLAPSED visible)
+const OFFSET = SNAP_EXPANDED - SNAP_COLLAPSED; // px the sheet slides down when collapsed
+
+const CustomBottomSheet: React.FC<CustomBottomSheetProps> = ({
+  visible,
+  children,
+}) => {
+  // useNativeDriver:true → runs on native thread → buttery 60 fps
+  const translateY = useRef(new Animated.Value(SNAP_EXPANDED)).current;
+  // JS-side ref to know current committed position (0=expanded, OFFSET=collapsed)
+  const currentTY = useRef(OFFSET);
+
+  const snapTo = (target: number, velocity = 0) => {
+    currentTY.current = target;
+    Animated.spring(translateY, {
+      toValue: target,
+      useNativeDriver: true,
+      overshootClamping: true,
+      restDisplacementThreshold: 0.5,
+      restSpeedThreshold: 0.5,
+      velocity,
+    }).start();
+  };
+
+  // Entrance: slide up from below screen on mount
+  useEffect(() => {
+    if (visible) {
+      translateY.setValue(SNAP_EXPANDED);   // start below screen
+      snapTo(OFFSET);                        // settle at collapsed position
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gs) => Math.abs(gs.dy) > 4,
+      onPanResponderGrant: () => {
+        // Freeze animation at current native position so drag feels instant
+        translateY.stopAnimation(val => {
+          currentTY.current = val;
+          translateY.setOffset(val);
+          translateY.setValue(0);
+        });
+      },
+      onPanResponderMove: (_, gs) => {
+        // Clamp so sheet can't go above expanded or below collapsed
+        const raw = gs.dy;
+        const clamped = Math.min(OFFSET, Math.max(0, currentTY.current + raw - currentTY.current));
+        // With offset set: value 0 + gesture delta
+        const delta = Math.min(OFFSET - currentTY.current, Math.max(-currentTY.current, raw));
+        translateY.setValue(delta);
+      },
+      onPanResponderRelease: (_, gs) => {
+        translateY.flattenOffset();
+        const goExpand = gs.dy < -20 || gs.vy < -0.4;
+        const goCollapse = gs.dy > 20 || gs.vy > 0.4;
+        if (goExpand) {
+          snapTo(0, gs.vy);
+        } else if (goCollapse) {
+          snapTo(OFFSET, gs.vy);
+        } else {
+          // Snap to nearest
+          snapTo(currentTY.current < OFFSET / 2 ? 0 : OFFSET, gs.vy);
+        }
+      },
+    }),
+  ).current;
+
+  if (!visible) { return null; }
+
+  return (
+    <Animated.View
+      style={[
+        styles.sheetWrapper,
+        { height: SNAP_EXPANDED, transform: [{ translateY }] },
+      ]}>
+      {/* ── Drag handle (gesture zone) ── */}
+      <View style={styles.sheetHandleWrap} {...panResponder.panHandlers}>
+        <View style={styles.sheetHandle} />
+      </View>
+
+      {/* Amber top glow */}
+      <LinearGradient
+        pointerEvents="none"
+        colors={['rgba(245, 158, 11, 0.12)', 'rgba(18, 20, 24, 0)']}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={styles.sheetGlow}
+      />
+
+      {children}
+    </Animated.View>
+  );
+};
+// ─────────────────────────────────────────────────────────────────────────────
+
 const AddAddressScreen = () => {
-  const snapPoints = useMemo(() => ['50%', '50%'], []);
   const dispatch = useDispatch();
   const mapRef = useRef<null | any>(null);
   const googlePlacesRef = useRef<null | any>(null);
@@ -239,7 +348,8 @@ const AddAddressScreen = () => {
         containerStyle={{ paddingHorizontal: layout.screenPadding }}
       />
 
-      <View style={[styles.mapContainer, { height: height * 0.4 }]}>
+      {/* Map fills remaining space above the sheet */}
+      <View style={[styles.mapContainer, { height: MAP_CONTAINER_HEIGHT }]}>
         {isLoadingLocation && (
           <View style={styles.loadingOverlay}>
             <ActivityIndicator size="large" color={colors.primary} />
@@ -267,7 +377,7 @@ const AddAddressScreen = () => {
         {/* Search bar overlay */}
         <GooglePlacesAutocomplete
           ref={googlePlacesRef}
-          placeholder="Search address..."
+          placeholder="Search your address..."
           onPress={handlePlaceSelected}
           query={{
             key: Constant.MapKey,
@@ -292,117 +402,70 @@ const AddAddressScreen = () => {
         <TouchableOpacity
           style={styles.currentLocationButton}
           onPress={requestLocationPermission}
-          activeOpacity={0.8}
-        >
+          activeOpacity={0.8}>
           <Locate size={20} color={colors.primary} strokeWidth={2} />
         </TouchableOpacity>
       </View>
 
-      <BottomSheet
-        index={0}
-        snapPoints={snapPoints}
-        enablePanDownToClose={false}
-        backgroundStyle={styles.sheetBackground}
-        handleIndicatorStyle={styles.sheetHandle}
-        handleStyle={styles.sheetHandleWrap}
-      >
-        <BottomSheetView style={styles.sheetContent}>
-          <LinearGradient
-            pointerEvents="none"
-            colors={['rgba(245, 158, 11, 0.12)', 'rgba(18, 20, 24, 0)']}
-            start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 1 }}
-            style={styles.sheetGlow}
-          />
+      {/* ── Custom Bottom Sheet ── */}
+      <CustomBottomSheet visible={true}>
+        <ScrollView
+          contentContainerStyle={styles.formContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled">
+          <KeyboardAvoidingView behavior="padding">
+            <Text style={styles.formTitle}>Delivery Address</Text>
+            <Text style={styles.formSubtitle}>
+              Where should we drop your gourmet dining experience?
+            </Text>
 
-          <ScrollView
-            contentContainerStyle={styles.formContent}
-            showsVerticalScrollIndicator={false}
-          >
-            <KeyboardAvoidingView behavior="padding">
-              <Text style={styles.formTitle}>Delivery Address</Text>
-              <Text style={styles.formSubtitle}>
-                Where should we drop your gourmet dining experience?
-              </Text>
-
-              <View style={styles.fieldGroup}>
-                <Text style={styles.fieldLabel}>ADDRESS TAG</Text>
-                <View style={styles.tagRow}>
-                  {AddressType.map((item: any) => (
-                    <TouchableOpacity
-                      key={item.value}
-                      activeOpacity={0.9}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>ADDRESS TAG</Text>
+              <View style={styles.tagRow}>
+                {AddressType.map((item: any) => (
+                  <TouchableOpacity
+                    key={item.value}
+                    activeOpacity={0.9}
+                    style={[
+                      styles.tagChip,
+                      type === item.value && styles.tagChipActive,
+                    ]}
+                    onPress={() => setType(item.value)}>
+                    <Text
                       style={[
-                        styles.tagChip,
-                        type === item.value && styles.tagChipActive,
-                      ]}
-                      onPress={() => setType(item.value)}
-                    >
-                      <Text
-                        style={[
-                          styles.tagText,
-                          type === item.value && styles.tagTextActive,
-                        ]}
-                      >
-                        {item.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                        styles.tagText,
+                        type === item.value && styles.tagTextActive,
+                      ]}>
+                      {item.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
+            </View>
 
-              <View style={styles.fieldGroup}>
-                <Text style={styles.fieldLabel}>STREET ADDRESS *</Text>
-                <View style={[styles.inputShell, styles.inputTall]}>
-                  <TextInput
-                    value={address}
-                    onChangeText={setAddress}
-                    placeholder="House number, street name, area, colony, etc."
-                    placeholderTextColor={colors.textMuted}
-                    multiline={true}
-                    style={[styles.inputText, styles.inputMultiline]}
-                    editable={false}
-                  />
-                </View>
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>STREET ADDRESS *</Text>
+              <View style={[styles.inputShell, styles.inputTall]}>
+                <TextInput
+                  value={address}
+                  onChangeText={setAddress}
+                  placeholder="House number, street name, area, colony, etc."
+                  placeholderTextColor={colors.textMuted}
+                  multiline={true}
+                  style={[styles.inputText, styles.inputMultiline]}
+                  editable={false}
+                />
               </View>
-              {isUserNameAvailable ? null : (
-                <View style={styles.rowFields}>
-                  <View style={styles.halfField}>
-                    <Text style={styles.fieldLabel}>First Name *</Text>
-                    <View style={styles.inputShell}>
-                      <TextInput
-                        value={first_name}
-                        onChangeText={setFirstName}
-                        placeholder="First name"
-                        placeholderTextColor={colors.textMuted}
-                        style={styles.inputText}
-                      />
-                    </View>
-                  </View>
-
-                  <View style={styles.halfField}>
-                    <Text style={styles.fieldLabel}>Last Name *</Text>
-                    <View style={styles.inputShell}>
-                      <TextInput
-                        value={last_name}
-                        onChangeText={setLastName}
-                        placeholder="Last name"
-                        placeholderTextColor={colors.textMuted}
-                        style={styles.inputText}
-                      />
-                    </View>
-                  </View>
-                </View>
-              )}
-
+            </View>
+            {isUserNameAvailable ? null : (
               <View style={styles.rowFields}>
                 <View style={styles.halfField}>
-                  <Text style={styles.fieldLabel}>Phone Number</Text>
+                  <Text style={styles.fieldLabel}>First Name *</Text>
                   <View style={styles.inputShell}>
                     <TextInput
-                      value={phone_no}
-                      onChangeText={setPhoneNo}
-                      placeholder="Phone number"
+                      value={first_name}
+                      onChangeText={setFirstName}
+                      placeholder="First name"
                       placeholderTextColor={colors.textMuted}
                       style={styles.inputText}
                     />
@@ -410,55 +473,81 @@ const AddAddressScreen = () => {
                 </View>
 
                 <View style={styles.halfField}>
-                  <Text style={styles.fieldLabel}>ZIP CODE *</Text>
+                  <Text style={styles.fieldLabel}>Last Name *</Text>
                   <View style={styles.inputShell}>
                     <TextInput
-                      value={pincode}
-                      onChangeText={setPincode}
-                      placeholder="ZIP CODE"
+                      value={last_name}
+                      onChangeText={setLastName}
+                      placeholder="Last name"
                       placeholderTextColor={colors.textMuted}
                       style={styles.inputText}
                     />
                   </View>
                 </View>
               </View>
+            )}
 
-              <View style={styles.fieldGroup}>
-                <Text style={styles.fieldLabel}>Landmark</Text>
+            <View style={styles.rowFields}>
+              <View style={styles.halfField}>
+                <Text style={styles.fieldLabel}>Phone Number</Text>
                 <View style={styles.inputShell}>
                   <TextInput
-                    value={landmark}
-                    onChangeText={setLandmark}
-                    placeholder="Landmark"
+                    value={phone_no}
+                    onChangeText={setPhoneNo}
+                    placeholder="Phone number"
                     placeholderTextColor={colors.textMuted}
                     style={styles.inputText}
                   />
                 </View>
               </View>
 
-              <View style={styles.actionArea}>
-                <TouchableOpacity
-                  activeOpacity={0.95}
-                  style={styles.primaryButton}
-                  onPress={handleSaveAddress}
-                >
-                  <LinearGradient
-                    colors={[colors.primary, colors.primary]}
-                    start={{ x: 0.47, y: 1 }}
-                    end={{ x: 0.53, y: 0 }}
-                    style={styles.primaryButtonGradient}
-                  >
-                    <Text style={styles.primaryButtonText}>Save Address</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-                <Text style={styles.actionHint}>
-                  You can edit this anytime from Address List.
-                </Text>
+              <View style={styles.halfField}>
+                <Text style={styles.fieldLabel}>ZIP CODE *</Text>
+                <View style={styles.inputShell}>
+                  <TextInput
+                    value={pincode}
+                    onChangeText={setPincode}
+                    placeholder="ZIP CODE"
+                    placeholderTextColor={colors.textMuted}
+                    style={styles.inputText}
+                  />
+                </View>
               </View>
-            </KeyboardAvoidingView>
-          </ScrollView>
-        </BottomSheetView>
-      </BottomSheet>
+            </View>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>Landmark</Text>
+              <View style={styles.inputShell}>
+                <TextInput
+                  value={landmark}
+                  onChangeText={setLandmark}
+                  placeholder="Landmark"
+                  placeholderTextColor={colors.textMuted}
+                  style={styles.inputText}
+                />
+              </View>
+            </View>
+
+            <View style={styles.actionArea}>
+              <TouchableOpacity
+                activeOpacity={0.95}
+                style={styles.primaryButton}
+                onPress={handleSaveAddress}>
+                <LinearGradient
+                  colors={[colors.primary, colors.primary]}
+                  start={{ x: 0.47, y: 1 }}
+                  end={{ x: 0.53, y: 0 }}
+                  style={styles.primaryButtonGradient}>
+                  <Text style={styles.primaryButtonText}>Save Address</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+              <Text style={styles.actionHint}>
+                You can edit this anytime from Address List.
+              </Text>
+            </View>
+          </KeyboardAvoidingView>
+        </ScrollView>
+      </CustomBottomSheet>
     </SafeAreaView>
   );
 };
@@ -507,25 +596,31 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: colors.glass,
+    backgroundColor: 'rgba(12, 14, 18, 0.6)',
     borderWidth: 1,
-    borderColor: colors.glassBorder,
+    borderColor: 'rgba(255, 255, 255, 0.23)',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 5,
+
   },
-  sheetBackground: {
+  // ── Custom bottom sheet ──
+  sheetWrapper: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     backgroundColor: colors.background,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    overflow: 'hidden',
+    elevation: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 20,
   },
   sheetHandleWrap: {
+    alignItems: 'center',
     paddingTop: 12,
     paddingBottom: 6,
   },
@@ -535,10 +630,6 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: 'rgba(255,255,255,0.22)',
   },
-  sheetContent: {
-    flex: 1,
-    position: 'relative',
-  },
   sheetGlow: {
     position: 'absolute',
     top: 0,
@@ -546,6 +637,7 @@ const styles = StyleSheet.create({
     right: 0,
     height: 120,
   },
+  // ── Form ──
   formContent: {
     paddingHorizontal: layout.screenPadding,
     paddingTop: 8,
@@ -651,7 +743,7 @@ const styles = StyleSheet.create({
   },
   actionArea: {
     marginTop: 26,
-    paddingBottom: 16,
+    paddingBottom: 100,
     alignItems: 'center',
     gap: 10,
   },

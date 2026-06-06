@@ -33,8 +33,15 @@ export type IHomePageData = {
     id: string;
     image: string;
   }>;
+  categories: Array<{
+    category_id: string;
+    emoji: string;
+    name: string;
+    image: string;
+  }>;
   todaySpecials: Array<{
     shop_id: string;
+    shop_name: string;
     variant_id: string;
     product_id: string;
     name: string;
@@ -44,9 +51,7 @@ export type IHomePageData = {
   }>;
   coupons: Array<{
     title: string;
-    discount_type: 'Percentage' | 'Flat';
-    discount: number;
-    code: string;
+    description: string;
     expire_on: string;
   }>;
   shops: Array<{
