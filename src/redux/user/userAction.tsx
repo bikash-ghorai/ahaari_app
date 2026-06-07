@@ -22,9 +22,9 @@ export const login = createAsyncThunk(
   async (params: ILoginReq, thunkAPI) => {
     try {
       const { data, message }: any = await axios.post('user/login', params);
-      showToaster(message);
+      // showToaster(message);
       console.log('data', data);
-      navigate('OtpAuth', { phone: data?.phone });
+      // navigate('OtpAuth', { phone: data?.phone });
       return { data, message };
     } catch (error: any) {
       showToaster(error);
@@ -61,7 +61,7 @@ export const verifyOTP = createAsyncThunk(
         'user/verify-otp',
         params,
       );
-      showToaster(message);
+      // showToaster(message);
       return { data, message };
     } catch (error: any) {
       showToaster(error);

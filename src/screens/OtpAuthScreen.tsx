@@ -1,6 +1,7 @@
 /* eslint-disable react-native/no-inline-styles */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Keyboard,
   Platform,
   Pressable,
@@ -35,7 +36,9 @@ import {
   setUserDetailsToAsyncStore,
 } from '../utils/storage';
 import { reset } from '../utils/navigationRef';
-import messaging from '@react-native-firebase/messaging'
+import messaging from '@react-native-firebase/messaging';
+import auth from '@react-native-firebase/auth';
+import { showToaster } from '../utils/toaster';
 
 const OTP_LENGTH = 6;
 const INITIAL_COUNTDOWN = 30;
@@ -107,12 +110,14 @@ const OtpAuthScreen = () => {
   const route = useRoute<OtpAuthRouteProp>();
   const otpInputRef = useRef<TextInput>(null);
   const phone: string = route.params?.phone || '';
+  const routeConfirmation: any = route.params?.confirmation || null;
   const { userCurrentCoords } = useSelector(state => state.user);
 
+  const [confirmation, setConfirmation] = useState(routeConfirmation);
   const [otp, setOtp] = useState('');
   const [countdown, setCountdown] = useState(INITIAL_COUNTDOWN);
-
   const phoneLabel = useMemo(() => formatPhoneLabel(phone), [phone]);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (countdown <= 0) {
@@ -139,27 +144,41 @@ const OtpAuthScreen = () => {
     }
   };
 
-  const handleResend = () => {
+  const handleResend = async () => {
     if (countdown > 0) {
       return;
     }
-    dispatch(resendOtp({ phone }))
-      .unwrap()
-      .then(() => {
-        setCountdown(INITIAL_COUNTDOWN);
-        setOtp('');
-        focusOtpInput();
-      });
+    // dispatch(resendOtp({ phone }))
+    //   .unwrap()
+    //   .then(() => {
+    //     setCountdown(INITIAL_COUNTDOWN);
+    //     setOtp('');
+    //     focusOtpInput();
+    //   });
+
+    const phoneNumber = `+91${phone.replace(/\D/g, '')}`;
+    try {
+      const newConfirmation = await auth().signInWithPhoneNumber(phoneNumber);
+      setConfirmation(newConfirmation);
+      setCountdown(INITIAL_COUNTDOWN);
+      setOtp('');
+      focusOtpInput();
+    } catch (error) {
+      console.error('Error resending OTP:', error);
+      showToaster('Failed to resend OTP. Please try again.');
+    }
   };
 
   const handleVerify = async () => {
     if (otp.length < OTP_LENGTH) {
       return;
     }
-    const fcmToken = await messaging().getToken();
-    dispatch(verifyOTP({ phone, otp, device_token: fcmToken || '' }))
-      .unwrap()
-      .then(async ({ data }) => {
+    setIsLoading(true);
+    try {
+      const userCredential = await confirmation.confirm(otp);
+      const idToken = await userCredential.user.getIdToken();
+      const fcmToken = await messaging().getToken();
+      dispatch(verifyOTP({ phone, otp, id_token: idToken, device_token: fcmToken || '' })).unwrap().then(async ({ data }) => {
         if (data) {
           setApiToken(data.token);
           await setAuthTokenToAsyncStore(data.token);
@@ -171,9 +190,15 @@ const OtpAuthScreen = () => {
           ) {
             dispatch(updateLocation(userCurrentCoords));
           }
+          setIsLoading(false);
           reset('Tabs');
         }
       });
+    } catch (error) {
+      console.error('Error verifying OTP:', error);
+      setIsLoading(false);
+      showToaster('Incorrect OTP. Please try again.');
+    }
   };
 
   return (
@@ -322,14 +347,16 @@ const OtpAuthScreen = () => {
                 end={{ x: 0.95, y: 1 }}
                 style={styles.verifyGradient}
               >
-                <Text
-                  style={[
-                    styles.verifyText,
-                    otp.length < OTP_LENGTH ? styles.verifyTextDisabled : null,
-                  ]}
-                >
-                  Verify & Continue
-                </Text>
+                {isLoading ? (
+                  <ActivityIndicator size="large" color="#000000" />
+                ) : (
+                  <Text
+                    style={[
+                      styles.verifyText,
+                      otp.length < OTP_LENGTH ? styles.verifyTextDisabled : null,
+                    ]}
+                  >Verify & Continue</Text>
+                )}
               </LinearGradient>
             </TouchableOpacity>
 
@@ -516,6 +543,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     overflow: 'hidden',
     marginBottom: 18,
+    marginTop: 18,
     shadowColor: '#F59E0B',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.3,

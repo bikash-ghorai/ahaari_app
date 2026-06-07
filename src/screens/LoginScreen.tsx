@@ -1,7 +1,9 @@
 /* eslint-disable react-native/no-inline-styles */
 import React, { useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -23,11 +25,13 @@ import Svg, {
   Stop,
 } from 'react-native-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import auth from '@react-native-firebase/auth';
 
 import { colors, layout, typography } from '../constants/theme';
 import { useDispatch } from '../redux/store';
 import { login } from '../redux/user/userAction';
 import { showToaster } from '../utils/toaster';
+import { navigate } from '../utils/navigationRef';
 
 const FrostedLayer = ({ radius }: { radius: number }) => (
   <>
@@ -73,16 +77,33 @@ const FrostedLayer = ({ radius }: { radius: number }) => (
 const LoginScreen = () => {
   const dispatch = useDispatch();
   const [phone, setPhone] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const phoneDigits = useMemo(() => phone.replace(/\D/g, ''), [phone]);
 
-  const handleGetOtp = () => {
+  const handleGetOtp = async () => {
     if (phoneDigits.length !== 10) {
       showToaster('Please enter a valid 10-digit phone number.');
       return;
     }
 
-    dispatch(login({ phone: phoneDigits })).unwrap();
+    const phoneNumber = `+91${phoneDigits}`;
+    setIsLoading(true);
+    dispatch(login({ phone: phoneDigits })).unwrap().then(async (result: any) => {
+      try {
+        const confirmation = await auth().signInWithPhoneNumber(phoneNumber);
+        showToaster(result?.message || 'OTP sent successfully');
+        navigate('OtpAuth', { phone: phoneDigits, confirmation });
+      } catch (error) {
+        console.log('Error sending OTP:', error);
+        showToaster('Failed to send OTP. Please try again.');
+      }
+    }).catch((error: any) => {
+      console.log('Login error:', error);
+      showToaster('Login failed. Please try again.');
+    }).finally(() => {
+      setIsLoading(false);
+    });
   };
 
   return (
@@ -202,23 +223,33 @@ const LoginScreen = () => {
                     placeholderTextColor="rgba(170, 171, 176, 0.62)"
                     style={styles.phoneInput}
                     value={phone}
-                    onChangeText={text => setPhone(text)}
+                    onChangeText={text => {
+                      setPhone(text);
+                      if (text.replace(/\D/g, '').length === 10) {
+                        Keyboard.dismiss();
+                      }
+                    }}
                     maxLength={10}
                   />
                 </View>
 
                 <TouchableOpacity
-                  activeOpacity={1}
-                  style={styles.otpButton}
+                  activeOpacity={isLoading ? 1 : 0.85}
+                  style={[styles.otpButton, isLoading && styles.otpButtonDisabled]}
                   onPress={handleGetOtp}
+                  disabled={isLoading}
                 >
                   <LinearGradient
-                    colors={['#FFAD3A', '#E79400']}
+                    colors={isLoading ? ['#C47D1C', '#A86200'] : ['#FFAD3A', '#E79400']}
                     start={{ x: 0.1, y: 0 }}
                     end={{ x: 0.95, y: 1 }}
                     style={styles.otpGradient}
                   >
-                    <Text style={styles.otpText}>Get OTP</Text>
+                    {isLoading ? (
+                      <ActivityIndicator size="large" color="#000000" />
+                    ) : (
+                      <Text style={styles.otpText}>Get OTP</Text>
+                    )}
                   </LinearGradient>
                 </TouchableOpacity>
 
@@ -387,6 +418,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.38,
     shadowRadius: 24,
     elevation: 8,
+  },
+  otpButtonDisabled: {
+    shadowOpacity: 0.15,
+    elevation: 3,
+    opacity: 0.85,
   },
   otpGradient: {
     height: 56,

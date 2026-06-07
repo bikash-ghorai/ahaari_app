@@ -97,7 +97,7 @@ function App() {
   };
 
   useEffect(() => {
-    requestNotificationPermission();
+    // requestNotificationPermission();
     messaging().registerDeviceForRemoteMessages().then(r => { });
     messaging()
       .getToken()

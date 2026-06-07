@@ -16,7 +16,7 @@ export type RootTabParamList = {
 export type RootStackParamList = {
   Login: undefined;
   Splash: undefined;
-  OtpAuth: { phone?: string } | undefined;
+  OtpAuth: { phone?: string, confirmation?: any } | undefined;
   Tabs: NavigatorScreenParams<RootTabParamList> | undefined;
   Search: { initialQuery?: string } | undefined;
   MyCircle: undefined;

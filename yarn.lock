@@ -2223,6 +2223,13 @@
   dependencies:
     firebase "12.14.0"
 
+"@react-native-firebase/auth@^24.1.0":
+  version "24.1.0"
+  resolved "https://registry.yarnpkg.com/@react-native-firebase/auth/-/auth-24.1.0.tgz#a130582f960e4fe9c2e81767e286f5fdbbc230c1"
+  integrity sha512-TknJ47JSYi4sixVSUs5/5yNRZ70BeJ3gPoq35HkpdBLjfBJWiQFKS5oQEeUnW39LtxzEFy646UkoiiB+0zntdA==
+  dependencies:
+    plist "^3.1.0"
+
 "@react-native-firebase/messaging@^24.1.0":
   version "24.1.0"
   resolved "https://registry.yarnpkg.com/@react-native-firebase/messaging/-/messaging-24.1.0.tgz#d94f6ec0804f512bbdfcada8db836330080aa3c0"

@@ -26,6 +26,7 @@ export type ILoginReq = {
 export type IVerifyUserReq = {
   phone: string | number;
   otp: string | number;
+  id_token?: string;
   device_token?: string;
 };
 

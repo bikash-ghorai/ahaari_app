@@ -56,7 +56,7 @@ const requestLocationPermission = async () => {
 };
 
 export const fetchUserCurrentLocation = async () => {
-  console.log('Fetching user location...', new Date().getSeconds());
+  console.log('Fetching user location...');
   const hasPermission = await requestLocationPermission();
   if (!hasPermission) {
     return Promise.reject(new Error('Location permission denied'));

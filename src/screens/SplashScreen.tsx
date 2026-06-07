@@ -23,9 +23,9 @@ const SplashScreen = () => {
 
   useEffect(() => {
     initiatApp();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  console.log('Initiating app...');
   const initiatApp = async () => {
     try {
       let coords: any = await fetchUserCurrentLocation();
