@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { PermissionsAndroid, StatusBar, StyleSheet, View } from 'react-native';
+import { StatusBar, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -97,7 +97,6 @@ function App() {
   };
 
   useEffect(() => {
-    // requestNotificationPermission();
     messaging().registerDeviceForRemoteMessages().then(r => { });
     messaging()
       .getToken()
@@ -113,16 +112,6 @@ function App() {
       // onDisplayNotification(remoteMessage?.notification);
     });
   }, []);
-
-  const requestNotificationPermission = async () => {
-    try {
-      await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
-      );
-    } catch (err) {
-      console.log('requestNotificationPermission error: ', err);
-    }
-  };
 
   return (
     <GestureHandlerRootView style={styles.root}>

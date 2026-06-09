@@ -1,7 +1,11 @@
 /* eslint-disable react-native/no-inline-styles */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+  Dimensions,
+  FlatList,
   Image,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   ScrollView,
   StyleSheet,
   Text,
@@ -9,7 +13,7 @@ import {
   View,
 } from 'react-native';
 
-import { AlertTriangle, Bell, Heart, Search, Star, Store } from 'lucide-react-native';
+import { AlertTriangle, Bell, Flame, Heart, HeartIcon, LucideHeart, Search, ShoppingBag, Star, Store } from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -19,7 +23,7 @@ import WeatherAlertTooltip from '../components/WeatherAlertTooltip';
 import { useWeatherAlert } from '../contexts/WeatherAlertContext';
 import { useDispatch } from '../redux/store';
 import { IRestaurant } from '../types';
-import { getRestaurants } from '../redux/app/appAction';
+import { getRestaurants, toggleWishlist } from '../redux/app/appAction';
 import { Constant } from '../constants/Constant';
 import { ImagePath } from '../constants/ImagePath';
 import Loader from '../components/Loader';
@@ -30,6 +34,131 @@ const cuisineChips = [
   'Artisanal Bakery',
   'Japanese Fusion',
 ];
+
+const CARD_IMAGE_HEIGHT = 256;
+const SLIDER_WIDTH = Dimensions.get('window').width - layout.screenPadding * 2;
+
+const RestaurantImageSlider = ({
+  images,
+  shopId,
+}: {
+  images: string[];
+  shopId: string;
+}) => {
+  const isMultiple = images.length > 1;
+  // [last, img0, img1, ..., imgN-1, first] — clones at both ends for seamless loop
+  const extendedImages = isMultiple
+    ? [images[images.length - 1], ...images, images[0]]
+    : images;
+
+  const startIndex = isMultiple ? 1 : 0;
+  const [activeIndex, setActiveIndex] = useState(startIndex);
+  const flatRef = useRef<FlatList>(null);
+  const activeIndexRef = useRef(startIndex);
+
+  // Initialise scroll position to index 1 (skip the leading clone)
+  useEffect(() => {
+    if (!isMultiple) { return; }
+    const t = setTimeout(() => {
+      flatRef.current?.scrollToIndex({ index: 1, animated: false });
+    }, 0);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Auto-slide: always go forward; silently reset when clone is shown
+  useEffect(() => {
+    if (!isMultiple) { return; }
+    const timer = setInterval(() => {
+      const next = activeIndexRef.current + 1;
+      flatRef.current?.scrollToIndex({ index: next, animated: true });
+      activeIndexRef.current = next;
+      setActiveIndex(next);
+
+      // Landed on the trailing clone (copy of first image) → jump to real first
+      if (next === extendedImages.length - 1) {
+        setTimeout(() => {
+          flatRef.current?.scrollToIndex({ index: 1, animated: false });
+          activeIndexRef.current = 1;
+          setActiveIndex(1);
+        }, 400);
+      }
+    }, 3000);
+    return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMultiple, extendedImages.length]);
+
+  // Handle manual swipes hitting the clone frames
+  const onMomentumScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (!isMultiple) { return; }
+    const idx = Math.round(e.nativeEvent.contentOffset.x / SLIDER_WIDTH);
+    activeIndexRef.current = idx;
+    setActiveIndex(idx);
+
+    if (idx === 0) {
+      // Swiped backward past the first image → jump to real last
+      const realLast = images.length;
+      flatRef.current?.scrollToIndex({ index: realLast, animated: false });
+      activeIndexRef.current = realLast;
+      setActiveIndex(realLast);
+    } else if (idx === extendedImages.length - 1) {
+      // Swiped forward past the last image → jump to real first
+      flatRef.current?.scrollToIndex({ index: 1, animated: false });
+      activeIndexRef.current = 1;
+      setActiveIndex(1);
+    }
+  };
+
+  // Map extended index → original 0-based dot index
+  const dotIndex = isMultiple
+    ? ((activeIndex - 1 + images.length) % images.length)
+    : 0;
+
+  return (
+    <View style={sliderStyles.root}>
+      <FlatList
+        ref={flatRef}
+        data={extendedImages}
+        keyExtractor={(_, i) => `${shopId}-img-${i}`}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onMomentumScrollEnd={onMomentumScrollEnd}
+        getItemLayout={(_, index) => ({
+          length: SLIDER_WIDTH,
+          offset: SLIDER_WIDTH * index,
+          index,
+        })}
+        onScrollToIndexFailed={({ index }) => {
+          flatRef.current?.scrollToOffset({
+            offset: SLIDER_WIDTH * index,
+            animated: false,
+          });
+        }}
+        renderItem={({ item }) => (
+          <Image
+            source={{ uri: Constant.ImageURL + item }}
+            style={[sliderStyles.image, { width: SLIDER_WIDTH }]}
+          />
+        )}
+      />
+      {isMultiple && (
+        <View style={sliderStyles.dots}>
+          {images.map((_, i) => (
+            <View
+              key={i}
+              style={[
+                sliderStyles.dot,
+                i === dotIndex && sliderStyles.dotActive,
+              ]}
+            />
+          ))}
+        </View>
+      )}
+    </View>
+  );
+};
 
 const RestaurantList = (props: any) => {
   const dispatch = useDispatch();
@@ -81,6 +210,19 @@ const RestaurantList = (props: any) => {
     setSelectedCategory(categoryId);
     // getShopHandler(categoryId);
   }
+
+  const handleToggleWishlist = (shopId: string) => {
+    dispatch(toggleWishlist(shopId))
+      .unwrap()
+      .then((res: any) => {
+        console.log('Wishlist toggled:', res);
+        getShopHandler(selectedCategory);
+      })
+      .catch((error: any) => {
+        console.log('Error toggling wishlist:', error);
+      });
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <WeatherAlertTooltip />
@@ -188,7 +330,6 @@ const RestaurantList = (props: any) => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* -- Cuisine chips -- */}
         <ScrollView
           horizontal
           style={styles.chipsScroll}
@@ -232,14 +373,21 @@ const RestaurantList = (props: any) => {
               >
                 {/* Hero image area */}
                 <View style={styles.cardHero}>
-                  <Image
-                    source={
-                      restaurant?.image
-                        ? { uri: Constant?.ImageURL + restaurant?.image }
-                        : ImagePath.noShopPlaceholder
-                    }
-                    style={styles.cardImage}
-                  />
+                  {restaurant?.images && restaurant.images.length > 0 ? (
+                    <RestaurantImageSlider
+                      images={restaurant.images}
+                      shopId={restaurant.shop_id}
+                    />
+                  ) : (
+                    <Image
+                      source={
+                        restaurant?.image
+                          ? { uri: Constant?.ImageURL + restaurant?.image }
+                          : ImagePath.noShopPlaceholder
+                      }
+                      style={styles.cardImage}
+                    />
+                  )}
                   <LinearGradient
                     colors={[
                       'rgba(18, 20, 24, 0.8)',
@@ -258,15 +406,22 @@ const RestaurantList = (props: any) => {
                   >
                     {restaurant?.type ? (
                       <View style={styles.vipBadge}>
-                        <View style={styles.vipDot} />
+                        <Flame size={14} color={colors.primary} />
                         <Text style={styles.vipText}>{restaurant?.type}</Text>
                       </View>
                     ) : null}
                     <TouchableOpacity
                       style={styles.likeButton}
                       activeOpacity={0.85}
+                      onPress={() => {
+                        handleToggleWishlist(restaurant?.shop_id);
+                      }}
                     >
-                      <Heart size={20} color="#FFFFFF" strokeWidth={2} />
+                      {restaurant?.is_wishlist ? (
+                        <Heart size={20} color={colors.accentCoral} strokeWidth={2} />
+                      ) : (
+                        <Heart size={20} color="#FFFFFF" strokeWidth={2} />
+                      )}
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -288,7 +443,7 @@ const RestaurantList = (props: any) => {
                     </View>
                   </View>
 
-                  <Text style={styles.cardDetails}>{restaurant?.address}</Text>
+                  <Text style={styles.cardDetails} numberOfLines={2}>{restaurant?.address}</Text>
                 </View>
               </TouchableOpacity>
             ))
@@ -468,12 +623,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
-  vipDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 2,
-    backgroundColor: colors.primary,
-  },
   vipText: {
     color: colors.primary,
     fontSize: typography.caption,
@@ -629,6 +778,39 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     maxWidth: 280,
   }
+});
+
+const sliderStyles = StyleSheet.create({
+  root: {
+    height: CARD_IMAGE_HEIGHT,
+    overflow: 'hidden',
+  },
+  image: {
+    height: CARD_IMAGE_HEIGHT,
+    resizeMode: 'cover',
+  },
+  dots: {
+    position: 'absolute',
+    bottom: 8,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 5,
+  },
+  dot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.45)',
+  },
+  dotActive: {
+    width: 14,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: '#FFFFFF',
+  },
 });
 
 export default RestaurantList;

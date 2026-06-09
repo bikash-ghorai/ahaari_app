@@ -4,7 +4,7 @@ import {
   Animated,
   Image,
   Modal,
-  Platform,
+  PermissionsAndroid,
   Pressable,
   ScrollView,
   StatusBar,
@@ -97,9 +97,20 @@ const HomeScreen = () => {
     : currentLocationLabel;
 
   React.useEffect(() => {
+    requestNotificationPermission();
     handleFetchHomePageData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const requestNotificationPermission = async () => {
+    try {
+      await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+      );
+    } catch (err) {
+      console.log('requestNotificationPermission error: ', err);
+    }
+  };
 
   const handleFetchHomePageData = () => {
     dispatch(homePageAPI())

@@ -87,6 +87,26 @@ export const getMyProfile = createAsyncThunk(
   },
 );
 
+//For updating user profile
+export const updateProfile = createAsyncThunk(
+  'user/updateProfile',
+  async (
+    params: { first_name: string; last_name: string; dob: string },
+    thunkAPI,
+  ) => {
+    try {
+      const { data, message }: { data: any; message: string } =
+        await axios.post('user/update-profile', params);
+      await setUserDetailsToAsyncStore(data);
+      showToaster(message);
+      return { data, message };
+    } catch (error: any) {
+      showToaster(error);
+      return thunkAPI.rejectWithValue(error);
+    }
+  },
+);
+
 //For fetching user addresses
 export const getAddressList = createAsyncThunk(
   'user/getAddressList',
@@ -218,6 +238,20 @@ export const getWalletHistory = createAsyncThunk(
     try {
       const { data, message }: { data: any; message: string } =
         await axios.post('user/wallet', params);
+      console.log('data1', data);
+      return { data, message };
+    } catch (error: any) {
+      return thunkAPI.rejectWithValue(error);
+    }
+  },
+);
+
+export const topUpWallet = createAsyncThunk(
+  'user/topUpWallet',
+  async (params: any, thunkAPI) => {
+    try {
+      const { data, message }: { data: any; message: string } =
+        await axios.post('user/top-up-wallet', params);
       console.log('data1', data);
       await setUserDetailsToAsyncStore(data);
       return { data, message };

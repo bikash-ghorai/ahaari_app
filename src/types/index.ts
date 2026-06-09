@@ -72,27 +72,18 @@ export type IHomePageData = {
 };
 
 export type IRestaurant = {
-  id: string | number;
   shop_id: string;
   name: string;
   address: string;
-  longitude: string;
-  latitude: string;
-  image: string;
-  timing: string | null;
-  commission: string | number;
-  price_hike: string | number;
-  tax: string | number;
+  image: string | null;
+  images?: string[];
   discount: string | number;
   discount_upto: string | number;
   discount_type: string;
   rating: string | number;
   rated: string | number;
-  zone_id: string;
-  use_app: string;
+  is_wishlist: boolean;
   status: string;
-  created_at: string;
-  updated_at: string;
   type: string;
   delivery_time: string;
 };

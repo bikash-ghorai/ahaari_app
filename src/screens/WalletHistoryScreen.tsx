@@ -20,9 +20,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, layout, typography } from '../constants/theme';
 import Header from '../components/Header';
 import { useDispatch } from '../redux/store';
-import { getWalletHistory } from '../redux/user/userAction';
+import { getWalletHistory, topUpWallet } from '../redux/user/userAction';
 import moment from 'moment';
 import { currencyFormate } from '../utils/helper';
+import { showToaster } from '../utils/toaster';
 
 type WalletHistoryItem = {
   id: number;
@@ -102,6 +103,21 @@ const WalletHistoryScreen = () => {
   const closeTopUpSheet = React.useCallback(() => {
     setIsTopUpOpen(false);
   }, []);
+
+  const proceedTopup = React.useCallback(() => {
+    if (selectedAmount > 0) {
+      setIsTopUpOpen(false);
+      // proceed to payment
+      console.log('selectedAmount', selectedAmount);
+      dispatch(topUpWallet({ amount: selectedAmount })).unwrap().then(() => {
+        loadWalletHistory(1, true);
+      }).catch((error) => {
+        console.log('error', error);
+      });
+    } else {
+      showToaster("Please select an amount");
+    }
+  }, [selectedAmount]);
 
   const loadWalletHistory = React.useCallback(
     async (pageNo: number, replace = false) => {
@@ -290,8 +306,8 @@ const WalletHistoryScreen = () => {
                           item?.status === 'Success'
                             ? colors.success
                             : item?.status === 'Failed'
-                            ? colors.red
-                            : colors.textMutedSoft2,
+                              ? colors.red
+                              : colors.textMutedSoft2,
                       },
                     ]}
                   >
@@ -380,6 +396,11 @@ const WalletHistoryScreen = () => {
                     placeholder="Enter amount"
                     placeholderTextColor={colors.textMuted}
                     keyboardType="numeric"
+                    value={selectedAmount === 0 ? '' : selectedAmount.toString()}
+                    onChangeText={text => {
+                      const numericValue = text.replace(/[^0-9]/g, '');
+                      setSelectedAmount(Number(numericValue));
+                    }}
                   />
                 </View>
               </View>
@@ -395,7 +416,9 @@ const WalletHistoryScreen = () => {
                         styles.amountChip,
                         isActive ? styles.amountChipActive : null,
                       ]}
-                      onPress={() => setSelectedAmount(amount)}
+                      onPress={() => {
+                        setSelectedAmount(amount)
+                      }}
                     >
                       <Text
                         style={[
@@ -414,14 +437,14 @@ const WalletHistoryScreen = () => {
                 <TouchableOpacity
                   style={styles.topUpButton}
                   activeOpacity={0.92}
-                  onPress={closeTopUpSheet}
+                  onPress={proceedTopup}
                 >
                   <Text style={styles.sheetButtonText}>
                     Continue to Payment
                   </Text>
                 </TouchableOpacity>
                 <Text style={styles.sheetHint}>
-                  You will confirm the payment method next.
+                  You will proceed to the payment page next.
                 </Text>
               </View>
             </View>

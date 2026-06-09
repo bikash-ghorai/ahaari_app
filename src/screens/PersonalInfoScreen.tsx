@@ -1,6 +1,12 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+  DateTimePickerAndroid,
+  DateTimePickerEvent,
+} from '@react-native-community/datetimepicker';
+import {
+  ActivityIndicator,
   Image,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,23 +16,71 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Star } from 'lucide-react-native';
+import { CalendarDays, Star } from 'lucide-react-native';
+import moment from 'moment';
+import { useDispatch } from 'react-redux';
 
 import { colors, layout, typography } from '../constants/theme';
 import Header from '../components/Header';
 import { getUserDetailsFromAsyncStore } from '../utils/storage';
+import { Constant } from '../constants/Constant';
+import { ImagePath } from '../constants/ImagePath';
+import { updateProfile } from '../redux/user/userAction';
 const PersonalInfoScreen = () => {
+  const dispatch = useDispatch<any>();
   const [firstName, setFirstName] = React.useState('');
   const [lastName, setLastName] = React.useState('');
   const [phone, setPhone] = React.useState('');
   const [birthday, setBirthday] = React.useState('');
+  const [birthdayDate, setBirthdayDate] = React.useState<Date | undefined>(undefined);
+  const [isLoading, setIsLoading] = useState(false);
 
   const loadUserDetails = async () => {
     const userDetails: any = await getUserDetailsFromAsyncStore();
     setFirstName(userDetails?.first_name || '');
     setLastName(userDetails?.last_name || '');
     setPhone(userDetails?.phone || '');
-    setBirthday(userDetails?.dob || '');
+    const dob = userDetails?.dob || '';
+    setBirthday(dob);
+    if (dob) {
+      const parsed = moment(dob, ['DD MMM YYYY', 'YYYY-MM-DD', moment.ISO_8601], true);
+      if (parsed.isValid()) {
+        setBirthdayDate(parsed.toDate());
+      }
+    }
+  };
+
+  const openDatePicker = () => {
+    if (Platform.OS === 'android') {
+      DateTimePickerAndroid.open({
+        value: birthdayDate ?? new Date(2000, 0, 1),
+        mode: 'date',
+        maximumDate: new Date(),
+        onChange: (_event: DateTimePickerEvent, selectedDate?: Date) => {
+          if (selectedDate) {
+            setBirthdayDate(selectedDate);
+            setBirthday(moment(selectedDate).format('DD MMM YYYY'));
+          }
+        },
+      });
+    }
+  };
+
+  const handleUpdateProfile = async () => {
+    setIsLoading(true);
+    try {
+      await dispatch(
+        updateProfile({
+          first_name: firstName,
+          last_name: lastName,
+          dob: birthday,
+        }),
+      ).unwrap();
+    } catch (_error) {
+      // error toast is shown inside the thunk
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -50,16 +104,14 @@ const PersonalInfoScreen = () => {
           <View style={styles.heroRow}>
             <View style={styles.avatarWrap}>
               <Image
-                source={{
-                  uri: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=512&q=80',
-                }}
+                source={require('../assets/profile.png')}
                 style={styles.avatar}
               />
             </View>
 
             <View style={styles.heroText}>
-              <Text style={styles.heroName}>{firstName} {lastName}</Text>
-              <Text style={styles.heroMeta}>Member since 2022</Text>
+              <Text style={styles.heroName}>{firstName || 'No'} {lastName || 'Name'}</Text>
+              <Text style={styles.heroMeta}>Member since 2026</Text>
 
               <View style={styles.heroActions}>
                 <View style={styles.heroChip}>
@@ -71,12 +123,12 @@ const PersonalInfoScreen = () => {
                   <Text style={styles.heroChipText}>Standard Member</Text>
                 </View>
 
-                <TouchableOpacity
+                {/* <TouchableOpacity
                   style={styles.editButton}
                   activeOpacity={0.85}
                 >
                   <Text style={styles.editButtonText}>Edit photo</Text>
-                </TouchableOpacity>
+                </TouchableOpacity> */}
               </View>
             </View>
           </View>
@@ -122,6 +174,7 @@ const PersonalInfoScreen = () => {
                   placeholderTextColor={colors.textMuted}
                   keyboardType="phone-pad"
                   style={styles.inputText}
+                  editable={false}
                 />
               </View>
             </View>
@@ -129,13 +182,25 @@ const PersonalInfoScreen = () => {
               <View style={styles.halfField}>
                 <Text style={styles.fieldLabel}>BIRTHDAY</Text>
                 <View style={styles.inputShell}>
-                  <TextInput
-                    value={birthday}
-                    onChangeText={setBirthday}
-                    placeholder="DD MMM YYYY"
-                    placeholderTextColor={colors.textMuted}
-                    style={styles.inputText}
-                  />
+                  <TouchableOpacity
+                    style={styles.datePickerRow}
+                    onPress={openDatePicker}
+                    activeOpacity={0.7}
+                  >
+                    <Text
+                      style={[
+                        styles.inputText,
+                        !birthday && styles.inputPlaceholder,
+                      ]}
+                    >
+                      {birthday || 'DD MM YY'}
+                    </Text>
+                    <CalendarDays
+                      size={16}
+                      color={colors.textMuted}
+                      strokeWidth={2}
+                    />
+                  </TouchableOpacity>
                 </View>
               </View>
 
@@ -150,20 +215,24 @@ const PersonalInfoScreen = () => {
         </View>
 
         <View style={styles.actionArea}>
-          <TouchableOpacity style={styles.primaryButton} activeOpacity={0.95}>
+          <TouchableOpacity style={styles.primaryButton} activeOpacity={0.95} onPress={handleUpdateProfile}>
             <LinearGradient
-              colors={[colors.primary, '#FFC94D']}
+              colors={[colors.primary, colors.primary]}
               start={{ x: 0.45, y: 1 }}
               end={{ x: 0.55, y: 0 }}
               style={styles.primaryButtonGradient}
             >
-              <Text style={styles.primaryButtonText}>Save Changes</Text>
+              {isLoading ? (
+                <ActivityIndicator size="large" color="#000000" />
+              ) : (
+                <Text style={styles.primaryButtonText}>Save Changes</Text>
+              )}
             </LinearGradient>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.secondaryButton} activeOpacity={0.9}>
+          {/* <TouchableOpacity style={styles.secondaryButton} activeOpacity={0.9}>
             <Text style={styles.secondaryButtonText}>Discard Updates</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -318,6 +387,16 @@ const styles = StyleSheet.create({
     fontSize: typography.bodyPlus,
     fontWeight: '600',
     paddingVertical: 0,
+    flex: 1,
+  },
+  inputPlaceholder: {
+    color: colors.textMuted,
+    fontWeight: '400',
+  },
+  datePickerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   inputMultiline: {
     minHeight: 48,

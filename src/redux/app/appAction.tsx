@@ -210,3 +210,15 @@ export const searchAPI = createAsyncThunk(
   },
 );
 
+export const toggleWishlist = createAsyncThunk(
+  'app/toggleWishlist',
+  async (shopId: string, thunkAPI) => {
+    try {
+      const { data, message }: { data: any; message: string } =
+        await axios.post(`user/toggle-wishlist`, { shop_id: shopId });
+      return { data, message };
+    } catch (error: any) {
+      return thunkAPI.rejectWithValue(error);
+    }
+  },
+);
