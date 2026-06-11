@@ -4,6 +4,7 @@ import {
   Animated,
   Image,
   Platform,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -103,6 +104,11 @@ const OrdersScreen = () => {
     null,
   );
   const [isLoading, setIsLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchOrders();
+  };
 
   useEffect(() => {
     const shimmerLoop = Animated.loop(
@@ -121,17 +127,23 @@ const OrdersScreen = () => {
 
   useEffect(() => {
     if (isFocused) {
-      setIsLoading(true);
-      dispatch(getOrders())
-        .unwrap()
-        .then(({ data }) => {
-          setOrderListData(data);
-        }).finally(() => {
-          setIsLoading(false);
-        });
+      fetchOrders();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isFocused]);
+
+  const fetchOrders = () => {
+    setIsLoading(true);
+    dispatch(getOrders())
+      .unwrap()
+      .then(({ data }) => {
+        setOrderListData(data);
+      })
+      .finally(() => {
+        setIsLoading(false);
+        setRefreshing(false);
+      });
+  };
 
   const openOrderDetails = (orderId: string) => {
     navigation.navigate('OrderDetails', { orderId: orderId || '' });
@@ -264,6 +276,9 @@ const OrdersScreen = () => {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
         <View style={styles.mainStack}>
           {orderListData &&

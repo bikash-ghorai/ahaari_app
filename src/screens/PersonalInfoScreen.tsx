@@ -32,7 +32,9 @@ const PersonalInfoScreen = () => {
   const [lastName, setLastName] = React.useState('');
   const [phone, setPhone] = React.useState('');
   const [birthday, setBirthday] = React.useState('');
-  const [birthdayDate, setBirthdayDate] = React.useState<Date | undefined>(undefined);
+  const [birthdayDate, setBirthdayDate] = React.useState<Date | undefined>(
+    undefined,
+  );
   const [isLoading, setIsLoading] = useState(false);
 
   const loadUserDetails = async () => {
@@ -43,7 +45,11 @@ const PersonalInfoScreen = () => {
     const dob = userDetails?.dob || '';
     setBirthday(dob);
     if (dob) {
-      const parsed = moment(dob, ['DD MMM YYYY', 'YYYY-MM-DD', moment.ISO_8601], true);
+      const parsed = moment(
+        dob,
+        ['DD MMM YYYY', 'YYYY-MM-DD', moment.ISO_8601],
+        true,
+      );
       if (parsed.isValid()) {
         setBirthdayDate(parsed.toDate());
       }
@@ -104,13 +110,15 @@ const PersonalInfoScreen = () => {
           <View style={styles.heroRow}>
             <View style={styles.avatarWrap}>
               <Image
-                source={require('../assets/profile.png')}
+                source={require('../assets/color_profile_icon.png')}
                 style={styles.avatar}
               />
             </View>
 
             <View style={styles.heroText}>
-              <Text style={styles.heroName}>{firstName || 'No'} {lastName || 'Name'}</Text>
+              <Text style={styles.heroName}>
+                {firstName || 'No'} {lastName || 'Name'}
+              </Text>
               <Text style={styles.heroMeta}>Member since 2026</Text>
 
               <View style={styles.heroActions}>
@@ -215,7 +223,11 @@ const PersonalInfoScreen = () => {
         </View>
 
         <View style={styles.actionArea}>
-          <TouchableOpacity style={styles.primaryButton} activeOpacity={0.95} onPress={handleUpdateProfile}>
+          <TouchableOpacity
+            style={styles.primaryButton}
+            activeOpacity={0.95}
+            onPress={handleUpdateProfile}
+          >
             <LinearGradient
               colors={[colors.primary, colors.primary]}
               start={{ x: 0.45, y: 1 }}

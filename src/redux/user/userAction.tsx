@@ -5,7 +5,7 @@ import {
   setUserDetailsToAsyncStore,
 } from '../../utils/storage';
 import axios, { removeApiToken } from '../../utils/axios';
-import { navigate, reset } from '../../utils/navigationRef';
+import { reset } from '../../utils/navigationRef';
 import {
   IAddress,
   IAddressAddReq,
@@ -251,7 +251,7 @@ export const topUpWallet = createAsyncThunk(
   async (params: any, thunkAPI) => {
     try {
       const { data, message }: { data: any; message: string } =
-        await axios.post('user/top-up-wallet', params);
+        await axios.post('user/topup-wallet', params);
       console.log('data1', data);
       await setUserDetailsToAsyncStore(data);
       return { data, message };

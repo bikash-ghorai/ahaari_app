@@ -13,7 +13,15 @@ import {
   View,
 } from 'react-native';
 
-import { AlertTriangle, Bell, Flame, Heart, HeartIcon, LucideHeart, Search, ShoppingBag, Star, Store } from 'lucide-react-native';
+import {
+  AlertTriangle,
+  Bell,
+  Flame,
+  Heart,
+  Search,
+  Star,
+  Store,
+} from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -27,13 +35,6 @@ import { getRestaurants, toggleWishlist } from '../redux/app/appAction';
 import { Constant } from '../constants/Constant';
 import { ImagePath } from '../constants/ImagePath';
 import Loader from '../components/Loader';
-
-const cuisineChips = [
-  'All Cuisines',
-  'Michelin Star',
-  'Artisanal Bakery',
-  'Japanese Fusion',
-];
 
 const CARD_IMAGE_HEIGHT = 256;
 const SLIDER_WIDTH = Dimensions.get('window').width - layout.screenPadding * 2;
@@ -58,7 +59,9 @@ const RestaurantImageSlider = ({
 
   // Initialise scroll position to index 1 (skip the leading clone)
   useEffect(() => {
-    if (!isMultiple) { return; }
+    if (!isMultiple) {
+      return;
+    }
     const t = setTimeout(() => {
       flatRef.current?.scrollToIndex({ index: 1, animated: false });
     }, 0);
@@ -68,7 +71,9 @@ const RestaurantImageSlider = ({
 
   // Auto-slide: always go forward; silently reset when clone is shown
   useEffect(() => {
-    if (!isMultiple) { return; }
+    if (!isMultiple) {
+      return;
+    }
     const timer = setInterval(() => {
       const next = activeIndexRef.current + 1;
       flatRef.current?.scrollToIndex({ index: next, animated: true });
@@ -85,12 +90,13 @@ const RestaurantImageSlider = ({
       }
     }, 3000);
     return () => clearInterval(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMultiple, extendedImages.length]);
 
   // Handle manual swipes hitting the clone frames
   const onMomentumScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    if (!isMultiple) { return; }
+    if (!isMultiple) {
+      return;
+    }
     const idx = Math.round(e.nativeEvent.contentOffset.x / SLIDER_WIDTH);
     activeIndexRef.current = idx;
     setActiveIndex(idx);
@@ -111,7 +117,7 @@ const RestaurantImageSlider = ({
 
   // Map extended index → original 0-based dot index
   const dotIndex = isMultiple
-    ? ((activeIndex - 1 + images.length) % images.length)
+    ? (activeIndex - 1 + images.length) % images.length
     : 0;
 
   return (
@@ -166,12 +172,16 @@ const RestaurantList = (props: any) => {
   const isFocused = useIsFocused();
   const { isBadWeather, show } = useWeatherAlert();
 
-  const category_id_params = props?.route?.params?.category_id || "";
+  const category_id_params = props?.route?.params?.category_id || '';
 
   const [restaurants, setRestaurants] = useState<Array<IRestaurant>>([]);
-  const [categories, setCategories] = useState<Array<{ category_id: string; name: string }>>([]);
+  const [categories, setCategories] = useState<
+    Array<{ category_id: string; name: string }>
+  >([]);
   const [isFetching, setIsFetching] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(category_id_params);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(
+    category_id_params,
+  );
 
   useEffect(() => {
     if (category_id_params) {
@@ -194,7 +204,10 @@ const RestaurantList = (props: any) => {
         setRestaurants(data?.shops || []);
         let cats = [{ category_id: '', name: 'All Cuisines' }];
         if (data?.categories && data?.categories.length > 0) {
-          cats = [{ category_id: '', name: 'All Cuisines' }, ...data?.categories];
+          cats = [
+            { category_id: '', name: 'All Cuisines' },
+            ...data?.categories,
+          ];
         }
         setCategories(cats);
       })
@@ -209,7 +222,7 @@ const RestaurantList = (props: any) => {
   const handleSelectCategory = (categoryId: string | null) => {
     setSelectedCategory(categoryId);
     // getShopHandler(categoryId);
-  }
+  };
 
   const handleToggleWishlist = (shopId: string) => {
     dispatch(toggleWishlist(shopId))
@@ -336,25 +349,27 @@ const RestaurantList = (props: any) => {
           contentContainerStyle={styles.chipsContent}
           showsHorizontalScrollIndicator={false}
         >
-          {categories && categories.length > 0 ? categories.map((item, index) => {
-            const active = item?.category_id == selectedCategory;
-            return (
-              <TouchableOpacity
-                key={index}
-                activeOpacity={0.88}
-                style={active ? styles.chipActive : styles.chipInactive}
-                onPress={() => handleSelectCategory(item?.category_id)}
-              >
-                <Text
-                  style={
-                    active ? styles.chipTextActive : styles.chipTextInactive
-                  }
-                >
-                  {item?.name}
-                </Text>
-              </TouchableOpacity>
-            );
-          }) : null}
+          {categories && categories.length > 0
+            ? categories.map((item, index) => {
+                const active = item?.category_id == selectedCategory;
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    activeOpacity={0.88}
+                    style={active ? styles.chipActive : styles.chipInactive}
+                    onPress={() => handleSelectCategory(item?.category_id)}
+                  >
+                    <Text
+                      style={
+                        active ? styles.chipTextActive : styles.chipTextInactive
+                      }
+                    >
+                      {item?.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })
+            : null}
         </ScrollView>
 
         {/* -- Restaurant cards -- */}
@@ -413,12 +428,16 @@ const RestaurantList = (props: any) => {
                     <TouchableOpacity
                       style={styles.likeButton}
                       activeOpacity={0.85}
-                      onPress={() => {
-                        handleToggleWishlist(restaurant?.shop_id);
-                      }}
+                      // onPress={() => {
+                      //   handleToggleWishlist(restaurant?.shop_id);
+                      // }}
                     >
                       {restaurant?.is_wishlist ? (
-                        <Heart size={20} color={colors.accentCoral} strokeWidth={2} />
+                        <Heart
+                          size={20}
+                          color={colors.accentCoral}
+                          strokeWidth={2}
+                        />
                       ) : (
                         <Heart size={20} color="#FFFFFF" strokeWidth={2} />
                       )}
@@ -443,7 +462,9 @@ const RestaurantList = (props: any) => {
                     </View>
                   </View>
 
-                  <Text style={styles.cardDetails} numberOfLines={2}>{restaurant?.address}</Text>
+                  <Text style={styles.cardDetails} numberOfLines={2}>
+                    {restaurant?.address}
+                  </Text>
                 </View>
               </TouchableOpacity>
             ))
@@ -451,11 +472,7 @@ const RestaurantList = (props: any) => {
             <View style={styles.emptyContainer}>
               <View style={styles.emptyContent}>
                 <View style={styles.emptyIconWrapper}>
-                  <Store
-                    size={64}
-                    color={colors.primary}
-                    strokeWidth={1.5}
-                  />
+                  <Store size={64} color={colors.primary} strokeWidth={1.5} />
                 </View>
 
                 <Text style={styles.emptyTitle}>No Restaurants Found</Text>
@@ -777,7 +794,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     textAlign: 'center',
     maxWidth: 280,
-  }
+  },
 });
 
 const sliderStyles = StyleSheet.create({

@@ -33,7 +33,11 @@ import { colors, layout, typography } from '../constants/theme';
 import type { RootStackParamList } from '../types/navigation';
 import Header from '../components/Header';
 import { useDispatch, useSelector } from '../redux/store';
-import { cancelOrder, getOrderDetails, prePayment } from '../redux/app/appAction';
+import {
+  cancelOrder,
+  getOrderDetails,
+  prePayment,
+} from '../redux/app/appAction';
 import { IOrderDetails } from '../types';
 import { ImagePath } from '../constants/ImagePath';
 import { Constant } from '../constants/Constant';
@@ -65,7 +69,6 @@ const OrderDetailsScreen = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderId]);
 
-
   const fetchOrderDetails = (orderId: string) => {
     if (orderId) {
       setIsShowLoader(true);
@@ -78,8 +81,7 @@ const OrderDetailsScreen = () => {
           setIsShowLoader(false);
         });
     }
-  }
-
+  };
 
   const handleCancelOrder = () => {
     setShowCancelModal(true);
@@ -97,7 +99,7 @@ const OrderDetailsScreen = () => {
         console.log('data', data);
         if (data?.key) {
           var options = {
-            description: data?.order_id,
+            description: orderId,
             currency: 'INR',
             key: data?.key,
             amount: data?.amount,
@@ -128,7 +130,6 @@ const OrderDetailsScreen = () => {
             },
           };
           paynow({ options, orderCreateData: data });
-
         }
       })
       .catch(() => {
@@ -136,8 +137,8 @@ const OrderDetailsScreen = () => {
       });
   };
 
-
   const paynow = ({ options, orderCreateData }: any) => {
+    console.log('orderCreateData', orderCreateData);
     RazorpayCheckout.open(options)
       .then(data => {
         console.log('payment success', data);
@@ -182,9 +183,10 @@ const OrderDetailsScreen = () => {
       orderDetails?.status !== 'Pending' &&
       orderDetails?.payment_type === 'COD');
 
-  const showPaymentBtnShow = orderDetails?.status !== 'Processing' &&
+  const showPaymentBtnShow =
+    orderDetails?.status !== 'Processing' &&
     orderDetails?.status !== 'Pending' &&
-    orderDetails?.payment_type === 'COD'
+    orderDetails?.payment_type === 'COD';
 
   const isCancelOrPaymentBtnShow =
     orderDetails?.status !== 'Cancelled' &&
@@ -196,7 +198,7 @@ const OrderDetailsScreen = () => {
       <Header title="Order Details" showNotificationButton={true} />
       {isShowLoader && <Loader />}
 
-      {orderDetails ?
+      {orderDetails ? (
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
@@ -227,7 +229,7 @@ const OrderDetailsScreen = () => {
           ) : orderDetails?.status === 'On The Way' ? (
             <View style={styles.onwayTopCard}>
               {orderDetails?.shop_coordinate &&
-                orderDetails?.delivery_coordinate ? (
+              orderDetails?.delivery_coordinate ? (
                 <View style={styles.mapViewContainer}>
                   <MapView
                     ref={mapRef}
@@ -369,7 +371,8 @@ const OrderDetailsScreen = () => {
                     style={[
                       styles.arrivedPill,
                       {
-                        backgroundColor: statusColors[orderDetails.status] + '22',
+                        backgroundColor:
+                          statusColors[orderDetails.status] + '22',
                         borderColor: statusColors[orderDetails.status] + '35',
                       },
                     ]}
@@ -390,7 +393,9 @@ const OrderDetailsScreen = () => {
                   </View>
                 ) : null}
               </View>
-              <Text style={styles.restaurantName}>{orderDetails?.shop_name}</Text>
+              <Text style={styles.restaurantName}>
+                {orderDetails?.shop_name}
+              </Text>
               <Text style={styles.deliveryTime}>{orderDetails?.date}</Text>
 
               <View style={styles.summaryDivider} />
@@ -423,10 +428,10 @@ const OrderDetailsScreen = () => {
                     source={
                       orderDetails?.partner_info?.picture
                         ? {
-                          uri:
-                            Constant.ImageURL +
-                            orderDetails.partner_info.picture,
-                        }
+                            uri:
+                              Constant.ImageURL +
+                              orderDetails.partner_info.picture,
+                          }
                         : ImagePath.noProfile
                     }
                     style={styles.courierAvatar}
@@ -434,7 +439,9 @@ const OrderDetailsScreen = () => {
                 </View>
 
                 <View>
-                  <Text style={styles.courierCaption}>Your Delivery Partner</Text>
+                  <Text style={styles.courierCaption}>
+                    Your Delivery Partner
+                  </Text>
                   <Text style={styles.courierName}>
                     {orderDetails?.partner_info?.name}
                   </Text>
@@ -472,48 +479,48 @@ const OrderDetailsScreen = () => {
             <View style={styles.itemsList}>
               {orderDetails?.items && orderDetails?.items.length > 0
                 ? orderDetails.items.map((item, index) => (
-                  <View key={index} style={styles.itemCard}>
-                    <LinearGradient
-                      pointerEvents="none"
-                      colors={[
-                        'rgba(255, 255, 255, 0.01)',
-                        'rgba(255, 255, 255, 0)',
-                      ]}
-                      start={{ x: 0, y: 0.5 }}
-                      end={{ x: 1, y: 0.5 }}
-                      style={styles.itemCardHighlight}
-                    />
+                    <View key={index} style={styles.itemCard}>
+                      <LinearGradient
+                        pointerEvents="none"
+                        colors={[
+                          'rgba(255, 255, 255, 0.01)',
+                          'rgba(255, 255, 255, 0)',
+                        ]}
+                        start={{ x: 0, y: 0.5 }}
+                        end={{ x: 1, y: 0.5 }}
+                        style={styles.itemCardHighlight}
+                      />
 
-                    <View style={styles.itemRow}>
-                      <View style={styles.itemImageWrap}>
-                        <Image
-                          source={
-                            item?.image
-                              ? { uri: Constant?.ImageURL + item.image }
-                              : ImagePath.noProductPlaceholder
-                          }
-                          style={styles.itemImage}
-                        />
-                      </View>
+                      <View style={styles.itemRow}>
+                        <View style={styles.itemImageWrap}>
+                          <Image
+                            source={
+                              item?.image
+                                ? { uri: Constant?.ImageURL + item.image }
+                                : ImagePath.noProductPlaceholder
+                            }
+                            style={styles.itemImage}
+                          />
+                        </View>
 
-                      <View style={styles.itemTextColumn}>
-                        <Text style={styles.itemTitle}>{item?.name}</Text>
-                        <Text style={styles.itemSubtitle} numberOfLines={1}>
-                          {item?.description}
-                        </Text>
-                      </View>
+                        <View style={styles.itemTextColumn}>
+                          <Text style={styles.itemTitle}>{item?.name}</Text>
+                          <Text style={styles.itemSubtitle} numberOfLines={1}>
+                            {item?.description}
+                          </Text>
+                        </View>
 
-                      <View style={styles.itemPriceColumn}>
-                        <Text style={styles.itemPrice}>
-                          {currencyFormate(item?.price, 0)}
-                        </Text>
-                        <Text style={styles.itemQty}>
-                          Qty: {item?.quantity}
-                        </Text>
+                        <View style={styles.itemPriceColumn}>
+                          <Text style={styles.itemPrice}>
+                            {currencyFormate(item?.price, 0)}
+                          </Text>
+                          <Text style={styles.itemQty}>
+                            Qty: {item?.quantity}
+                          </Text>
+                        </View>
                       </View>
                     </View>
-                  </View>
-                ))
+                  ))
                 : null}
             </View>
           </View>
@@ -553,17 +560,18 @@ const OrderDetailsScreen = () => {
               </Text>
             </View>
 
-            {orderDetails?.extra_charges && orderDetails?.extra_charges.length > 0
+            {orderDetails?.extra_charges &&
+            orderDetails?.extra_charges.length > 0
               ? orderDetails?.extra_charges.map((item, index) => {
-                return (
-                  <View style={styles.breakdownRow} key={index}>
-                    <Text style={styles.breakdownLabel}>{item?.label}</Text>
-                    <Text style={styles.breakdownValue}>
-                      {currencyFormate(item?.amount || 0, 2)}
-                    </Text>
-                  </View>
-                );
-              })
+                  return (
+                    <View style={styles.breakdownRow} key={index}>
+                      <Text style={styles.breakdownLabel}>{item?.label}</Text>
+                      <Text style={styles.breakdownValue}>
+                        {currencyFormate(item?.amount || 0, 2)}
+                      </Text>
+                    </View>
+                  );
+                })
               : null}
 
             {orderDetails?.discount ? (
@@ -612,7 +620,7 @@ const OrderDetailsScreen = () => {
             }}
           >
             {isCancelOrPaymentBtnShow ? (
-              showPaymentBtnShow ?
+              showPaymentBtnShow ? (
                 <TouchableOpacity
                   activeOpacity={0.92}
                   style={styles.reorderButton}
@@ -628,7 +636,7 @@ const OrderDetailsScreen = () => {
                     <Text style={styles.reorderText}>Pay Now</Text>
                   </LinearGradient>
                 </TouchableOpacity>
-                :
+              ) : (
                 <TouchableOpacity
                   activeOpacity={0.92}
                   style={styles.reorderButton}
@@ -644,6 +652,7 @@ const OrderDetailsScreen = () => {
                     <Text style={styles.reorderText}>Cancel Order</Text>
                   </LinearGradient>
                 </TouchableOpacity>
+              )
             ) : null}
 
             <TouchableOpacity
@@ -655,7 +664,7 @@ const OrderDetailsScreen = () => {
               onPress={() => {
                 handleWhatsapp(
                   'Hello, I need help with my order id: ' +
-                  orderDetails?.order_id_label,
+                    orderDetails?.order_id_label,
                 );
               }}
             >
@@ -663,7 +672,8 @@ const OrderDetailsScreen = () => {
               <Text style={styles.supportButtonText}>Contact Support</Text>
             </TouchableOpacity>
           </View>
-        </ScrollView> : null}
+        </ScrollView>
+      ) : null}
 
       {/* Cancel Order Modal */}
       <Modal
@@ -695,7 +705,7 @@ const OrderDetailsScreen = () => {
               />
 
               {orderDetails?.status === 'Processing' ||
-                orderDetails?.status === 'Pending' ? null : (
+              orderDetails?.status === 'Pending' ? null : (
                 <View style={styles.weatherNotice}>
                   <View style={styles.weatherIconWrap}>
                     <AlertTriangle size={16} color={colors.accentCoral} />

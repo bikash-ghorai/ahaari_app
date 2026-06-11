@@ -6,6 +6,7 @@ import {
   Modal,
   Platform,
   Pressable,
+  RefreshControl,
   StyleSheet,
   Text,
   TextInput,
@@ -19,11 +20,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, layout, typography } from '../constants/theme';
 import Header from '../components/Header';
-import { useDispatch } from '../redux/store';
+import { useDispatch, useSelector } from '../redux/store';
 import { getWalletHistory, topUpWallet } from '../redux/user/userAction';
 import moment from 'moment';
 import { currencyFormate } from '../utils/helper';
 import { showToaster } from '../utils/toaster';
+import RazorpayCheckout from 'react-native-razorpay';
+import Loader from '../components/Loader';
 
 type WalletHistoryItem = {
   id: number;
@@ -33,7 +36,7 @@ type WalletHistoryItem = {
   description: string;
   remarks: string;
   status: string;
-  created_at: string;
+  updated_at: string;
 };
 
 type WalletHistoryResponse = {
@@ -87,6 +90,9 @@ const GlassLayer = ({ radius }: { radius: number }) => (
 
 const WalletHistoryScreen = () => {
   const dispatch = useDispatch();
+  const { userData } = useSelector(state => state.user);
+
+  const [isShowLoader, setIsShowLoader] = React.useState(false);
   const [isTopUpOpen, setIsTopUpOpen] = React.useState(false);
   const [selectedAmount, setSelectedAmount] = React.useState(100);
   const [walletData, setWalletData] =
@@ -95,6 +101,12 @@ const WalletHistoryScreen = () => {
   const [isLoadingMore, setIsLoadingMore] = React.useState(false);
   const amountOptions = [25, 50, 100, 200];
   const isFetchingMoreRef = useRef(false);
+  const [refreshing, setRefreshing] = React.useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    loadWalletHistory(1, true);
+  };
 
   const openTopUpSheet = React.useCallback(() => {
     setIsTopUpOpen(true);
@@ -104,20 +116,77 @@ const WalletHistoryScreen = () => {
     setIsTopUpOpen(false);
   }, []);
 
-  const proceedTopup = React.useCallback(() => {
+  const proceedTopup = () => {
     if (selectedAmount > 0) {
       setIsTopUpOpen(false);
       // proceed to payment
       console.log('selectedAmount', selectedAmount);
-      dispatch(topUpWallet({ amount: selectedAmount })).unwrap().then(() => {
-        loadWalletHistory(1, true);
-      }).catch((error) => {
-        console.log('error', error);
-      });
+      setIsShowLoader(true);
+      dispatch(topUpWallet({ amount: selectedAmount }))
+        .unwrap()
+        .then(({ data }) => {
+          if (data?.key) {
+            var options = {
+              description: data?.receipt,
+              currency: 'INR',
+              key: data?.key,
+              amount: data?.amount,
+              name: 'Ahaari',
+              order_id: data?.order_id,
+              prefill: {
+                email: userData?.first_name,
+                contact: userData?.phone,
+                name: userData?.first_name + ' ' + userData?.last_name,
+              },
+              theme: {
+                color: colors.primary,
+                hide_topbar: true,
+                backdrop_color: '#000',
+              },
+              modal: {
+                escape: false,
+                confirm_close: true,
+              },
+              hidden: {
+                email: true,
+                contact: true,
+              },
+              readonly: {
+                contact: true,
+                email: true,
+                name: true,
+              },
+            };
+            paynow({ options, orderCreateData: null });
+          } else {
+            loadWalletHistory(1, true);
+          }
+        })
+        .catch(error => {
+          setIsShowLoader(false);
+          console.log('error', error);
+          loadWalletHistory(1, true);
+        });
     } else {
-      showToaster("Please select an amount");
+      showToaster('Please select an amount');
     }
-  }, [selectedAmount]);
+  };
+
+  const paynow = ({ options, orderCreateData }: any) => {
+    console.log('orderCreateData', orderCreateData);
+    RazorpayCheckout.open(options)
+      .then(data => {
+        console.log('payment success', data);
+      })
+      .catch(error => {
+        console.log('error', error);
+        showToaster('Payment failed. Please try again.');
+      })
+      .finally(() => {
+        setIsShowLoader(false);
+        loadWalletHistory(1, true);
+      });
+  };
 
   const loadWalletHistory = React.useCallback(
     async (pageNo: number, replace = false) => {
@@ -155,6 +224,7 @@ const WalletHistoryScreen = () => {
         isFetchingMoreRef.current = false;
         setIsInitialLoading(false);
         setIsLoadingMore(false);
+        setRefreshing(false);
       }
     },
     [dispatch],
@@ -187,12 +257,16 @@ const WalletHistoryScreen = () => {
         showBackButton={true}
         containerStyle={{ paddingHorizontal: layout.screenPadding }}
       />
+      {isShowLoader && <Loader />}
       <FlatList
         data={walletHistory}
         keyExtractor={(_i, index) => index.toString()}
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.4}
         ListEmptyComponent={
@@ -284,8 +358,8 @@ const WalletHistoryScreen = () => {
                     {item?.description}
                   </Text>
                   <Text style={styles.activityTime} numberOfLines={1}>
-                    {item?.created_at
-                      ? moment(item.created_at).format('MMM D, h:mm A')
+                    {item?.updated_at
+                      ? moment(item.updated_at).format('MMM D, h:mm A')
                       : null}
                   </Text>
                 </View>
@@ -306,8 +380,8 @@ const WalletHistoryScreen = () => {
                           item?.status === 'Success'
                             ? colors.success
                             : item?.status === 'Failed'
-                              ? colors.red
-                              : colors.textMutedSoft2,
+                            ? colors.red
+                            : colors.textMutedSoft2,
                       },
                     ]}
                   >
@@ -396,7 +470,9 @@ const WalletHistoryScreen = () => {
                     placeholder="Enter amount"
                     placeholderTextColor={colors.textMuted}
                     keyboardType="numeric"
-                    value={selectedAmount === 0 ? '' : selectedAmount.toString()}
+                    value={
+                      selectedAmount === 0 ? '' : selectedAmount.toString()
+                    }
                     onChangeText={text => {
                       const numericValue = text.replace(/[^0-9]/g, '');
                       setSelectedAmount(Number(numericValue));
@@ -417,7 +493,7 @@ const WalletHistoryScreen = () => {
                         isActive ? styles.amountChipActive : null,
                       ]}
                       onPress={() => {
-                        setSelectedAmount(amount)
+                        setSelectedAmount(amount);
                       }}
                     >
                       <Text
