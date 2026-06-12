@@ -277,13 +277,19 @@ const OrdersScreen = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+            progressBackgroundColor="#1A1A1A"
+          />
         }
       >
         <View style={styles.mainStack}>
           {orderListData &&
-          orderListData?.active_orders &&
-          orderListData.active_orders.length > 0 ? (
+            orderListData?.active_orders &&
+            orderListData.active_orders.length > 0 ? (
             <View style={styles.activeSection}>
               <View style={styles.activeHeaderRow}>
                 <Text style={styles.sectionTitle}>Active Order</Text>
@@ -307,8 +313,8 @@ const OrdersScreen = () => {
                               source={
                                 order?.shop_image
                                   ? {
-                                      uri: Constant.ImageURL + order.shop_image,
-                                    }
+                                    uri: Constant.ImageURL + order.shop_image,
+                                  }
                                   : ImagePath.noShopPlaceholder
                               }
                               style={styles.activeFoodImage}
@@ -400,10 +406,10 @@ const OrdersScreen = () => {
                               source={
                                 order?.partner_info?.picture
                                   ? {
-                                      uri:
-                                        Constant.ImageURL +
-                                        order.partner_info.picture,
-                                    }
+                                    uri:
+                                      Constant.ImageURL +
+                                      order.partner_info.picture,
+                                  }
                                   : ImagePath.noProfile
                               }
                               style={styles.courierAvatar}
@@ -462,13 +468,13 @@ const OrdersScreen = () => {
           ) : null}
 
           {orderListData &&
-          !(
-            orderListData?.active_orders &&
-            orderListData.active_orders.length > 0
-          ) &&
-          !(
-            orderListData?.past_orders && orderListData.past_orders.length > 0
-          ) ? (
+            !(
+              orderListData?.active_orders &&
+              orderListData.active_orders.length > 0
+            ) &&
+            !(
+              orderListData?.past_orders && orderListData.past_orders.length > 0
+            ) ? (
             <View style={styles.emptyContainer}>
               <View style={styles.emptyContent}>
                 <View style={styles.emptyIconWrapper}>
@@ -488,7 +494,7 @@ const OrdersScreen = () => {
           ) : null}
 
           {orderListData?.past_orders &&
-          orderListData?.past_orders.length > 0 ? (
+            orderListData?.past_orders.length > 0 ? (
             <View style={styles.historySection}>
               <Text style={styles.sectionTitle}>Order History</Text>
 

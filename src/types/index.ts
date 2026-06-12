@@ -339,6 +339,7 @@ export type IOrderDetails = {
   is_vip: boolean;
   estimate_delivery_time: number | string;
   instruction: string | null;
+  otp: string | null;
 };
 
 export type IActiveOrder = {

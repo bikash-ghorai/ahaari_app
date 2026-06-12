@@ -490,7 +490,7 @@ const RestaurantDetails = (props: any) => {
                                   justifyContent: 'center',
                                   alignItems: 'center',
                                   borderRadius: 4,
-                                  borderWidth: 3,
+                                  borderWidth: 2,
                                   borderColor: colors.success,
                                 }}
                               >
@@ -508,7 +508,7 @@ const RestaurantDetails = (props: any) => {
                                   justifyContent: 'center',
                                   alignItems: 'center',
                                   borderRadius: 4,
-                                  borderWidth: 3,
+                                  borderWidth: 2,
                                   borderColor: colors.red,
                                 }}
                               >
@@ -652,7 +652,7 @@ const RestaurantDetails = (props: any) => {
             </View>
           </View>
         </ScrollView>
-      ) : <Loader/>}
+      ) : <Loader />}
       <PopupMessage
         title={'Replace cart items?'}
         description={
@@ -680,7 +680,7 @@ const RestaurantDetails = (props: any) => {
         <Animated.View
           style={[
             styles.sheetPanel,
-            { height: SCREEN_HEIGHT * 0.72, transform: [{ translateY }] },
+            { height: selectedItem?.variants && selectedItem.variants.length > 1 ? SCREEN_HEIGHT * 0.72 : SCREEN_HEIGHT * 0.50, transform: [{ translateY }] },
           ]}>
           {/* Blur background */}
           <BlurView
@@ -700,156 +700,146 @@ const RestaurantDetails = (props: any) => {
           <View style={styles.sheetContent}>
             {selectedItem ? (
               <>
-                <View style={styles.sheetImageWrap}>
-                  <Image
-                    source={
-                      selectedItem?.image
-                        ? { uri: Constant?.ImageURL + selectedItem.image }
-                        : ImagePath.noProductPlaceholder
-                    }
-                    style={styles.sheetImage}
-                  />
-                  <LinearGradient
-                    colors={['rgba(12, 14, 18, 0.1)', 'rgba(12, 14, 18, 0.6)']}
-                    start={{ x: 0.5, y: 0 }}
-                    end={{ x: 0.5, y: 1 }}
-                    style={styles.sheetImageOverlay}
-                  />
-                </View>
-
-                <View style={styles.sheetBody}>
-                  <View style={styles.sheetTitleRow}>
-                    <Text style={styles.sheetTitle}>{selectedItem?.name}</Text>
-                    {selectedItem?.variants &&
-                      selectedItem.variants.length === 1 && (
-                        <Text style={styles.sheetPrice}>
-                          ₹{selectedItem.variants[0].price}
-                        </Text>
-                      )}
+                {/* Scrollable area: image + body (title, desc, variants) */}
+                <ScrollView
+                  style={styles.sheetScrollArea}
+                  contentContainerStyle={styles.sheetScrollContent}
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                >
+                  <View style={styles.sheetImageWrap}>
+                    <Image
+                      source={
+                        selectedItem?.image
+                          ? { uri: Constant?.ImageURL + selectedItem.image }
+                          : ImagePath.noProductPlaceholder
+                      }
+                      style={styles.sheetImage}
+                    />
+                    <LinearGradient
+                      colors={['rgba(12, 14, 18, 0.1)', 'rgba(12, 14, 18, 0.6)']}
+                      start={{ x: 0.5, y: 0 }}
+                      end={{ x: 0.5, y: 1 }}
+                      style={styles.sheetImageOverlay}
+                    />
                   </View>
-                  <Text style={styles.sheetDescription}>
-                    {selectedItem?.description}
-                  </Text>
 
-                  {selectedItem?.variants && selectedItem.variants.length > 1 && (
-                    <View style={styles.variantsSection}>
-                      <View style={styles.variantsList}>
-                        {selectedItem.variants.map((variant, index) => {
-                          const isSelected =
-                            selectedTempVariant?.variant_id ===
-                            variant.variant_id;
-
-                          return (
-                            <TouchableOpacity
-                              key={index}
-                              style={styles.variantItem}
-                              activeOpacity={0.7}
-                              onPress={() => setSelectedTempVariant(variant)}
-                            >
-                              <View style={styles.variantRadio}>
-                                <View
-                                  style={[
-                                    styles.radioOuter,
-                                    isSelected && styles.radioOuterActive,
-                                  ]}
-                                >
-                                  {isSelected && (
-                                    <View style={styles.radioInner} />
-                                  )}
-                                </View>
-                              </View>
-
-                              <View style={styles.variantTextContent}>
-                                <Text style={styles.variantName}>
-                                  {variant.name}
-                                </Text>
-                              </View>
-
-                              <Text style={styles.variantItemPrice}>
-                                ₹{variant.price}
-                              </Text>
-                            </TouchableOpacity>
-                          );
-                        })}
-                      </View>
-                    </View>
-                  )}
-
-                  <View style={styles.sheetActions}>
-                    {!selectedTempVariant ||
-                      selectedTempVariant.status !== 'Available' ? (
-                      <View style={styles.sheetAddButton}>
-                        <View
-                          style={[
-                            styles.sheetAddGradient,
-                            { backgroundColor: 'rgba(255, 82, 82, 0.24)' },
-                          ]}
-                        >
-                          <Text
-                            style={{
-                              color: '#FF9C9C',
-                              fontSize: typography.body,
-                              fontWeight: '700',
-                            }}
-                          >
-                            Out of Stock
+                  <View style={styles.sheetBody}>
+                    <View style={styles.sheetTitleRow}>
+                      <Text style={styles.sheetTitle}>{selectedItem?.name}</Text>
+                      {selectedItem?.variants &&
+                        selectedItem.variants.length === 1 && (
+                          <Text style={styles.sheetPrice}>
+                            ₹{selectedItem.variants[0].price}
                           </Text>
+                        )}
+                    </View>
+                    <Text style={styles.sheetDescription}>
+                      {selectedItem?.description}
+                    </Text>
+
+                    {selectedItem?.variants && selectedItem.variants.length > 1 && (
+                      <View style={styles.variantsSection}>
+                        <View style={styles.variantsList}>
+                          {selectedItem.variants.map((variant, index) => {
+                            const isSelected =
+                              selectedTempVariant?.variant_id ===
+                              variant.variant_id;
+
+                            return (
+                              <TouchableOpacity
+                                key={index}
+                                style={styles.variantItem}
+                                activeOpacity={0.7}
+                                onPress={() => setSelectedTempVariant(variant)}
+                              >
+                                <View style={styles.variantRadio}>
+                                  <View
+                                    style={[
+                                      styles.radioOuter,
+                                      isSelected && styles.radioOuterActive,
+                                    ]}
+                                  >
+                                    {isSelected && (
+                                      <View style={styles.radioInner} />
+                                    )}
+                                  </View>
+                                </View>
+
+                                <View style={styles.variantTextContent}>
+                                  <Text style={styles.variantName}>
+                                    {variant.name}
+                                  </Text>
+                                </View>
+
+                                <Text style={styles.variantItemPrice}>
+                                  ₹{variant.price}
+                                </Text>
+                              </TouchableOpacity>
+                            );
+                          })}
                         </View>
                       </View>
-                    ) : getCartQtyCount({
-                      product_id: selectedItem.product_id,
-                      variant_id: selectedTempVariant?.variant_id,
-                    }) > 0 ? (
-                      <View style={styles.sheetQtyPill}>
-                        <TouchableOpacity
-                          style={styles.sheetQtyButton}
-                          activeOpacity={0.85}
-                          onPress={() =>
-                            removeProduct({
-                              product_id: selectedItem.product_id,
-                              variant_id: selectedTempVariant?.variant_id || '',
-                              shop_id: shopDetails?.shop?.shop_id || '',
-                              quantity: 1,
-                            }).then(res => {
-                              console.log('clg', res);
-                            })
-                          }
+                    )}
+                  </View>
+                </ScrollView>
+
+                {/* Actions pinned at the bottom — always visible */}
+                <View style={styles.sheetActions}>
+                  {!selectedTempVariant ||
+                    selectedTempVariant.status !== 'Available' ? (
+                    <View style={styles.sheetAddButton}>
+                      <View
+                        style={[
+                          styles.sheetAddGradient,
+                          { backgroundColor: 'rgba(255, 82, 82, 0.24)' },
+                        ]}
+                      >
+                        <Text
+                          style={{
+                            color: '#FF9C9C',
+                            fontSize: typography.body,
+                            fontWeight: '700',
+                          }}
                         >
-                          <Minus
-                            size={16}
-                            color={colors.primary}
-                            strokeWidth={2.6}
-                          />
-                        </TouchableOpacity>
-                        <Text style={styles.sheetQtyText}>
-                          {getCartQtyCount({
-                            product_id: selectedItem.product_id,
-                            variant_id: selectedTempVariant?.variant_id,
-                          })}
+                          Out of Stock
                         </Text>
-                        <TouchableOpacity
-                          style={styles.sheetQtyButton}
-                          activeOpacity={0.85}
-                          onPress={() =>
-                            handleAddToCart({
-                              product_id: selectedItem.product_id,
-                              variant_id: selectedTempVariant?.variant_id || '',
-                              shop_id: shopDetails?.shop?.shop_id || '',
-                              quantity: 1,
-                            })
-                          }
-                        >
-                          <Plus
-                            size={16}
-                            color={colors.primary}
-                            strokeWidth={2.6}
-                          />
-                        </TouchableOpacity>
                       </View>
-                    ) : (
+                    </View>
+                  ) : getCartQtyCount({
+                    product_id: selectedItem.product_id,
+                    variant_id: selectedTempVariant?.variant_id,
+                  }) > 0 ? (
+                    <View style={styles.sheetQtyPill}>
                       <TouchableOpacity
-                        style={styles.sheetAddButton}
-                        activeOpacity={0.9}
+                        style={styles.sheetQtyButton}
+                        activeOpacity={0.85}
+                        onPress={() =>
+                          removeProduct({
+                            product_id: selectedItem.product_id,
+                            variant_id: selectedTempVariant?.variant_id || '',
+                            shop_id: shopDetails?.shop?.shop_id || '',
+                            quantity: 1,
+                          }).then(res => {
+                            console.log('clg', res);
+                          })
+                        }
+                      >
+                        <Minus
+                          size={16}
+                          color={colors.primary}
+                          strokeWidth={2.6}
+                        />
+                      </TouchableOpacity>
+                      <Text style={styles.sheetQtyText}>
+                        {getCartQtyCount({
+                          product_id: selectedItem.product_id,
+                          variant_id: selectedTempVariant?.variant_id,
+                        })}
+                      </Text>
+                      <TouchableOpacity
+                        style={styles.sheetQtyButton}
+                        activeOpacity={0.85}
                         onPress={() =>
                           handleAddToCart({
                             product_id: selectedItem.product_id,
@@ -859,32 +849,51 @@ const RestaurantDetails = (props: any) => {
                           })
                         }
                       >
-                        <View
-                          style={[
-                            styles.sheetAddGradient,
-                            { backgroundColor: colors.primary },
-                          ]}
-                        >
-                          <Plus
-                            size={16}
-                            color={colors.onPrimaryDeep}
-                            strokeWidth={2.6}
-                          />
-                          <Text style={styles.sheetAddText}>
-                            Add to cart ₹{selectedTempVariant?.price || 0}
-                          </Text>
-                        </View>
+                        <Plus
+                          size={16}
+                          color={colors.primary}
+                          strokeWidth={2.6}
+                        />
                       </TouchableOpacity>
-                    )}
-
+                    </View>
+                  ) : (
                     <TouchableOpacity
-                      style={styles.sheetCloseButton}
+                      style={styles.sheetAddButton}
                       activeOpacity={0.9}
-                      onPress={closePreview}
+                      onPress={() =>
+                        handleAddToCart({
+                          product_id: selectedItem.product_id,
+                          variant_id: selectedTempVariant?.variant_id || '',
+                          shop_id: shopDetails?.shop?.shop_id || '',
+                          quantity: 1,
+                        })
+                      }
                     >
-                      <Text style={styles.sheetCloseText}>Close</Text>
+                      <View
+                        style={[
+                          styles.sheetAddGradient,
+                          { backgroundColor: colors.primary },
+                        ]}
+                      >
+                        <Plus
+                          size={16}
+                          color={colors.onPrimaryDeep}
+                          strokeWidth={2.6}
+                        />
+                        <Text style={styles.sheetAddText}>
+                          Add to cart ₹{selectedTempVariant?.price || 0}
+                        </Text>
+                      </View>
                     </TouchableOpacity>
-                  </View>
+                  )}
+
+                  <TouchableOpacity
+                    style={styles.sheetCloseButton}
+                    activeOpacity={0.9}
+                    onPress={closePreview}
+                  >
+                    <Text style={styles.sheetCloseText}>Close</Text>
+                  </TouchableOpacity>
                 </View>
               </>
             ) : null}
@@ -1381,7 +1390,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: layout.screenPadding,
     paddingTop: 4,
     paddingBottom: 18,
+  },
+  sheetScrollArea: {
+    flex: 1,
+  },
+  sheetScrollContent: {
     gap: 16,
+    paddingBottom: 8,
   },
   sheetImageWrap: {
     height: 180,
@@ -1403,6 +1418,12 @@ const styles = StyleSheet.create({
   },
   sheetBody: {
     gap: 12,
+    paddingTop: 4,
+  },
+  sheetActionsWrapper: {
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
   },
   sheetTitleRow: {
     flexDirection: 'row',
@@ -1455,7 +1476,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginBottom: 10,
+    paddingTop: 12,
+    marginTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
   },
   sheetAddButton: {
     flex: 1,
@@ -1518,12 +1542,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   variantsSection: {
-    marginTop: 20,
+    marginTop: 10,
     paddingVertical: 16,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.08)',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    borderTopColor: 'rgba(255, 255, 255, 0.08)'
   },
   variantsLabel: {
     color: colors.textPrimary,

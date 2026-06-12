@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   Image,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -23,6 +24,7 @@ import {
   AlertTriangle,
   InfoIcon,
   IndianRupee,
+  Lock,
 } from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -58,6 +60,7 @@ const OrderDetailsScreen = () => {
   const { userData } = useSelector(state => state.user);
 
   const [isShowLoader, setIsShowLoader] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [orderDetails, setOrderDetails] = useState<IOrderDetails | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancellationReason, setCancellationReason] = useState('');
@@ -69,18 +72,26 @@ const OrderDetailsScreen = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderId]);
 
-  const fetchOrderDetails = (orderId: string) => {
-    if (orderId) {
-      setIsShowLoader(true);
-      dispatch(getOrderDetails(orderId))
+  const fetchOrderDetails = (id: string, silent = false) => {
+    if (id) {
+      if (!silent) {
+        setIsShowLoader(true);
+      }
+      dispatch(getOrderDetails(id))
         .unwrap()
         .then(res => {
           setOrderDetails(res.data);
         })
         .finally(() => {
           setIsShowLoader(false);
+          setRefreshing(false);
         });
     }
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchOrderDetails(orderId, true);
   };
 
   const handleCancelOrder = () => {
@@ -203,18 +214,20 @@ const OrderDetailsScreen = () => {
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[colors.primary]}
+              tintColor={colors.primary}
+              progressBackgroundColor="#1A1A1A"
+            />
+          }
         >
           {orderDetails?.status === 'Preparing' ? (
             <View style={styles.preparingCard}>
               <View style={styles.preparingCircle}>
                 <CookingPot size={36} color={colors.primary} strokeWidth={2} />
-                {/* <FastImage
-                source={ImagePath.preparing}
-                style={{
-                  width: 64,
-                  height: 64,
-                }}
-              /> */}
                 <Text style={styles.preparingLabel}>PREPARING</Text>
               </View>
 
@@ -229,7 +242,7 @@ const OrderDetailsScreen = () => {
           ) : orderDetails?.status === 'On The Way' ? (
             <View style={styles.onwayTopCard}>
               {orderDetails?.shop_coordinate &&
-              orderDetails?.delivery_coordinate ? (
+                orderDetails?.delivery_coordinate ? (
                 <View style={styles.mapViewContainer}>
                   <MapView
                     ref={mapRef}
@@ -352,10 +365,10 @@ const OrderDetailsScreen = () => {
                   </Text>
                 </View>
 
-                {orderDetails?.is_vip && (
+                {orderDetails?.otp && (
                   <View style={styles.priorityPill}>
-                    <Rocket size={12} color="#FFAD3A" strokeWidth={2.2} />
-                    <Text style={styles.priorityText}>PRIORITY</Text>
+                    <Lock size={12} color="#FFAD3A" strokeWidth={2.2} />
+                    <Text style={styles.priorityText}>OTP : {orderDetails?.otp}</Text>
                   </View>
                 )}
               </View>
@@ -428,10 +441,10 @@ const OrderDetailsScreen = () => {
                     source={
                       orderDetails?.partner_info?.picture
                         ? {
-                            uri:
-                              Constant.ImageURL +
-                              orderDetails.partner_info.picture,
-                          }
+                          uri:
+                            Constant.ImageURL +
+                            orderDetails.partner_info.picture,
+                        }
                         : ImagePath.noProfile
                     }
                     style={styles.courierAvatar}
@@ -479,48 +492,48 @@ const OrderDetailsScreen = () => {
             <View style={styles.itemsList}>
               {orderDetails?.items && orderDetails?.items.length > 0
                 ? orderDetails.items.map((item, index) => (
-                    <View key={index} style={styles.itemCard}>
-                      <LinearGradient
-                        pointerEvents="none"
-                        colors={[
-                          'rgba(255, 255, 255, 0.01)',
-                          'rgba(255, 255, 255, 0)',
-                        ]}
-                        start={{ x: 0, y: 0.5 }}
-                        end={{ x: 1, y: 0.5 }}
-                        style={styles.itemCardHighlight}
-                      />
+                  <View key={index} style={styles.itemCard}>
+                    <LinearGradient
+                      pointerEvents="none"
+                      colors={[
+                        'rgba(255, 255, 255, 0.01)',
+                        'rgba(255, 255, 255, 0)',
+                      ]}
+                      start={{ x: 0, y: 0.5 }}
+                      end={{ x: 1, y: 0.5 }}
+                      style={styles.itemCardHighlight}
+                    />
 
-                      <View style={styles.itemRow}>
-                        <View style={styles.itemImageWrap}>
-                          <Image
-                            source={
-                              item?.image
-                                ? { uri: Constant?.ImageURL + item.image }
-                                : ImagePath.noProductPlaceholder
-                            }
-                            style={styles.itemImage}
-                          />
-                        </View>
+                    <View style={styles.itemRow}>
+                      <View style={styles.itemImageWrap}>
+                        <Image
+                          source={
+                            item?.image
+                              ? { uri: Constant?.ImageURL + item.image }
+                              : ImagePath.noProductPlaceholder
+                          }
+                          style={styles.itemImage}
+                        />
+                      </View>
 
-                        <View style={styles.itemTextColumn}>
-                          <Text style={styles.itemTitle}>{item?.name}</Text>
-                          <Text style={styles.itemSubtitle} numberOfLines={1}>
-                            {item?.description}
-                          </Text>
-                        </View>
+                      <View style={styles.itemTextColumn}>
+                        <Text style={styles.itemTitle}>{item?.name}</Text>
+                        <Text style={styles.itemSubtitle} numberOfLines={1}>
+                          {item?.description}
+                        </Text>
+                      </View>
 
-                        <View style={styles.itemPriceColumn}>
-                          <Text style={styles.itemPrice}>
-                            {currencyFormate(item?.price, 0)}
-                          </Text>
-                          <Text style={styles.itemQty}>
-                            Qty: {item?.quantity}
-                          </Text>
-                        </View>
+                      <View style={styles.itemPriceColumn}>
+                        <Text style={styles.itemPrice}>
+                          {currencyFormate(item?.price, 0)}
+                        </Text>
+                        <Text style={styles.itemQty}>
+                          Qty: {item?.quantity}
+                        </Text>
                       </View>
                     </View>
-                  ))
+                  </View>
+                ))
                 : null}
             </View>
           </View>
@@ -561,17 +574,17 @@ const OrderDetailsScreen = () => {
             </View>
 
             {orderDetails?.extra_charges &&
-            orderDetails?.extra_charges.length > 0
+              orderDetails?.extra_charges.length > 0
               ? orderDetails?.extra_charges.map((item, index) => {
-                  return (
-                    <View style={styles.breakdownRow} key={index}>
-                      <Text style={styles.breakdownLabel}>{item?.label}</Text>
-                      <Text style={styles.breakdownValue}>
-                        {currencyFormate(item?.amount || 0, 2)}
-                      </Text>
-                    </View>
-                  );
-                })
+                return (
+                  <View style={styles.breakdownRow} key={index}>
+                    <Text style={styles.breakdownLabel}>{item?.label}</Text>
+                    <Text style={styles.breakdownValue}>
+                      {currencyFormate(item?.amount || 0, 2)}
+                    </Text>
+                  </View>
+                );
+              })
               : null}
 
             {orderDetails?.discount ? (
@@ -664,7 +677,7 @@ const OrderDetailsScreen = () => {
               onPress={() => {
                 handleWhatsapp(
                   'Hello, I need help with my order id: ' +
-                    orderDetails?.order_id_label,
+                  orderDetails?.order_id_label,
                 );
               }}
             >
@@ -705,7 +718,7 @@ const OrderDetailsScreen = () => {
               />
 
               {orderDetails?.status === 'Processing' ||
-              orderDetails?.status === 'Pending' ? null : (
+                orderDetails?.status === 'Pending' ? null : (
                 <View style={styles.weatherNotice}>
                   <View style={styles.weatherIconWrap}>
                     <AlertTriangle size={16} color={colors.accentCoral} />
@@ -955,7 +968,7 @@ const styles = StyleSheet.create({
   preparingTitle: {
     marginTop: 18,
     color: colors.textPrimary,
-    fontSize: typography.displayXl,
+    fontSize: typography.display,
     lineHeight: 42,
     fontWeight: '700',
     letterSpacing: -1,

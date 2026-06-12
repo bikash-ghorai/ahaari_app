@@ -13,7 +13,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { BlurView } from '@react-native-community/blur';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import {
   CompositeNavigationProp,
@@ -82,7 +81,7 @@ const HomeScreen = () => {
   const [isLocating, setIsLocating] = React.useState(false);
   const [currentPlace, setCurrentPlace] = React.useState<string | null>(null);
 
-  const heroSlideCount = homePageData?.coupons.length || 0;
+  const heroSlideCount = homePageData?.slides?.length || 0;
 
   const currentLocationLabel = React.useMemo(() => {
     if (currentPlace) {

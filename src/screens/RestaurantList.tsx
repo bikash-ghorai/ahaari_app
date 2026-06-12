@@ -6,6 +6,7 @@ import {
   Image,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -179,6 +180,7 @@ const RestaurantList = (props: any) => {
     Array<{ category_id: string; name: string }>
   >([]);
   const [isFetching, setIsFetching] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(
     category_id_params,
   );
@@ -196,8 +198,10 @@ const RestaurantList = (props: any) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isFocused, selectedCategory]);
 
-  const getShopHandler = (categoryId: string | null) => {
-    setIsFetching(true);
+  const getShopHandler = (categoryId: string | null, silent = false) => {
+    if (!silent) {
+      setIsFetching(true);
+    }
     dispatch(getRestaurants(categoryId))
       .unwrap()
       .then(({ data }: any) => {
@@ -216,7 +220,13 @@ const RestaurantList = (props: any) => {
       })
       .finally(() => {
         setIsFetching(false);
+        setRefreshing(false);
       });
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    getShopHandler(selectedCategory, true);
   };
 
   const handleSelectCategory = (categoryId: string | null) => {
@@ -342,6 +352,15 @@ const RestaurantList = (props: any) => {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+            progressBackgroundColor="#1A1A1A"
+          />
+        }
       >
         <ScrollView
           horizontal

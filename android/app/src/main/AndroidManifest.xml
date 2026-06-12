@@ -30,6 +30,6 @@
       android:resource="@mipmap/ic_notification" />
     <meta-data
       android:name="com.google.android.geo.API_KEY"
-      android:value="AIzaSyBqsmbL2U_YUoNYN6foBEBrhtmIQ-wVX_M" />
+      android:value="AIzaSyCky4UNBeLuttSe7x47_zcEFEJYpBfKSd4" />
   </application>
 </manifest>
