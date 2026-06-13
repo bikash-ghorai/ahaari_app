@@ -45,6 +45,8 @@ export const colors = {
   success: '#22C55E',
   blue: '#0160f8',
   red: '#FF0000',
+  veg:"#008300",
+  nonVeg:"#DA100D",
 };
 
 export const spacing = {

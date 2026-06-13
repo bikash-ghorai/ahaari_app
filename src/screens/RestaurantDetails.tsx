@@ -1,10 +1,12 @@
 /* eslint-disable react-native/no-inline-styles */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Animated,
   Dimensions,
-  Image,
   Modal,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   PanResponder,
   ScrollView,
   StyleSheet,
@@ -38,6 +40,7 @@ import { Constant } from '../constants/Constant';
 import { useCart } from '../hooks';
 import PopupMessage from '../components/PopupMessage';
 import Loader from '../components/Loader';
+import FastImage from 'react-native-fast-image';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
@@ -113,7 +116,65 @@ const RestaurantDetails = (props: any) => {
   const [selectedCategory, setSelectedCategory] = useState<any>(null);
 
   const [searchText, setSearchText] = useState<any>(null);
-  const [filteredProducts, setFilteredProducts] = useState<Array<IProduct>>([]);
+
+  // ── Pagination ──────────────────────────────────────────────────────────
+  const PAGE_SIZE = 10;
+  // allProducts  → full list for the active category / search
+  const [allProducts, setAllProducts] = useState<Array<IProduct>>([]);
+  // displayedProducts → the slice currently rendered (grows by PAGE_SIZE on scroll)
+  const [displayedProducts, setDisplayedProducts] = useState<Array<IProduct>>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  /** Replace the full product list and reset to page 1 */
+  const resetProducts = useCallback((products: IProduct[]) => {
+    setAllProducts(products);
+    setCurrentPage(1);
+    setDisplayedProducts(products.slice(0, PAGE_SIZE));
+  }, []);
+
+  /** Append the next page of products */
+  const loadMoreProducts = useCallback(
+    (all: IProduct[], page: number) => {
+      const nextPage = page + 1;
+      const nextSlice = all.slice(0, nextPage * PAGE_SIZE);
+      if (nextSlice.length > page * PAGE_SIZE) {
+        setIsLoadingMore(true);
+        // Small timeout so the spinner is visible before the list expands
+        setTimeout(() => {
+          setDisplayedProducts(nextSlice);
+          setCurrentPage(nextPage);
+          setIsLoadingMore(false);
+        }, 300);
+      }
+    },
+    [],
+  );
+
+  // Keep a ref to avoid stale-closure in the scroll handler
+  const allProductsRef = useRef<IProduct[]>([]);
+  const currentPageRef = useRef(1);
+  useEffect(() => { allProductsRef.current = allProducts; }, [allProducts]);
+  useEffect(() => { currentPageRef.current = currentPage; }, [currentPage]);
+
+  /** Detect bottom-of-list and trigger loadMore */
+  const handleScrollEnd = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
+      const paddingToBottom = 40;
+      const isCloseToBottom =
+        layoutMeasurement.height + contentOffset.y >=
+        contentSize.height - paddingToBottom;
+
+      if (isCloseToBottom && !isLoadingMore) {
+        loadMoreProducts(allProductsRef.current, currentPageRef.current);
+      }
+    },
+    [isLoadingMore, loadMoreProducts],
+  );
+
+  // Legacy alias kept for backward compat with the rest of the file
+  const filteredProducts = displayedProducts;
 
   useEffect(() => {
     if (shopId) {
@@ -129,7 +190,8 @@ const RestaurantDetails = (props: any) => {
         if (data) {
           setShopDetails(data);
           setSelectedCategory(data.categories[0]);
-          setFilteredProducts(data.categories[0].products);
+          // Store full list and show first page
+          resetProducts(data.categories[0].products || []);
         }
       })
       .catch((error: any) => {
@@ -159,12 +221,14 @@ const RestaurantDetails = (props: any) => {
 
   const handleSearch = (text: string, products: IProduct[]) => {
     if (text.trim() === '') {
-      setFilteredProducts(products || []);
+      // Reset pagination with the full category products
+      resetProducts(products || []);
     } else {
       const filtered = products.filter((product: IProduct) =>
         product.name.toLowerCase().includes(text.toLowerCase()),
       );
-      setFilteredProducts(filtered || []);
+      // Reset pagination with search results
+      resetProducts(filtered || []);
     }
   };
 
@@ -213,6 +277,9 @@ const RestaurantDetails = (props: any) => {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           stickyHeaderIndices={[1]}
+          onMomentumScrollEnd={handleScrollEnd}
+          onScrollEndDrag={handleScrollEnd}
+          scrollEventThrottle={16}
         >
           <View
             style={styles.heroSection}
@@ -220,7 +287,7 @@ const RestaurantDetails = (props: any) => {
               heroHeightRef.current = e.nativeEvent.layout.height;
             }}
           >
-            <Image
+            <FastImage
               source={
                 shopDetails?.shop?.image
                   ? { uri: Constant.ImageURL + shopDetails.shop.image }
@@ -311,10 +378,10 @@ const RestaurantDetails = (props: any) => {
                         }
                         onPress={() => {
                           setSelectedCategory(category);
-                          handleSearch(
-                            searchText || '',
-                            category?.products || [],
-                          );
+                          // Reset search text when switching category
+                          setSearchText(null);
+                          // Load fresh page for new category
+                          resetProducts(category?.products || []);
                           handleScrollToStickyHeader();
                         }}
                       >
@@ -437,7 +504,7 @@ const RestaurantDetails = (props: any) => {
 
                   <View style={styles.menuImageOrbWrap}>
                     <View style={styles.menuImageOrbGlow} />
-                    <Image
+                    <FastImage
                       source={{ uri: item.image }}
                       style={styles.menuImageOrb}
                     />
@@ -467,7 +534,7 @@ const RestaurantDetails = (props: any) => {
                     >
                       <View style={styles.menuCardSmallContent}>
                         <View>
-                          <Image
+                          <FastImage
                             source={
                               item?.image
                                 ? { uri: Constant.ImageURL + item.image }
@@ -491,16 +558,16 @@ const RestaurantDetails = (props: any) => {
                                   alignItems: 'center',
                                   borderRadius: 4,
                                   borderWidth: 2,
-                                  borderColor: colors.success,
+                                  borderColor: colors.veg,
                                 }}
                               >
                                 <Circle
                                   size={10}
-                                  color={colors.success}
-                                  fill={colors.success}
+                                  color={colors.veg}
+                                  fill={colors.veg}
                                 />
                               </View>
-                            ) : (
+                            ) : item?.type === 'Non-Veg' ? (
                               <View
                                 style={{
                                   height: 20,
@@ -509,16 +576,16 @@ const RestaurantDetails = (props: any) => {
                                   alignItems: 'center',
                                   borderRadius: 4,
                                   borderWidth: 2,
-                                  borderColor: colors.red,
+                                  borderColor: colors.nonVeg,
                                 }}
                               >
                                 <Triangle
                                   size={10}
-                                  color={colors.red}
-                                  fill={colors.red}
+                                  color={colors.nonVeg}
+                                  fill={colors.nonVeg}
                                 />
                               </View>
-                            )}
+                            ) : null}
                           </View>
                         </View>
 
@@ -531,7 +598,7 @@ const RestaurantDetails = (props: any) => {
                               ₹{item.variants[0]?.price}
                             </Text>
                           </View>
-                          <Text style={styles.smallDescription}>
+                          <Text style={styles.smallDescription} numberOfLines={2}>
                             {item?.description}
                           </Text>
                           <View style={styles.smallBottomRow}>
@@ -641,11 +708,27 @@ const RestaurantDetails = (props: any) => {
                   </Text>
                 </View>
               )}
-              {filteredProducts.length < 3 && (
+              {/* Loading-more spinner */}
+              {isLoadingMore && (
+                <View style={{ paddingVertical: 16, alignItems: 'center' }}>
+                  <ActivityIndicator size="small" color={colors.primary} />
+                </View>
+              )}
+
+              {/* All-loaded label */}
+              {!isLoadingMore && allProducts.length > 0 && displayedProducts.length >= allProducts.length && allProducts.length > PAGE_SIZE && (
+                <View style={{ paddingVertical: 12, alignItems: 'center' }}>
+                  <Text style={{ color: colors.textMuted, fontSize: 12 }}>
+                    All {allProducts.length} items loaded
+                  </Text>
+                </View>
+              )}
+
+              {displayedProducts.length < 3 && (
                 <View
                   style={{
                     height:
-                      SCREEN_HEIGHT * 0.15 * (3 - filteredProducts.length),
+                      SCREEN_HEIGHT * 0.15 * (3 - displayedProducts.length),
                   }}
                 />
               )}
@@ -708,7 +791,7 @@ const RestaurantDetails = (props: any) => {
                   keyboardShouldPersistTaps="handled"
                 >
                   <View style={styles.sheetImageWrap}>
-                    <Image
+                    <FastImage
                       source={
                         selectedItem?.image
                           ? { uri: Constant?.ImageURL + selectedItem.image }

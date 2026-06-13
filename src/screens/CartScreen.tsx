@@ -103,8 +103,8 @@ const CartScreen = () => {
           data.payment_method.cod.is_selected
             ? 'COD'
             : data.payment_method.online.is_selected
-            ? 'Online'
-            : '',
+              ? 'Online'
+              : '',
         );
       })
       .catch(error => {
@@ -132,7 +132,7 @@ const CartScreen = () => {
       );
       const discount =
         originalCartValue?.coupon?.applied &&
-        originalCartValue?.coupon?.discount
+          originalCartValue?.coupon?.discount
           ? originalCartValue.coupon.discount
           : 0;
       return base + extraCharges + vipCharge + paymentCharge - discount;
@@ -433,7 +433,7 @@ const CartScreen = () => {
 
             <View style={styles.itemList}>
               {originalCartValue?.items &&
-              originalCartValue?.items.length > 0 ? (
+                originalCartValue?.items.length > 0 ? (
                 originalCartValue?.items?.map((item, index) => (
                   <View key={index} style={styles.itemCard}>
                     <View>
@@ -461,16 +461,16 @@ const CartScreen = () => {
                               alignItems: 'center',
                               borderRadius: 4,
                               borderWidth: 3,
-                              borderColor: colors.success,
+                              borderColor: colors.veg,
                             }}
                           >
                             <Circle
                               size={10}
-                              color={colors.success}
-                              fill={colors.success}
+                              color={colors.veg}
+                              fill={colors.veg}
                             />
                           </View>
-                        ) : (
+                        ) : item?.type === 'Non-Veg' ? (
                           <View
                             style={{
                               height: 20,
@@ -479,16 +479,16 @@ const CartScreen = () => {
                               alignItems: 'center',
                               borderRadius: 4,
                               borderWidth: 3,
-                              borderColor: colors.red,
+                              borderColor: colors.nonVeg,
                             }}
                           >
                             <Triangle
                               size={10}
-                              color={colors.red}
-                              fill={colors.red}
+                              color={colors.nonVeg}
+                              fill={colors.nonVeg}
                             />
                           </View>
-                        )}
+                        ) : null}
                       </View>
                     </View>
 
@@ -550,6 +550,33 @@ const CartScreen = () => {
                           </View>
                         )}
                       </View>
+                      {/* {item?.status !== 'Available' ?
+                        <Pressable style={{
+                          position: "absolute",
+                          top: -8,
+                          right: -5,
+                          backgroundColor: colors.accentTan,
+                          paddingHorizontal: 8,
+                          paddingVertical: 4,
+                          borderRadius: 10,
+                          justifyContent: "center",
+                          alignItems: "center"
+                        }}
+                          onPress={() => {
+                            removeProduct({
+                              product_id: item?.product_id || '',
+                              variant_id: item?.variant_id,
+                              shop_id:
+                                originalCartValue?.shop?.shop_id || '',
+                              quantity: 10000,
+                            });
+                          }}
+                        >
+                          <Text style={{
+                            color: colors.black,
+                            fontSize: typography.caption,
+                          }}>Remove</Text>
+                        </Pressable> : null} */}
                     </View>
                   </View>
                 ))
@@ -567,7 +594,7 @@ const CartScreen = () => {
             </View>
 
             {originalCartValue?.vip_charge &&
-            originalCartValue?.vip_charge > 0 ? (
+              originalCartValue?.vip_charge > 0 ? (
               <View style={styles.vipCard}>
                 <View style={styles.vipLeftBlock}>
                   <View style={styles.vipIconBubble}>
@@ -649,7 +676,7 @@ const CartScreen = () => {
 
             <View style={styles.paymentSection}>
               {originalCartValue?.wallet_balance &&
-              originalCartValue?.wallet_balance > 0 ? (
+                originalCartValue?.wallet_balance > 0 ? (
                 <View style={styles.walletSection}>
                   <View style={styles.walletCopyBlock}>
                     <Text style={styles.walletEyebrow}>Wallet balance</Text>
@@ -796,8 +823,8 @@ const CartScreen = () => {
               ) : null}
 
               {paymentMethod === 'COD' &&
-              originalCartValue?.payment_method?.cod &&
-              originalCartValue?.payment_method?.cod?.charge > 0 ? (
+                originalCartValue?.payment_method?.cod &&
+                originalCartValue?.payment_method?.cod?.charge > 0 ? (
                 <View style={styles.breakdownRow}>
                   <Text style={styles.breakdownLabel}>COD Charge</Text>
                   <Text style={styles.breakdownValue}>
@@ -806,8 +833,8 @@ const CartScreen = () => {
                 </View>
               ) : null}
               {paymentMethod === 'Online' &&
-              originalCartValue?.payment_method?.online &&
-              originalCartValue?.payment_method?.online?.charge > 0 ? (
+                originalCartValue?.payment_method?.online &&
+                originalCartValue?.payment_method?.online?.charge > 0 ? (
                 <View style={styles.breakdownRow}>
                   <Text style={styles.breakdownLabel}>
                     Online Payment Charge

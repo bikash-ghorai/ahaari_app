@@ -427,7 +427,7 @@ const SearchScreen = () => {
                                     fill={colors.success}
                                   />
                                 </View>
-                              ) : (
+                              ) : item?.type === 'Non-Veg' ? (
                                 <View
                                   style={{
                                     height: 20,
@@ -436,16 +436,16 @@ const SearchScreen = () => {
                                     alignItems: 'center',
                                     borderRadius: 4,
                                     borderWidth: 3,
-                                    borderColor: colors.red,
+                                    borderColor: colors.nonVeg,
                                   }}
                                 >
                                   <Triangle
                                     size={10}
-                                    color={colors.red}
-                                    fill={colors.red}
+                                    color={colors.nonVeg}
+                                    fill={colors.nonVeg}
                                   />
                                 </View>
-                              )}
+                              ) : null}
                             </View>
                           </View>
 
@@ -458,7 +458,7 @@ const SearchScreen = () => {
                                 ₹{item?.price}
                               </Text>
                             </View>
-                            <Text style={styles.smallDescription} numberOfLines={3}>
+                            <Text style={styles.smallDescription} numberOfLines={2}>
                               {item?.description}
                             </Text>
                             <View style={styles.smallBottomRow}>

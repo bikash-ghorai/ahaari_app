@@ -175,6 +175,9 @@ const RestaurantList = (props: any) => {
 
   const category_id_params = props?.route?.params?.category_id || '';
 
+  const scrollRef = useRef<ScrollView>(null);
+  const chipXPositions = useRef<number[]>([]);
+
   const [restaurants, setRestaurants] = useState<Array<IRestaurant>>([]);
   const [categories, setCategories] = useState<
     Array<{ category_id: string; name: string }>
@@ -186,10 +189,26 @@ const RestaurantList = (props: any) => {
   );
 
   useEffect(() => {
-    if (category_id_params) {
-      setSelectedCategory(category_id_params);
+    if (!category_id_params || categories.length === 0) {
+      return;
     }
-  }, [category_id_params]);
+    setSelectedCategory(category_id_params);
+    const index = categories.findIndex(
+      (item) => item.category_id === category_id_params
+    );
+    if (index === -1) {
+      return;
+    }
+    // Small defer ensures layout has settled before we scroll
+    const timer = setTimeout(() => {
+      const x = chipXPositions.current[index];
+      if (x !== undefined) {
+        // Subtract a small margin so the chip isn't flush against the edge
+        scrollRef.current?.scrollTo({ x: Math.max(0, x - 16), y: 0, animated: true });
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [category_id_params, categories]);
 
   useEffect(() => {
     if (isFocused) {
@@ -367,13 +386,19 @@ const RestaurantList = (props: any) => {
           style={styles.chipsScroll}
           contentContainerStyle={styles.chipsContent}
           showsHorizontalScrollIndicator={false}
+          ref={scrollRef}
         >
           {categories && categories.length > 0
             ? categories.map((item, index) => {
-                const active = item?.category_id == selectedCategory;
-                return (
+              const active = item?.category_id == selectedCategory;
+              return (
+                <View
+                  key={index}
+                  onLayout={(e) => {
+                    chipXPositions.current[index] = e.nativeEvent.layout.x;
+                  }}
+                >
                   <TouchableOpacity
-                    key={index}
                     activeOpacity={0.88}
                     style={active ? styles.chipActive : styles.chipInactive}
                     onPress={() => handleSelectCategory(item?.category_id)}
@@ -386,8 +411,9 @@ const RestaurantList = (props: any) => {
                       {item?.name}
                     </Text>
                   </TouchableOpacity>
-                );
-              })
+                </View>
+              );
+            })
             : null}
         </ScrollView>
 
@@ -435,21 +461,25 @@ const RestaurantList = (props: any) => {
                   <View
                     style={[
                       styles.cardTopRow,
-                      restaurant?.type ? null : styles.cardTopRowNoBadge,
+                      restaurant?.status ? null : styles.cardTopRowNoBadge,
                     ]}
                   >
-                    {restaurant?.type ? (
-                      <View style={styles.vipBadge}>
-                        <Flame size={14} color={colors.primary} />
-                        <Text style={styles.vipText}>{restaurant?.type}</Text>
+                    {restaurant?.status ? (
+                      <View style={[styles.vipBadge, {
+                        backgroundColor: restaurant?.status === "Open" ? "rgba(245, 158, 11, 0.2)" : "rgba(245, 58, 11, 0.2)",
+                        borderColor: restaurant?.status === "Open" ? "rgba(245, 158, 11, 0.2)" : "rgba(245, 58, 11, 0.2)",
+
+                      }]}>
+                        <Flame size={14} color={restaurant?.status === "Open" ? colors.primary : colors.red} />
+                        <Text style={[styles.vipText, { color: restaurant?.status === "Open" ? colors.primary : colors.red }]}>{restaurant?.status}</Text>
                       </View>
                     ) : null}
                     <TouchableOpacity
                       style={styles.likeButton}
                       activeOpacity={0.85}
-                      // onPress={() => {
-                      //   handleToggleWishlist(restaurant?.shop_id);
-                      // }}
+                    // onPress={() => {
+                    //   handleToggleWishlist(restaurant?.shop_id);
+                    // }}
                     >
                       {restaurant?.is_wishlist ? (
                         <Heart
@@ -482,7 +512,7 @@ const RestaurantList = (props: any) => {
                   </View>
 
                   <Text style={styles.cardDetails} numberOfLines={2}>
-                    {restaurant?.address}
+                    {restaurant?.type} - {restaurant?.time}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -653,7 +683,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     backgroundColor: 'rgba(245, 158, 11, 0.2)',
-    borderColor: 'rgba(245, 158, 11, 0.2)',
     borderWidth: 1,
     borderRadius: 999,
     paddingHorizontal: 12,
@@ -716,8 +745,7 @@ const styles = StyleSheet.create({
   },
   cardDetails: {
     color: colors.textMuted,
-    fontSize: typography.body,
-    lineHeight: 23,
+    fontSize: typography.sm,
     marginTop: 7,
   },
 

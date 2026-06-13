@@ -202,7 +202,8 @@ const OrderDetailsScreen = () => {
   const isCancelOrPaymentBtnShow =
     orderDetails?.status !== 'Cancelled' &&
     orderDetails?.status !== 'Delivered' &&
-    orderDetails?.status !== 'Undelivered';
+    orderDetails?.status !== 'Undelivered' &&
+    orderDetails?.status !== 'Failed';
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>

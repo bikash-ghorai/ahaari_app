@@ -26,7 +26,7 @@ import Header from '../components/Header';
 
 const supportPhone = '+91 9134331144';
 const supportPhoneDigits = supportPhone.replace(/\D/g, '');
-const supportEmail = 'support@biteo.app';
+const supportEmail = 'support@ahaari.com';
 const whatsappUrl = `https://wa.me/${supportPhoneDigits}`;
 
 const selfServiceItems = [
@@ -108,7 +108,7 @@ const faqItems = [
 
 const HelpCenterScreen = () => {
   const handleCall = () => {
-    Linking.openURL(`tel:${supportPhoneDigits}`);
+    Linking.openURL(`tel:${supportPhone}`);
   };
 
   const handleEmail = () => {

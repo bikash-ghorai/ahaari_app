@@ -11,6 +11,7 @@ export const statusColors: any = {
   Delivered: '#10B981',
   Cancelled: '#EF4444',
   Undelivered: '#EF4444',
+  Failed: '#EF4444',
 };
 
 export const handleCall = (phoneNumber: string) => {

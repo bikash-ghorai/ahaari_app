@@ -50,6 +50,7 @@ export type IHomePageData = {
     description: string;
     price: number | string;
     image: string | null;
+    type: "Veg" | "Non-Veg";
   }>;
   coupons: Array<{
     title: string;
@@ -86,6 +87,7 @@ export type IRestaurant = {
   status: string;
   type: string;
   delivery_time: string;
+  time: string;
 };
 
 export type IRestaurantRes = {
@@ -248,7 +250,8 @@ export type IOrderStatus =
   | 'On The Way'
   | 'Delivered'
   | 'Cancelled'
-  | 'Undelivered';
+  | 'Undelivered'
+  | 'Failed';
 
 export type ICheckoutReq = {
   payment_method: IPaymentMethod;

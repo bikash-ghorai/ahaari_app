@@ -26,6 +26,7 @@ import {
   Bell,
   Calendar,
   ChevronDown,
+  Circle,
   LocateFixed,
   MapPin,
   MapPinOff,
@@ -33,6 +34,7 @@ import {
   Plus,
   Search,
   StarIcon,
+  Triangle,
 } from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -430,12 +432,61 @@ const HomeScreen = () => {
                         style={styles.specialImage}
                       />
                       <View style={styles.priceBadge}>
-                        <Text style={styles.priceText}>₹{item?.price}</Text>
+                        <Text style={styles.priceText} >₹{item?.price}</Text>
+                      </View>
+                      <View
+                        style={{
+                          position: 'absolute',
+                          top: 16,
+                          left: 16,
+                        }}
+                      >
+                        {item?.type === 'Veg' ? (
+                          <View
+                            style={{
+                              height: 20,
+                              width: 20,
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                              borderRadius: 4,
+                              borderWidth: 2,
+                              borderColor: colors.veg,
+                            }}
+                          >
+                            <Circle
+                              size={10}
+                              color={colors.veg}
+                              fill={colors.veg}
+                            />
+                          </View>
+                        ) : item?.type === 'Non-Veg' ? (
+                          <View
+                            style={{
+                              height: 20,
+                              width: 20,
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                              borderRadius: 4,
+                              borderWidth: 2,
+                              borderColor: colors.nonVeg,
+                            }}
+                          >
+                            <Triangle
+                              size={10}
+                              color={colors.nonVeg}
+                              fill={colors.nonVeg}
+                            />
+                          </View>
+                        ) : null}
                       </View>
                     </View>
                     <View style={styles.specialContent}>
                       <View style={styles.smallBottomRow}>
-                        <Text style={styles.specialTitle}>{item?.name}</Text>
+                        <View style={{
+                          maxWidth: '70%',
+                        }}>
+                          <Text style={styles.specialTitle} numberOfLines={2}>{item?.name}</Text>
+                        </View>
                         {getCartQtyCount({ product_id: item.product_id }) > 0 ? (
                           <View style={styles.qtyPillSmall}>
                             <TouchableOpacity
@@ -592,6 +643,12 @@ const HomeScreen = () => {
                             flexDirection: 'row',
                             alignItems: 'center',
                             gap: 4,
+                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                            paddingHorizontal: 6,
+                            paddingVertical: 4,
+                            borderRadius: 6,
+                            borderWidth: 1,
+                            borderColor: 'rgba(255, 255, 255, 0.1)',
                           }}
                         >
                           <StarIcon
@@ -1179,7 +1236,6 @@ const styles = StyleSheet.create({
   },
   smallBottomRow: {
     marginTop: 15,
-    height: 28,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',

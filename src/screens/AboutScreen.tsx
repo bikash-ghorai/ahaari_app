@@ -83,7 +83,7 @@ const AboutScreen = () => {
               <Text style={styles.heroPillText}>Chef Verified</Text>
             </View>
             <View style={styles.heroPillMuted}>
-              <Text style={styles.heroPillMutedText}>Version 0.2</Text>
+              <Text style={styles.heroPillMutedText}>Version 1.0</Text>
             </View>
           </View>
 
@@ -120,7 +120,7 @@ const AboutScreen = () => {
           <Text style={styles.cardTitle}>Legal & support</Text>
 
           <TouchableOpacity style={styles.linkRow} activeOpacity={0.8} onPress={() => {
-              Linking.openURL('https://ahaari.com/privacy-policy');
+            Linking.openURL('https://ahaari.com/privacy-policy');
           }}>
             <Text style={styles.linkLabel}>Privacy policy</Text>
             <ExternalLink size={18} color={colors.textMuted} />
@@ -128,7 +128,7 @@ const AboutScreen = () => {
           <View style={styles.cardDivider} />
 
           <TouchableOpacity style={styles.linkRow} activeOpacity={0.8} onPress={() => {
-              Linking.openURL('https://ahaari.com/terms-of-service');
+            Linking.openURL('https://ahaari.com/terms-of-service');
           }}>
             <Text style={styles.linkLabel}>Terms of service</Text>
             <ExternalLink size={18} color={colors.textMuted} />
