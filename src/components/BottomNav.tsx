@@ -1,14 +1,29 @@
 import React from 'react';
-import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { BlurView } from '@react-native-community/blur';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { Home, ReceiptText, Search, ShoppingCart, User, UtensilsCrossed } from 'lucide-react-native';
+import {
+  Home,
+  ReceiptText,
+  Search,
+  ShoppingCart,
+  User,
+  UtensilsCrossed,
+} from 'lucide-react-native';
 
 import { colors, layout, typography } from '../constants/theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const BottomNav = ({ state, descriptors, navigation }: BottomTabBarProps) => {
   const activeRouteName = state.routes[state.index]?.name;
   const ordersTabActive = activeRouteName === 'Orders';
+  const safeAreaInstance = useSafeAreaInsets();
 
   const navigateToTab = (index: number) => {
     const route = state.routes[index];
@@ -16,7 +31,14 @@ const BottomNav = ({ state, descriptors, navigation }: BottomTabBarProps) => {
   };
 
   return (
-    <View style={styles.bottomNavContainer}>
+    <View
+      style={[
+        styles.bottomNavContainer,
+        {
+          paddingBottom: safeAreaInstance.bottom ? safeAreaInstance.bottom : 24,
+        },
+      ]}
+    >
       <View style={styles.bottomNav}>
         <View pointerEvents="none" style={styles.bottomNavGlassLayer}>
           <BlurView
@@ -31,14 +53,24 @@ const BottomNav = ({ state, descriptors, navigation }: BottomTabBarProps) => {
           <View style={styles.bottomNavTintOverlay} />
         </View>
 
-
         <TouchableOpacity
           style={styles.navItem}
           onPress={() => navigateToTab(0)}
           accessibilityRole="button"
         >
-          <Home size={24} color={activeRouteName === 'Home' ? colors.primary : colors.textMuted} />
-          <Text style={activeRouteName === 'Home' ? styles.navTextActive : styles.navText}>Home</Text>
+          <Home
+            size={24}
+            color={
+              activeRouteName === 'Home' ? colors.primary : colors.textMuted
+            }
+          />
+          <Text
+            style={
+              activeRouteName === 'Home' ? styles.navTextActive : styles.navText
+            }
+          >
+            Home
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -46,8 +78,23 @@ const BottomNav = ({ state, descriptors, navigation }: BottomTabBarProps) => {
           onPress={() => navigateToTab(1)}
           accessibilityRole="button"
         >
-          <UtensilsCrossed size={24} color={activeRouteName === 'Restaurants' ? colors.primary : colors.textMuted} />
-          <Text style={activeRouteName === 'Restaurants' ? styles.navTextActive : styles.navText}>Near Me</Text>
+          <UtensilsCrossed
+            size={24}
+            color={
+              activeRouteName === 'Restaurants'
+                ? colors.primary
+                : colors.textMuted
+            }
+          />
+          <Text
+            style={
+              activeRouteName === 'Restaurants'
+                ? styles.navTextActive
+                : styles.navText
+            }
+          >
+            Near Me
+          </Text>
         </TouchableOpacity>
 
         <View style={styles.cartButtonContainer}>
@@ -65,8 +112,13 @@ const BottomNav = ({ state, descriptors, navigation }: BottomTabBarProps) => {
           onPress={() => navigateToTab(3)}
           accessibilityRole="button"
         >
-          <ReceiptText size={24} color={ordersTabActive ? colors.primary : colors.textMuted} />
-          <Text style={ordersTabActive ? styles.navTextActive : styles.navText}>Orders</Text>
+          <ReceiptText
+            size={24}
+            color={ordersTabActive ? colors.primary : colors.textMuted}
+          />
+          <Text style={ordersTabActive ? styles.navTextActive : styles.navText}>
+            Orders
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -74,8 +126,21 @@ const BottomNav = ({ state, descriptors, navigation }: BottomTabBarProps) => {
           onPress={() => navigateToTab(4)}
           accessibilityRole="button"
         >
-          <User size={24} color={activeRouteName === 'Profile' ? colors.primary : colors.textMuted} />
-          <Text style={activeRouteName === 'Profile' ? styles.navTextActive : styles.navText}>Profile</Text>
+          <User
+            size={24}
+            color={
+              activeRouteName === 'Profile' ? colors.primary : colors.textMuted
+            }
+          />
+          <Text
+            style={
+              activeRouteName === 'Profile'
+                ? styles.navTextActive
+                : styles.navText
+            }
+          >
+            Profile
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -89,7 +154,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     paddingHorizontal: layout.screenPadding,
-    paddingBottom: 24,
   },
   bottomNav: {
     borderRadius: 99,

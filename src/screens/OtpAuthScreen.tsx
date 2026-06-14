@@ -29,14 +29,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, layout, typography } from '../constants/theme';
 import type { RootStackParamList } from '../types/navigation';
 import { useDispatch, useSelector } from '../redux/store';
-import { resendOtp, updateLocation, verifyOTP } from '../redux/user/userAction';
+import { updateLocation, verifyOTP } from '../redux/user/userAction';
 import { setApiToken } from '../utils/axios';
 import {
   setAuthTokenToAsyncStore,
   setUserDetailsToAsyncStore,
 } from '../utils/storage';
 import { reset } from '../utils/navigationRef';
-import messaging from '@react-native-firebase/messaging';
 import auth from '@react-native-firebase/auth';
 import { showToaster } from '../utils/toaster';
 
@@ -107,13 +106,14 @@ const formatPhoneLabel = (phone?: string) => {
 const OtpAuthScreen = () => {
   const dispatch = useDispatch();
   const navigation = useNavigation<OtpAuthNavigationProp>();
-  const route = useRoute<OtpAuthRouteProp>();
+  const route = useRoute<OtpAuthRouteProp | any>();
   const otpInputRef = useRef<TextInput>(null);
   const phone: string = route.params?.phone || '';
-  const routeConfirmation: any = route.params?.confirmation || null;
+  const phoneAuthSnapshot: any = route.params?.phoneAuthSnapshot || null;
+  const fcmToken: any = route.params?.fcmToken || null;
   const { userCurrentCoords } = useSelector(state => state.user);
 
-  const [confirmation, setConfirmation] = useState(routeConfirmation);
+  const [confirmation, setConfirmation] = useState<any>(null);
   const [otp, setOtp] = useState('');
   const [countdown, setCountdown] = useState(INITIAL_COUNTDOWN);
   const phoneLabel = useMemo(() => formatPhoneLabel(phone), [phone]);
@@ -173,31 +173,57 @@ const OtpAuthScreen = () => {
     if (otp.length < OTP_LENGTH) {
       return;
     }
-    setIsLoading(true);
     try {
-      const userCredential = await confirmation.confirm(otp);
-      const idToken = await userCredential.user.getIdToken();
-      const fcmToken = await messaging().getToken();
-      dispatch(verifyOTP({ phone, otp, id_token: idToken, device_token: fcmToken || '' })).unwrap().then(async ({ data }) => {
-        if (data) {
-          setApiToken(data.token);
-          await setAuthTokenToAsyncStore(data.token);
-          await setUserDetailsToAsyncStore(data.user);
-          if (
-            userCurrentCoords &&
-            userCurrentCoords?.latitude &&
-            userCurrentCoords?.longitude
-          ) {
-            dispatch(updateLocation(userCurrentCoords));
+      setIsLoading(true);
+      const credential = auth.PhoneAuthProvider.credential(
+        phoneAuthSnapshot.verificationId,
+        otp,
+      );
+      console.log('Success verifying userCredential:', credential);
+      const logindata = await auth().signInWithCredential(credential);
+      const idToken = await logindata.user.getIdToken();
+      console.log('Success verifying logindata:', logindata);
+
+      dispatch(
+        verifyOTP({
+          phone,
+          otp,
+          id_token: idToken,
+          device_token: fcmToken || '',
+        }),
+      )
+        .unwrap()
+        .then(async ({ data }) => {
+          if (data) {
+            setApiToken(data.token);
+            await setAuthTokenToAsyncStore(data.token);
+            await setUserDetailsToAsyncStore(data.user);
+            if (
+              userCurrentCoords &&
+              userCurrentCoords?.latitude &&
+              userCurrentCoords?.longitude
+            ) {
+              dispatch(updateLocation(userCurrentCoords));
+            }
+            reset('Tabs');
+          } else {
+            showToaster('VerifyOTP failed. Please try again.');
           }
           setIsLoading(false);
-          reset('Tabs');
-        }
-      });
-    } catch (error) {
-      console.error('Error verifying OTP:', error);
+        })
+        .catch(error => {
+          console.log('Error in verifyOTP dispatch:', error);
+          setIsLoading(false);
+          showToaster(error?.message || 'VerifyOTP error. Please try again.');
+        });
+    } catch (error: any) {
+      console.log('Error verifying OTP:', error);
       setIsLoading(false);
-      showToaster('Incorrect OTP. Please try again.');
+      if (error?.code === 'auth/invalid-verification-code') {
+        showToaster('Incorrect OTP. Please try again.');
+        return;
+      }
+      showToaster(error?.message || 'Incorrect OTP. Please try again.');
     }
   };
 
@@ -353,9 +379,13 @@ const OtpAuthScreen = () => {
                   <Text
                     style={[
                       styles.verifyText,
-                      otp.length < OTP_LENGTH ? styles.verifyTextDisabled : null,
+                      otp.length < OTP_LENGTH
+                        ? styles.verifyTextDisabled
+                        : null,
                     ]}
-                  >Verify & Continue</Text>
+                  >
+                    Verify & Continue
+                  </Text>
                 )}
               </LinearGradient>
             </TouchableOpacity>

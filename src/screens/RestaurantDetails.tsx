@@ -27,8 +27,10 @@ import {
   Triangle,
 } from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { SafeAreaView } from 'react-native-safe-area-context';
-
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 
 import { colors, layout, typography } from '../constants/theme';
 import Header from '../components/Header';
@@ -47,6 +49,7 @@ const SCREEN_HEIGHT = Dimensions.get('window').height;
 const RestaurantDetails = (props: any) => {
   const dispatch = useDispatch();
   const shopId = props?.route?.params?.shopId || '';
+  const safeAreaInstance = useSafeAreaInsets();
 
   const { getCartQtyCount, addProduct, removeProduct } = useCart();
   const [duplicateRestaurenProduct, setDuplicateRestaurenProduct] =
@@ -60,7 +63,7 @@ const RestaurantDetails = (props: any) => {
   const heroHeightRef = useRef<number>(0);
 
   // ── Custom bottom sheet animation (native driver → 60 fps) ──
-  const SHEET_HEIGHT = SCREEN_HEIGHT * 0.50;
+  const SHEET_HEIGHT = SCREEN_HEIGHT * 0.5;
   const translateY = useRef(new Animated.Value(SHEET_HEIGHT)).current;
 
   const snapOpen = () => {
@@ -97,7 +100,9 @@ const RestaurantDetails = (props: any) => {
         });
       },
       onPanResponderMove: (_, gs) => {
-        if (gs.dy > 0) { translateY.setValue(gs.dy); }
+        if (gs.dy > 0) {
+          translateY.setValue(gs.dy);
+        }
       },
       onPanResponderRelease: (_, gs) => {
         translateY.flattenOffset();
@@ -122,7 +127,9 @@ const RestaurantDetails = (props: any) => {
   // allProducts  → full list for the active category / search
   const [allProducts, setAllProducts] = useState<Array<IProduct>>([]);
   // displayedProducts → the slice currently rendered (grows by PAGE_SIZE on scroll)
-  const [displayedProducts, setDisplayedProducts] = useState<Array<IProduct>>([]);
+  const [displayedProducts, setDisplayedProducts] = useState<Array<IProduct>>(
+    [],
+  );
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
@@ -134,28 +141,29 @@ const RestaurantDetails = (props: any) => {
   }, []);
 
   /** Append the next page of products */
-  const loadMoreProducts = useCallback(
-    (all: IProduct[], page: number) => {
-      const nextPage = page + 1;
-      const nextSlice = all.slice(0, nextPage * PAGE_SIZE);
-      if (nextSlice.length > page * PAGE_SIZE) {
-        setIsLoadingMore(true);
-        // Small timeout so the spinner is visible before the list expands
-        setTimeout(() => {
-          setDisplayedProducts(nextSlice);
-          setCurrentPage(nextPage);
-          setIsLoadingMore(false);
-        }, 300);
-      }
-    },
-    [],
-  );
+  const loadMoreProducts = useCallback((all: IProduct[], page: number) => {
+    const nextPage = page + 1;
+    const nextSlice = all.slice(0, nextPage * PAGE_SIZE);
+    if (nextSlice.length > page * PAGE_SIZE) {
+      setIsLoadingMore(true);
+      // Small timeout so the spinner is visible before the list expands
+      setTimeout(() => {
+        setDisplayedProducts(nextSlice);
+        setCurrentPage(nextPage);
+        setIsLoadingMore(false);
+      }, 300);
+    }
+  }, []);
 
   // Keep a ref to avoid stale-closure in the scroll handler
   const allProductsRef = useRef<IProduct[]>([]);
   const currentPageRef = useRef(1);
-  useEffect(() => { allProductsRef.current = allProducts; }, [allProducts]);
-  useEffect(() => { currentPageRef.current = currentPage; }, [currentPage]);
+  useEffect(() => {
+    allProductsRef.current = allProducts;
+  }, [allProducts]);
+  useEffect(() => {
+    currentPageRef.current = currentPage;
+  }, [currentPage]);
 
   /** Detect bottom-of-list and trigger loadMore */
   const handleScrollEnd = useCallback(
@@ -207,7 +215,9 @@ const RestaurantDetails = (props: any) => {
   };
 
   useEffect(() => {
-    if (sheetVisible) { snapOpen(); }
+    if (sheetVisible) {
+      snapOpen();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sheetVisible]);
 
@@ -364,39 +374,39 @@ const RestaurantDetails = (props: any) => {
               >
                 {shopDetails?.categories && shopDetails?.categories.length > 0
                   ? shopDetails?.categories.map((category, index) => {
-                    const isActive =
-                      selectedCategory?.category_id === category?.category_id;
+                      const isActive =
+                        selectedCategory?.category_id === category?.category_id;
 
-                    return (
-                      <TouchableOpacity
-                        key={index}
-                        activeOpacity={0.9}
-                        style={
-                          isActive
-                            ? styles.categoryPillActive
-                            : styles.categoryPill
-                        }
-                        onPress={() => {
-                          setSelectedCategory(category);
-                          // Reset search text when switching category
-                          setSearchText(null);
-                          // Load fresh page for new category
-                          resetProducts(category?.products || []);
-                          handleScrollToStickyHeader();
-                        }}
-                      >
-                        <Text
+                      return (
+                        <TouchableOpacity
+                          key={index}
+                          activeOpacity={0.9}
                           style={
                             isActive
-                              ? styles.categoryPillTextActive
-                              : styles.categoryPillText
+                              ? styles.categoryPillActive
+                              : styles.categoryPill
                           }
+                          onPress={() => {
+                            setSelectedCategory(category);
+                            // Reset search text when switching category
+                            setSearchText(null);
+                            // Load fresh page for new category
+                            resetProducts(category?.products || []);
+                            handleScrollToStickyHeader();
+                          }}
                         >
-                          {category?.name}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })
+                          <Text
+                            style={
+                              isActive
+                                ? styles.categoryPillTextActive
+                                : styles.categoryPillText
+                            }
+                          >
+                            {category?.name}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })
                   : null}
               </ScrollView>
 
@@ -598,7 +608,10 @@ const RestaurantDetails = (props: any) => {
                               ₹{item.variants[0]?.price}
                             </Text>
                           </View>
-                          <Text style={styles.smallDescription} numberOfLines={2}>
+                          <Text
+                            style={styles.smallDescription}
+                            numberOfLines={2}
+                          >
                             {item?.description}
                           </Text>
                           <View style={styles.smallBottomRow}>
@@ -611,8 +624,8 @@ const RestaurantDetails = (props: any) => {
                                 </Text>
                               </View>
                             ) : getCartQtyCount({
-                              product_id: item.product_id,
-                            }) > 0 ? (
+                                product_id: item.product_id,
+                              }) > 0 ? (
                               <View style={styles.qtyPillSmall}>
                                 <TouchableOpacity
                                   style={styles.qtyButtonSmall}
@@ -704,7 +717,9 @@ const RestaurantDetails = (props: any) => {
                       fontSize: typography.body,
                     }}
                   >
-                    {searchText ? `No products found matching "${searchText}"` : 'No products found!'}
+                    {searchText
+                      ? `No products found matching "${searchText}"`
+                      : 'No products found!'}
                   </Text>
                 </View>
               )}
@@ -716,13 +731,16 @@ const RestaurantDetails = (props: any) => {
               )}
 
               {/* All-loaded label */}
-              {!isLoadingMore && allProducts.length > 0 && displayedProducts.length >= allProducts.length && allProducts.length > PAGE_SIZE && (
-                <View style={{ paddingVertical: 12, alignItems: 'center' }}>
-                  <Text style={{ color: colors.textMuted, fontSize: 12 }}>
-                    All {allProducts.length} items loaded
-                  </Text>
-                </View>
-              )}
+              {!isLoadingMore &&
+                allProducts.length > 0 &&
+                displayedProducts.length >= allProducts.length &&
+                allProducts.length > PAGE_SIZE && (
+                  <View style={{ paddingVertical: 12, alignItems: 'center' }}>
+                    <Text style={{ color: colors.textMuted, fontSize: 12 }}>
+                      All {allProducts.length} items loaded
+                    </Text>
+                  </View>
+                )}
 
               {displayedProducts.length < 3 && (
                 <View
@@ -735,7 +753,9 @@ const RestaurantDetails = (props: any) => {
             </View>
           </View>
         </ScrollView>
-      ) : <Loader />}
+      ) : (
+        <Loader />
+      )}
       <PopupMessage
         title={'Replace cart items?'}
         description={
@@ -753,7 +773,8 @@ const RestaurantDetails = (props: any) => {
         transparent
         animationType="none"
         onRequestClose={closePreview}
-        statusBarTranslucent>
+        statusBarTranslucent
+      >
         {/* Backdrop */}
         <TouchableWithoutFeedback onPress={closePreview}>
           <View style={styles.sheetBackdrop} />
@@ -763,8 +784,15 @@ const RestaurantDetails = (props: any) => {
         <Animated.View
           style={[
             styles.sheetPanel,
-            { height: selectedItem?.variants && selectedItem.variants.length > 1 ? SCREEN_HEIGHT * 0.72 : SCREEN_HEIGHT * 0.50, transform: [{ translateY }] },
-          ]}>
+            {
+              height:
+                selectedItem?.variants && selectedItem.variants.length > 1
+                  ? SCREEN_HEIGHT * 0.72
+                  : SCREEN_HEIGHT * 0.5,
+              transform: [{ translateY }],
+            },
+          ]}
+        >
           {/* Blur background */}
           <BlurView
             pointerEvents="none"
@@ -800,7 +828,10 @@ const RestaurantDetails = (props: any) => {
                       style={styles.sheetImage}
                     />
                     <LinearGradient
-                      colors={['rgba(12, 14, 18, 0.1)', 'rgba(12, 14, 18, 0.6)']}
+                      colors={[
+                        'rgba(12, 14, 18, 0.1)',
+                        'rgba(12, 14, 18, 0.6)',
+                      ]}
                       start={{ x: 0.5, y: 0 }}
                       end={{ x: 0.5, y: 1 }}
                       style={styles.sheetImageOverlay}
@@ -809,7 +840,9 @@ const RestaurantDetails = (props: any) => {
 
                   <View style={styles.sheetBody}>
                     <View style={styles.sheetTitleRow}>
-                      <Text style={styles.sheetTitle}>{selectedItem?.name}</Text>
+                      <Text style={styles.sheetTitle}>
+                        {selectedItem?.name}
+                      </Text>
                       {selectedItem?.variants &&
                         selectedItem.variants.length === 1 && (
                           <Text style={styles.sheetPrice}>
@@ -821,56 +854,64 @@ const RestaurantDetails = (props: any) => {
                       {selectedItem?.description}
                     </Text>
 
-                    {selectedItem?.variants && selectedItem.variants.length > 1 && (
-                      <View style={styles.variantsSection}>
-                        <View style={styles.variantsList}>
-                          {selectedItem.variants.map((variant, index) => {
-                            const isSelected =
-                              selectedTempVariant?.variant_id ===
-                              variant.variant_id;
+                    {selectedItem?.variants &&
+                      selectedItem.variants.length > 1 && (
+                        <View style={styles.variantsSection}>
+                          <View style={styles.variantsList}>
+                            {selectedItem.variants.map((variant, index) => {
+                              const isSelected =
+                                selectedTempVariant?.variant_id ===
+                                variant.variant_id;
 
-                            return (
-                              <TouchableOpacity
-                                key={index}
-                                style={styles.variantItem}
-                                activeOpacity={0.7}
-                                onPress={() => setSelectedTempVariant(variant)}
-                              >
-                                <View style={styles.variantRadio}>
-                                  <View
-                                    style={[
-                                      styles.radioOuter,
-                                      isSelected && styles.radioOuterActive,
-                                    ]}
-                                  >
-                                    {isSelected && (
-                                      <View style={styles.radioInner} />
-                                    )}
+                              return (
+                                <TouchableOpacity
+                                  key={index}
+                                  style={styles.variantItem}
+                                  activeOpacity={0.7}
+                                  onPress={() =>
+                                    setSelectedTempVariant(variant)
+                                  }
+                                >
+                                  <View style={styles.variantRadio}>
+                                    <View
+                                      style={[
+                                        styles.radioOuter,
+                                        isSelected && styles.radioOuterActive,
+                                      ]}
+                                    >
+                                      {isSelected && (
+                                        <View style={styles.radioInner} />
+                                      )}
+                                    </View>
                                   </View>
-                                </View>
 
-                                <View style={styles.variantTextContent}>
-                                  <Text style={styles.variantName}>
-                                    {variant.name}
+                                  <View style={styles.variantTextContent}>
+                                    <Text style={styles.variantName}>
+                                      {variant.name}
+                                    </Text>
+                                  </View>
+
+                                  <Text style={styles.variantItemPrice}>
+                                    ₹{variant.price}
                                   </Text>
-                                </View>
-
-                                <Text style={styles.variantItemPrice}>
-                                  ₹{variant.price}
-                                </Text>
-                              </TouchableOpacity>
-                            );
-                          })}
+                                </TouchableOpacity>
+                              );
+                            })}
+                          </View>
                         </View>
-                      </View>
-                    )}
+                      )}
                   </View>
                 </ScrollView>
 
                 {/* Actions pinned at the bottom — always visible */}
-                <View style={styles.sheetActions}>
+                <View
+                  style={[
+                    styles.sheetActions,
+                    { paddingBottom: safeAreaInstance.bottom || 0 },
+                  ]}
+                >
                   {!selectedTempVariant ||
-                    selectedTempVariant.status !== 'Available' ? (
+                  selectedTempVariant.status !== 'Available' ? (
                     <View style={styles.sheetAddButton}>
                       <View
                         style={[
@@ -890,9 +931,9 @@ const RestaurantDetails = (props: any) => {
                       </View>
                     </View>
                   ) : getCartQtyCount({
-                    product_id: selectedItem.product_id,
-                    variant_id: selectedTempVariant?.variant_id,
-                  }) > 0 ? (
+                      product_id: selectedItem.product_id,
+                      variant_id: selectedTempVariant?.variant_id,
+                    }) > 0 ? (
                     <View style={styles.sheetQtyPill}>
                       <TouchableOpacity
                         style={styles.sheetQtyButton}
@@ -1102,7 +1143,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   stickySection: {
-    width: '100%'
+    width: '100%',
   },
   stickyCard: {
     borderRadius: 24,
@@ -1433,7 +1474,7 @@ const styles = StyleSheet.create({
   },
   // ── Custom sheet styles ──
   sheetBackdrop: {
-    position: "absolute",
+    position: 'absolute',
     top: 0,
     bottom: 0,
     right: 0,
@@ -1628,7 +1669,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingVertical: 16,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.08)'
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
   },
   variantsLabel: {
     color: colors.textPrimary,

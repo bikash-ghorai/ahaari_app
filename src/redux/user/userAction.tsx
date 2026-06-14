@@ -9,6 +9,7 @@ import { reset } from '../../utils/navigationRef';
 import {
   IAddress,
   IAddressAddReq,
+  IFirebaseLoginReq,
   ILoginReq,
   ISendOtpReq,
   IUpdateLocationReq,
@@ -59,6 +60,24 @@ export const verifyOTP = createAsyncThunk(
     try {
       const { data, message }: any = await axios.post(
         'user/verify-otp',
+        params,
+      );
+      // showToaster(message);
+      return { data, message };
+    } catch (error: any) {
+      showToaster(error);
+      return thunkAPI.rejectWithValue(error);
+    }
+  },
+);
+
+//For firebase login
+export const firebaseLogin = createAsyncThunk(
+  'user/firebaseLogin',
+  async (params: IFirebaseLoginReq, thunkAPI) => {
+    try {
+      const { data, message }: any = await axios.post(
+        'user/login-via-firebase',
         params,
       );
       // showToaster(message);

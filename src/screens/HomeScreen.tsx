@@ -57,7 +57,6 @@ import { setUserCurrentCoords } from '../redux/user/userSlice';
 import Loader from '../components/Loader';
 import { setIsBadWeather } from '../redux/app/appSlice';
 
-
 type HomeScreenNavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<RootTabParamList, 'Home'>,
   NativeStackNavigationProp<RootStackParamList>
@@ -72,7 +71,8 @@ const HomeScreen = () => {
   const { getCartQtyCount, removeProduct, addProduct } = useCart();
 
   const [homePageData, setHomePageData] = useState<IHomePageData | null>();
-  const [isHomePageDataFetching, setIsHomePageDataFetching] = useState<boolean>(true);
+  const [isHomePageDataFetching, setIsHomePageDataFetching] =
+    useState<boolean>(true);
 
   const [activeHeroIndex, setActiveHeroIndex] = React.useState(0);
   const heroFadeAnim = React.useRef(new Animated.Value(0)).current;
@@ -118,14 +118,13 @@ const HomeScreen = () => {
       .unwrap()
       .then(({ data }) => {
         setHomePageData(data);
-        dispatch(
-          setIsBadWeather(data?.bad_weather)
-        );
+        dispatch(setIsBadWeather(data?.bad_weather));
       })
       .catch(error => {
         console.log('Error fetching home page data:', error);
         setHomePageData(null);
-      }).finally(() => {
+      })
+      .finally(() => {
         setIsHomePageDataFetching(false);
       });
   };
@@ -324,7 +323,7 @@ const HomeScreen = () => {
             <View style={styles.heroCard}>
               <View style={styles.heroImageContainer}>
                 {homePageData?.slides &&
-                  homePageData?.slides[activeHeroIndex] ? (
+                homePageData?.slides[activeHeroIndex] ? (
                   <Animated.View
                     style={[
                       styles.heroImageMotion,
@@ -360,7 +359,7 @@ const HomeScreen = () => {
           )}
 
           {/* ── Category List ──────────────────────────────────── */}
-          {homePageData?.categories && homePageData?.categories.length > 0 ?
+          {homePageData?.categories && homePageData?.categories.length > 0 ? (
             <>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Categories</Text>
@@ -378,38 +377,36 @@ const HomeScreen = () => {
                       activeOpacity={0.8}
                       style={styles.categoryItem}
                       onPress={() => {
-                        reset('Tabs', { screen: 'Restaurants', params: { category_id: cat?.category_id || null } });
+                        reset('Tabs', {
+                          screen: 'Restaurants',
+                          params: { category_id: cat?.category_id || null },
+                        });
                       }}
                     >
-                      <View
-                        style={[
-                          styles.categoryIconContainer,
-                        ]}
-                      >{cat?.emoji ?
-                        <Text style={styles.categoryEmoji}>{cat?.emoji}</Text> :
-                        <Image
-                          source={{
-                            uri: `https://delico.definescreen.com/uploads/categories/CAT1770731544.jpg`,
-                          }}
-                          style={styles.categoryIcon}
-                        />}
+                      <View style={[styles.categoryIconContainer]}>
+                        {cat?.emoji ? (
+                          <Text style={styles.categoryEmoji}>{cat?.emoji}</Text>
+                        ) : (
+                          <Image
+                            source={{
+                              uri: `https://delico.definescreen.com/uploads/categories/CAT1770731544.jpg`,
+                            }}
+                            style={styles.categoryIcon}
+                          />
+                        )}
                       </View>
-                      <Text
-                        style={[
-                          styles.categoryLabel,
-                        ]}
-                        numberOfLines={1}
-                      >
+                      <Text style={[styles.categoryLabel]} numberOfLines={1}>
                         {cat?.name}
                       </Text>
                     </TouchableOpacity>
                   );
                 })}
               </ScrollView>
-            </> : null}
+            </>
+          ) : null}
 
           {homePageData?.todaySpecials &&
-            homePageData?.todaySpecials.length > 0 ? (
+          homePageData?.todaySpecials.length > 0 ? (
             <>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Today's Specials</Text>
@@ -432,7 +429,7 @@ const HomeScreen = () => {
                         style={styles.specialImage}
                       />
                       <View style={styles.priceBadge}>
-                        <Text style={styles.priceText} >₹{item?.price}</Text>
+                        <Text style={styles.priceText}>₹{item?.price}</Text>
                       </View>
                       <View
                         style={{
@@ -482,12 +479,17 @@ const HomeScreen = () => {
                     </View>
                     <View style={styles.specialContent}>
                       <View style={styles.smallBottomRow}>
-                        <View style={{
-                          maxWidth: '70%',
-                        }}>
-                          <Text style={styles.specialTitle} numberOfLines={2}>{item?.name}</Text>
+                        <View
+                          style={{
+                            maxWidth: '70%',
+                          }}
+                        >
+                          <Text style={styles.specialTitle} numberOfLines={2}>
+                            {item?.name}
+                          </Text>
                         </View>
-                        {getCartQtyCount({ product_id: item.product_id }) > 0 ? (
+                        {getCartQtyCount({ product_id: item.product_id }) >
+                        0 ? (
                           <View style={styles.qtyPillSmall}>
                             <TouchableOpacity
                               style={styles.qtyButtonSmall}
@@ -595,16 +597,22 @@ const HomeScreen = () => {
                   <View style={styles.offerCard} key={index}>
                     {/* <View style={styles.offerGlowBlob} /> */}
                     <Text style={styles.offerTag}>{coupon?.expire_on}</Text>
-                    <Text style={styles.offerTitle} numberOfLines={1}>{coupon?.title}</Text>
+                    <Text style={styles.offerTitle} numberOfLines={1}>
+                      {coupon?.title}
+                    </Text>
                     <Text style={styles.offerDesc}>{coupon?.description}</Text>
-                    <TouchableOpacity style={styles.offerAction} activeOpacity={0.9}
+                    <TouchableOpacity
+                      style={styles.offerAction}
+                      activeOpacity={0.9}
                       onPress={() => {
                         navigate('Cart');
-                      }}>
+                      }}
+                    >
                       <Text style={styles.offerActionText}>Claim Now</Text>
                       <ArrowRight size={14} color={colors.primary} />
                     </TouchableOpacity>
-                  </View>))}
+                  </View>
+                ))}
               </ScrollView>
             </>
           ) : null}
@@ -691,7 +699,6 @@ const HomeScreen = () => {
             </>
           ) : null}
 
-
           {/* <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Chef's Recommendation</Text>
           </View>
@@ -743,37 +750,40 @@ const HomeScreen = () => {
               </View>
             </View>
           </View> */}
-
         </ScrollView>
-      ) :
-        isHomePageDataFetching ? <Loader /> : (
-          <View style={styles.comingSoonSection}>
-            <View style={styles.comingSoonIconContainer}>
-              <MapPinOff size={48} color={colors.primary} strokeWidth={1.5} />
-            </View>
-            <Text style={styles.comingSoonTitle}>We're not in your neighborhood</Text>
-            <Text style={styles.comingSoonSubTitle}>just yet.</Text>
-
-            <Text style={styles.comingSoonSubtitle}>
-              We haven&apos;t reached this area yet. Our team is working hard to expand coverage to your neighborhood soon.
-            </Text>
-            <TouchableOpacity
-              activeOpacity={0.8}
-              style={styles.comingSoonButton}
-              onPress={() => {
-                setIsAddressSheetOpen(true);
-                handleGetAddress();
-              }}
-            >
-              <Text style={styles.comingSoonButtonText}>Change Location</Text>
-            </TouchableOpacity>
-            {currentPlace && (
-              <Text style={styles.comingSoonPlaceText} numberOfLines={1}>
-                {currentPlace}
-              </Text>
-            )}
+      ) : isHomePageDataFetching ? (
+        <Loader />
+      ) : (
+        <View style={styles.comingSoonSection}>
+          <View style={styles.comingSoonIconContainer}>
+            <MapPinOff size={48} color={colors.primary} strokeWidth={1.5} />
           </View>
-        )}
+          <Text style={styles.comingSoonTitle}>
+            We're not in your neighborhood
+          </Text>
+          <Text style={styles.comingSoonSubTitle}>just yet.</Text>
+
+          <Text style={styles.comingSoonSubtitle}>
+            We haven&apos;t reached this area yet. Our team is working hard to
+            expand coverage to your neighborhood soon.
+          </Text>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            style={styles.comingSoonButton}
+            onPress={() => {
+              setIsAddressSheetOpen(true);
+              handleGetAddress();
+            }}
+          >
+            <Text style={styles.comingSoonButtonText}>Change Location</Text>
+          </TouchableOpacity>
+          {currentPlace && (
+            <Text style={styles.comingSoonPlaceText} numberOfLines={1}>
+              {currentPlace}
+            </Text>
+          )}
+        </View>
+      )}
 
       <Modal
         transparent
@@ -982,7 +992,7 @@ const styles = StyleSheet.create({
   locationText: {
     color: colors.textMuted,
     fontSize: typography.sm,
-    maxWidth: "70%",
+    maxWidth: '70%',
   },
   headerRight: {
     flexDirection: 'row',
@@ -1196,7 +1206,7 @@ const styles = StyleSheet.create({
   specialContent: {
     padding: 15,
     flex: 1,
-    paddingTop: 0
+    paddingTop: 0,
   },
   priceBadge: {
     position: 'absolute',

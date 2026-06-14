@@ -23,6 +23,7 @@ const SplashScreen = () => {
 
   useEffect(() => {
     initiatApp();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   console.log('Initiating app...');
@@ -54,10 +55,16 @@ const SplashScreen = () => {
               latitude: coords.latitude,
               longitude: coords.longitude,
             }),
-          );
+          )
+            .unwrap()
+            .finally(() => {
+              getCart();
+              reset('Tabs');
+            });
+        } else {
+          getCart();
+          reset('Tabs');
         }
-        getCart();
-        reset('Tabs');
       } else {
         await deleteAuthTokenFromAsyncStore();
         emptyCart();

@@ -1,6 +1,7 @@
 /* eslint-disable react-native/no-inline-styles */
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  Dimensions,
   Image,
   Pressable,
   ScrollView,
@@ -49,6 +50,8 @@ import { navigate } from '../utils/navigationRef';
 import RazorpayCheckout from 'react-native-razorpay';
 import { showToaster } from '../utils/toaster';
 import Loader from '../components/Loader';
+
+const { height } = Dimensions.get('window');
 
 const CartScreen = () => {
   const { cartValue, addProduct, removeProduct, getCartQtyCount, emptyCart } =
@@ -103,8 +106,8 @@ const CartScreen = () => {
           data.payment_method.cod.is_selected
             ? 'COD'
             : data.payment_method.online.is_selected
-              ? 'Online'
-              : '',
+            ? 'Online'
+            : '',
         );
       })
       .catch(error => {
@@ -132,7 +135,7 @@ const CartScreen = () => {
       );
       const discount =
         originalCartValue?.coupon?.applied &&
-          originalCartValue?.coupon?.discount
+        originalCartValue?.coupon?.discount
           ? originalCartValue.coupon.discount
           : 0;
       return base + extraCharges + vipCharge + paymentCharge - discount;
@@ -329,7 +332,7 @@ const CartScreen = () => {
               <Text style={styles.heroTitle}>
                 {originalCartValue?.shop?.name || ''}
               </Text>
-              <Text style={styles.heroSubtitle}>
+              <Text style={styles.heroSubtitle} numberOfLines={2}>
                 {originalCartValue?.shop?.address || ''}
               </Text>
             </View>
@@ -433,7 +436,7 @@ const CartScreen = () => {
 
             <View style={styles.itemList}>
               {originalCartValue?.items &&
-                originalCartValue?.items.length > 0 ? (
+              originalCartValue?.items.length > 0 ? (
                 originalCartValue?.items?.map((item, index) => (
                   <View key={index} style={styles.itemCard}>
                     <View>
@@ -594,7 +597,7 @@ const CartScreen = () => {
             </View>
 
             {originalCartValue?.vip_charge &&
-              originalCartValue?.vip_charge > 0 ? (
+            originalCartValue?.vip_charge > 0 ? (
               <View style={styles.vipCard}>
                 <View style={styles.vipLeftBlock}>
                   <View style={styles.vipIconBubble}>
@@ -676,7 +679,7 @@ const CartScreen = () => {
 
             <View style={styles.paymentSection}>
               {originalCartValue?.wallet_balance &&
-                originalCartValue?.wallet_balance > 0 ? (
+              originalCartValue?.wallet_balance > 0 ? (
                 <View style={styles.walletSection}>
                   <View style={styles.walletCopyBlock}>
                     <Text style={styles.walletEyebrow}>Wallet balance</Text>
@@ -823,8 +826,8 @@ const CartScreen = () => {
               ) : null}
 
               {paymentMethod === 'COD' &&
-                originalCartValue?.payment_method?.cod &&
-                originalCartValue?.payment_method?.cod?.charge > 0 ? (
+              originalCartValue?.payment_method?.cod &&
+              originalCartValue?.payment_method?.cod?.charge > 0 ? (
                 <View style={styles.breakdownRow}>
                   <Text style={styles.breakdownLabel}>COD Charge</Text>
                   <Text style={styles.breakdownValue}>
@@ -833,8 +836,8 @@ const CartScreen = () => {
                 </View>
               ) : null}
               {paymentMethod === 'Online' &&
-                originalCartValue?.payment_method?.online &&
-                originalCartValue?.payment_method?.online?.charge > 0 ? (
+              originalCartValue?.payment_method?.online &&
+              originalCartValue?.payment_method?.online?.charge > 0 ? (
                 <View style={styles.breakdownRow}>
                   <Text style={styles.breakdownLabel}>
                     Online Payment Charge
@@ -891,7 +894,12 @@ const CartScreen = () => {
           <View
             style={[
               styles.footerShell,
-              { paddingBottom: Math.max(16, insets.bottom) },
+              {
+                paddingBottom: 16,
+                bottom: insets.bottom
+                  ? insets.bottom + height * 0.087
+                  : height * 0.11,
+              },
             ]}
           >
             <BlurView
@@ -1626,7 +1634,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: layout.screenPadding,
     right: layout.screenPadding,
-    bottom: 96,
     borderRadius: 24,
     overflow: 'hidden',
     borderWidth: 1,

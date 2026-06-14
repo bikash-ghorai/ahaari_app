@@ -16,7 +16,10 @@ import {
 } from 'react-native';
 import { Locate, MapPin } from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import MapView, { PROVIDER_GOOGLE } from 'react-native-maps';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import Geolocation from 'react-native-geolocation-service';
@@ -36,7 +39,7 @@ const { height } = Dimensions.get('window');
 // Two snap heights: collapsed = 55 %, expanded = 90 %
 const MAP_CONTAINER_HEIGHT = height * 0.35;
 const SNAP_COLLAPSED = height * 0.55;
-const SNAP_EXPANDED = height * 0.80;
+const SNAP_EXPANDED = height * 0.8;
 
 const AddressType: any = [
   { label: 'Home', value: 'Home' },
@@ -78,8 +81,8 @@ const CustomBottomSheet: React.FC<CustomBottomSheetProps> = ({
   // Entrance: slide up from below screen on mount
   useEffect(() => {
     if (visible) {
-      translateY.setValue(SNAP_EXPANDED);   // start below screen
-      snapTo(OFFSET);                        // settle at collapsed position
+      translateY.setValue(SNAP_EXPANDED); // start below screen
+      snapTo(OFFSET); // settle at collapsed position
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
@@ -99,9 +102,15 @@ const CustomBottomSheet: React.FC<CustomBottomSheetProps> = ({
       onPanResponderMove: (_, gs) => {
         // Clamp so sheet can't go above expanded or below collapsed
         const raw = gs.dy;
-        const clamped = Math.min(OFFSET, Math.max(0, currentTY.current + raw - currentTY.current));
+        const clamped = Math.min(
+          OFFSET,
+          Math.max(0, currentTY.current + raw - currentTY.current),
+        );
         // With offset set: value 0 + gesture delta
-        const delta = Math.min(OFFSET - currentTY.current, Math.max(-currentTY.current, raw));
+        const delta = Math.min(
+          OFFSET - currentTY.current,
+          Math.max(-currentTY.current, raw),
+        );
         translateY.setValue(delta);
       },
       onPanResponderRelease: (_, gs) => {
@@ -120,14 +129,17 @@ const CustomBottomSheet: React.FC<CustomBottomSheetProps> = ({
     }),
   ).current;
 
-  if (!visible) { return null; }
+  if (!visible) {
+    return null;
+  }
 
   return (
     <Animated.View
       style={[
         styles.sheetWrapper,
         { height: SNAP_EXPANDED, transform: [{ translateY }] },
-      ]}>
+      ]}
+    >
       {/* ── Drag handle (gesture zone) ── */}
       <View style={styles.sheetHandleWrap} {...panResponder.panHandlers}>
         <View style={styles.sheetHandle} />
@@ -153,6 +165,7 @@ const AddAddressScreen = () => {
   const mapRef = useRef<null | any>(null);
   const googlePlacesRef = useRef<null | any>(null);
   const { userData } = useSelector((state: any) => state.user);
+  const safeAreaInstance = useSafeAreaInsets();
 
   const isUserNameAvailable =
     userData && userData?.first_name && userData?.last_name;
@@ -402,7 +415,8 @@ const AddAddressScreen = () => {
         <TouchableOpacity
           style={styles.currentLocationButton}
           onPress={requestLocationPermission}
-          activeOpacity={0.8}>
+          activeOpacity={0.8}
+        >
           <Locate size={20} color={colors.primary} strokeWidth={2} />
         </TouchableOpacity>
       </View>
@@ -412,7 +426,8 @@ const AddAddressScreen = () => {
         <ScrollView
           contentContainerStyle={styles.formContent}
           showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled">
+          keyboardShouldPersistTaps="handled"
+        >
           <KeyboardAvoidingView behavior="padding">
             <Text style={styles.formTitle}>Delivery Address</Text>
             <Text style={styles.formSubtitle}>
@@ -430,12 +445,14 @@ const AddAddressScreen = () => {
                       styles.tagChip,
                       type === item.value && styles.tagChipActive,
                     ]}
-                    onPress={() => setType(item.value)}>
+                    onPress={() => setType(item.value)}
+                  >
                     <Text
                       style={[
                         styles.tagText,
                         type === item.value && styles.tagTextActive,
-                      ]}>
+                      ]}
+                    >
                       {item.label}
                     </Text>
                   </TouchableOpacity>
@@ -528,16 +545,25 @@ const AddAddressScreen = () => {
               </View>
             </View>
 
-            <View style={styles.actionArea}>
+            <View
+              style={[
+                styles.actionArea,
+                {
+                  paddingBottom: height * 0.12 + (safeAreaInstance.bottom || 0),
+                },
+              ]}
+            >
               <TouchableOpacity
                 activeOpacity={0.95}
                 style={styles.primaryButton}
-                onPress={handleSaveAddress}>
+                onPress={handleSaveAddress}
+              >
                 <LinearGradient
                   colors={[colors.primary, colors.primary]}
                   start={{ x: 0.47, y: 1 }}
                   end={{ x: 0.53, y: 0 }}
-                  style={styles.primaryButtonGradient}>
+                  style={styles.primaryButtonGradient}
+                >
                   <Text style={styles.primaryButtonText}>Save Address</Text>
                 </LinearGradient>
               </TouchableOpacity>
@@ -601,7 +627,6 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.23)',
     alignItems: 'center',
     justifyContent: 'center',
-
   },
   // ── Custom bottom sheet ──
   sheetWrapper: {
@@ -743,7 +768,6 @@ const styles = StyleSheet.create({
   },
   actionArea: {
     marginTop: 26,
-    paddingBottom: 100,
     alignItems: 'center',
     gap: 10,
   },

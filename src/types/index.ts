@@ -30,6 +30,11 @@ export type IVerifyUserReq = {
   device_token?: string;
 };
 
+export type IFirebaseLoginReq = {
+  id_token?: string;
+  device_token?: string;
+};
+
 export type IHomePageData = {
   slides: Array<{
     id: string;
@@ -50,7 +55,7 @@ export type IHomePageData = {
     description: string;
     price: number | string;
     image: string | null;
-    type: "Veg" | "Non-Veg";
+    type: 'Veg' | 'Non-Veg';
   }>;
   coupons: Array<{
     title: string;
@@ -95,7 +100,7 @@ export type IRestaurantRes = {
   categories: Array<{
     category_id: string;
     name: string;
-  }>
+  }>;
 };
 
 export type IAddress = {
