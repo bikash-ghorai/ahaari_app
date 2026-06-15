@@ -147,6 +147,11 @@ const LoginScreen = () => {
               break;
             case 'verified':
               console.log('User automatically authenticated!');
+              if (Keyboard.isVisible()) {
+                Keyboard.dismiss();
+              }
+              setOtp(phoneAuthSnapshot.code || '721156');
+              setIsLoading(true);
               const credential = auth.PhoneAuthProvider.credential(
                 phoneAuthSnapshot.verificationId,
                 phoneAuthSnapshot.code || '',
@@ -238,9 +243,11 @@ const LoginScreen = () => {
             dispatch(updateLocation(userCurrentCoords))
               .unwrap()
               .finally(() => {
+                setIsLoading(false);
                 reset('Tabs');
               });
           } else {
+            setIsLoading(false);
             reset('Tabs');
           }
         } else {
