@@ -108,8 +108,7 @@ const OrderConfirmedScreen = () => {
               </View>
             </View>
             <Text style={styles.instructionsNote}>
-              Chef {chefName} has received your requests and is preparing your
-              meal accordingly.
+              Note: Please provide any specific instructions for the chef to ensure your meal is prepared to your liking. This will help us deliver a personalized dining experience.
             </Text>
           </View>
 

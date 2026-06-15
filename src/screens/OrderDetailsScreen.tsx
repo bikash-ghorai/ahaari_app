@@ -597,6 +597,16 @@ const OrderDetailsScreen = () => {
               </View>
             ) : null}
 
+
+            {orderDetails?.wallet_used ? (
+              <View style={styles.breakdownRow}>
+                <Text style={styles.discountLabel}>Wallet Balance</Text>
+                <Text style={styles.discountValue}>
+                  -{currencyFormate(orderDetails?.wallet_used || 0, 2)}
+                </Text>
+              </View>
+            ) : null}
+
             <View style={styles.divider} />
 
             <View style={styles.totalRow}>

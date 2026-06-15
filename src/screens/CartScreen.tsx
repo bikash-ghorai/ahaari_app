@@ -106,8 +106,8 @@ const CartScreen = () => {
           data.payment_method.cod.is_selected
             ? 'COD'
             : data.payment_method.online.is_selected
-            ? 'Online'
-            : '',
+              ? 'Online'
+              : '',
         );
       })
       .catch(error => {
@@ -135,7 +135,7 @@ const CartScreen = () => {
       );
       const discount =
         originalCartValue?.coupon?.applied &&
-        originalCartValue?.coupon?.discount
+          originalCartValue?.coupon?.discount
           ? originalCartValue.coupon.discount
           : 0;
       return base + extraCharges + vipCharge + paymentCharge - discount;
@@ -319,7 +319,6 @@ const CartScreen = () => {
             style={styles.scrollView}
             contentContainerStyle={[
               styles.scrollContent,
-              { paddingBottom: 300 + insets.bottom },
             ]}
             showsVerticalScrollIndicator={false}
           >
@@ -436,7 +435,7 @@ const CartScreen = () => {
 
             <View style={styles.itemList}>
               {originalCartValue?.items &&
-              originalCartValue?.items.length > 0 ? (
+                originalCartValue?.items.length > 0 ? (
                 originalCartValue?.items?.map((item, index) => (
                   <View key={index} style={styles.itemCard}>
                     <View>
@@ -597,7 +596,7 @@ const CartScreen = () => {
             </View>
 
             {originalCartValue?.vip_charge &&
-            originalCartValue?.vip_charge > 0 ? (
+              originalCartValue?.vip_charge > 0 ? (
               <View style={styles.vipCard}>
                 <View style={styles.vipLeftBlock}>
                   <View style={styles.vipIconBubble}>
@@ -679,7 +678,7 @@ const CartScreen = () => {
 
             <View style={styles.paymentSection}>
               {originalCartValue?.wallet_balance &&
-              originalCartValue?.wallet_balance > 0 ? (
+                originalCartValue?.wallet_balance > 0 ? (
                 <View style={styles.walletSection}>
                   <View style={styles.walletCopyBlock}>
                     <Text style={styles.walletEyebrow}>Wallet balance</Text>
@@ -745,7 +744,7 @@ const CartScreen = () => {
                         Online Payment
                       </Text>
                       <Text style={styles.paymentCardSubtitle}>
-                        Card, Apple Pay
+                        Card, UPI, Wallets
                       </Text>
                     </View>
                   </Pressable>
@@ -826,8 +825,8 @@ const CartScreen = () => {
               ) : null}
 
               {paymentMethod === 'COD' &&
-              originalCartValue?.payment_method?.cod &&
-              originalCartValue?.payment_method?.cod?.charge > 0 ? (
+                originalCartValue?.payment_method?.cod &&
+                originalCartValue?.payment_method?.cod?.charge > 0 ? (
                 <View style={styles.breakdownRow}>
                   <Text style={styles.breakdownLabel}>COD Charge</Text>
                   <Text style={styles.breakdownValue}>
@@ -836,8 +835,8 @@ const CartScreen = () => {
                 </View>
               ) : null}
               {paymentMethod === 'Online' &&
-              originalCartValue?.payment_method?.online &&
-              originalCartValue?.payment_method?.online?.charge > 0 ? (
+                originalCartValue?.payment_method?.online &&
+                originalCartValue?.payment_method?.online?.charge > 0 ? (
                 <View style={styles.breakdownRow}>
                   <Text style={styles.breakdownLabel}>
                     Online Payment Charge
@@ -884,11 +883,16 @@ const CartScreen = () => {
                     Wallet Balance
                   </Text>
                   <Text style={styles.breakdownDiscountValue}>
-                    -₹{originalCartValue?.wallet_balance.toFixed(2)}
+                    -₹{originalCartValue?.wallet_balance > totalAmount ? totalAmount.toFixed(2) : originalCartValue?.wallet_balance.toFixed(2)}
                   </Text>
                 </View>
               ) : null}
             </View>
+            {isBadWeather && originalCartValue?.delivery_charge_discount.progress > 0 ?
+              <View style={{ height: 320 + insets.bottom }} />
+              : isBadWeather || originalCartValue?.delivery_charge_discount.progress > 0 ?
+                <View style={{ height: 280 + insets.bottom }} /> :
+                <View style={{ height: 200 + insets.bottom }} />}
           </ScrollView>
 
           <View
@@ -928,27 +932,23 @@ const CartScreen = () => {
                   </View>
                 </View>
               ) : null}
-              {/* <View style={styles.progressFooterSection}>
-            <View style={styles.progressFooterHeader}>
-              <Text style={styles.progressFooterLabel}>
-                FREE DELIVERY PROGRESS
-              </Text>
-              <Text style={styles.progressFooterAmount}>
-                {remainingForFreeDelivery > 0
-                  ? `ADD $${remainingForFreeDelivery.toFixed(2)} MORE`
-                  : 'FREE DELIVERY UNLOCKED'}
-              </Text>
-            </View>
+              {originalCartValue?.delivery_charge_discount && originalCartValue?.delivery_charge_discount.progress > 0 ?
+                <View style={styles.progressFooterSection}>
+                  <View style={styles.progressFooterHeader}>
+                    <Text style={styles.progressFooterAmount}>
+                      {originalCartValue?.delivery_charge_discount?.message || ''}
+                    </Text>
+                  </View>
 
-            <View style={styles.progressTrack}>
-              <View
-                style={[
-                  styles.progressFill,
-                  { width: `${freeDeliveryProgress * 100}%` },
-                ]}
-              />
-            </View>
-          </View> */}
+                  <View style={styles.progressTrack}>
+                    <View
+                      style={[
+                        styles.progressFill,
+                        { width: `${originalCartValue?.delivery_charge_discount?.progress}%` },
+                      ]}
+                    />
+                  </View>
+                </View> : null}
 
               <TouchableOpacity
                 style={[
@@ -1010,7 +1010,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingTop: 12,
     paddingHorizontal: layout.screenPadding,
-    paddingBottom: 380,
     gap: 32,
   },
   heroCard: {

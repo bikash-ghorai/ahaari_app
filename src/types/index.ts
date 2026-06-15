@@ -234,6 +234,10 @@ export type ICartItemRes = {
     amount: number;
   }>;
   checkout: boolean;
+  delivery_charge_discount: {
+    progress: number;
+    message: string;
+  }
 };
 
 export type ICoupon = {
@@ -327,6 +331,7 @@ export type IOrderDetails = {
     amount: number;
   }>;
   discount: number;
+  wallet_used: number;
   payable_amount: number;
   total: number;
   payment_type: IPaymentMethod;

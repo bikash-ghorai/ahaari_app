@@ -435,7 +435,6 @@ const LoginScreen = () => {
                         textContentType="oneTimeCode"
                         autoComplete="one-time-code"
                         style={styles.hiddenInput}
-                        autoFocus
                       />
 
                       <View style={styles.metaRow}>
