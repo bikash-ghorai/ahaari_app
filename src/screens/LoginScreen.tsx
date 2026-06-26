@@ -39,6 +39,7 @@ import {
   setAuthTokenToAsyncStore,
   setUserDetailsToAsyncStore,
 } from '../utils/storage';
+import { getAnalytics, setUserId } from '@react-native-firebase/analytics';
 
 const OTP_LENGTH = 6;
 
@@ -162,6 +163,7 @@ const LoginScreen = () => {
               break;
             case 'error':
               console.log('Verification error', phoneAuthSnapshot.error);
+              setIsLoading(false);
               if (
                 phoneAuthSnapshot?.error?.code === 'auth/invalid-phone-number'
               ) {
@@ -176,7 +178,6 @@ const LoginScreen = () => {
                 phoneAuthSnapshot?.error?.message ||
                   'Failed to send OTP. Please try again.',
               );
-              setIsLoading(false);
               break;
           }
         });
@@ -235,6 +236,13 @@ const LoginScreen = () => {
           setApiToken(data.token);
           await setAuthTokenToAsyncStore(data.token);
           await setUserDetailsToAsyncStore(data.user);
+
+          try {
+            await setUserId(getAnalytics(), data?.user?.user_id);
+          } catch (error) {
+            console.log("Failed to set user ID:", error);
+          }
+
           if (
             userCurrentCoords &&
             userCurrentCoords?.latitude &&

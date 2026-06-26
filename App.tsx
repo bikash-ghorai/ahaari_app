@@ -46,6 +46,7 @@ import { Provider } from 'react-redux';
 import { store } from './src/redux/store';
 import NetInfo from '@react-native-community/netinfo';
 import messaging from '@react-native-firebase/messaging';
+import { getAnalytics, logScreenView } from '@react-native-firebase/analytics';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -89,10 +90,20 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  const updateCurrentRoute = () => {
+  const updateCurrentRoute = async () => {
     const routeName = navigationRef.getCurrentRoute()?.name;
     if (routeName && routeName !== currentRouteName) {
       setCurrentRouteName(routeName);
+
+      // Tell Firebase Analytics about the new screen
+      try {
+        await logScreenView(getAnalytics(), {
+          screen_name: routeName,
+          screen_class: routeName,
+        });
+      } catch (error) {
+        console.log("Failed to log screen view:", error);
+      }
     }
   };
 

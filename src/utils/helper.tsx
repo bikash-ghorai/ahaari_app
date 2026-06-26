@@ -87,7 +87,7 @@ export const fetchUserCurrentLocation = async () => {
       },
       {
         enableHighAccuracy: false, // Force it to use cellular/network cache
-        timeout: 3000, // Fail quickly if no cache exists
+        timeout: 10000, // Fail quickly if no cache exists
         maximumAge: 3600000, // Accept a cached location up to 1 hour old
       },
     );
