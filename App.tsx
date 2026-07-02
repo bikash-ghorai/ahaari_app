@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StatusBar, StyleSheet, View } from 'react-native';
+import { StatusBar, StyleSheet, View, DeviceEventEmitter } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -39,14 +39,15 @@ import PlanScreen from './src/screens/PlanScreen';
 import PersonalInfoScreen from './src/screens/PersonalInfoScreen';
 import AboutScreen from './src/screens/AboutScreen';
 import HelpCenterScreen from './src/screens/HelpCenterScreen';
+import AdminWebLoginPopup from './src/components/AdminWebLoginPopup';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import SplashScreen from './src/screens/SplashScreen';
 import { navigationRef } from './src/utils/navigationRef';
 import { Provider } from 'react-redux';
 import { store } from './src/redux/store';
 import NetInfo from '@react-native-community/netinfo';
-import messaging from '@react-native-firebase/messaging';
-import { getAnalytics, logScreenView } from '@react-native-firebase/analytics';
+import { getMessaging } from '@react-native-firebase/messaging';
+import { getAnalytics, logEvent } from '@react-native-firebase/analytics';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -78,6 +79,8 @@ const MainTabs = () => {
 function App() {
   const [currentRouteName, setCurrentRouteName] = React.useState('Splash');
   const [isConnected, setIsConnected] = useState<boolean>(true);
+  const [adminLoginCode, setAdminLoginCode] = useState<string>('');
+  const [isAdminPopupVisible, setIsAdminPopupVisible] = useState<boolean>(false);
 
   // Check for in-app updates
   const { isUpdateAvailable, triggerUpdate } = useInAppUpdate();
@@ -97,7 +100,7 @@ function App() {
 
       // Tell Firebase Analytics about the new screen
       try {
-        await logScreenView(getAnalytics(), {
+        await logEvent(getAnalytics(), 'screen_view', {
           screen_name: routeName,
           screen_class: routeName,
         });
@@ -108,8 +111,8 @@ function App() {
   };
 
   useEffect(() => {
-    messaging().registerDeviceForRemoteMessages().then(r => { });
-    messaging()
+    getMessaging().registerDeviceForRemoteMessages().then(r => { });
+    getMessaging()
       .getToken()
       .then((token) => {
         console.log("Token", token);
@@ -118,10 +121,48 @@ function App() {
       .catch((err) => {
         console.error(err);
       });
-    return messaging().onMessage((remoteMessage) => {
-      // Alert.alert("A new FCM message arrived!", JSON.stringify(remoteMessage));
-      // onDisplayNotification(remoteMessage?.notification);
+
+    // Listen for FCM messages while the app is in the foreground
+    const unsubscribeForeground = getMessaging().onMessage((remoteMessage) => {
+      // Check if this is the silent admin web login data message
+      if (remoteMessage?.data?.type === 'admin_web_login' && remoteMessage?.data?.code) {
+        setAdminLoginCode(remoteMessage.data.code as string);
+        setIsAdminPopupVisible(true);
+        // DeviceEventEmitter.emit('admin_web_login', remoteMessage.data.code as string);
+      }
     });
+
+    // Handle tapped notifications that were received in the background
+    const unsubscribeBackground = getMessaging().onNotificationOpenedApp((remoteMessage) => {
+      if (remoteMessage?.data?.type === 'admin_web_login' && remoteMessage?.data?.code) {
+        setAdminLoginCode(remoteMessage.data.code as string);
+        setIsAdminPopupVisible(true);
+        // DeviceEventEmitter.emit('admin_web_login', remoteMessage.data.code as string);
+      }
+    });
+
+    // Handle the case where the app was opened from a QUIT state by an FCM notification
+    getMessaging().getInitialNotification().then((remoteMessage) => {
+      console.log("getInitialNotification", remoteMessage)
+      if (remoteMessage?.data?.type === 'admin_web_login' && remoteMessage?.data?.code) {
+        setAdminLoginCode(remoteMessage.data.code as string);
+        setIsAdminPopupVisible(true);
+        // DeviceEventEmitter.emit('admin_web_login', remoteMessage.data.code as string);
+      }
+    });
+
+    getMessaging().setBackgroundMessageHandler(async remoteMessage => {
+      console.log("setBackgroundMessageHandler message", remoteMessage)
+      if (remoteMessage?.data?.type === 'admin_web_login' && remoteMessage?.data?.code) {
+        setAdminLoginCode(remoteMessage.data.code as string);
+        setIsAdminPopupVisible(true);
+      }
+    });
+
+    return () => {
+      unsubscribeForeground();
+      unsubscribeBackground();
+    };
   }, []);
 
   return (
@@ -257,6 +298,15 @@ function App() {
                     />
                   </Stack.Navigator>
                 </NavigationContainer>
+
+                <AdminWebLoginPopup
+                  isVisible={isAdminPopupVisible}
+                  code={adminLoginCode}
+                  onExpire={() => {
+                    setIsAdminPopupVisible(false);
+                    setAdminLoginCode('');
+                  }}
+                />
 
                 <UpdatePopup
                   isVisible={isUpdateAvailable}

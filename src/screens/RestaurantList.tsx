@@ -1,11 +1,12 @@
 /* eslint-disable react-native/no-inline-styles */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   Dimensions,
   FlatList,
   Image,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -40,7 +41,7 @@ import Loader from '../components/Loader';
 const CARD_IMAGE_HEIGHT = 256;
 const SLIDER_WIDTH = Dimensions.get('window').width - layout.screenPadding * 2;
 
-const RestaurantImageSlider = ({
+const RestaurantImageSlider = React.memo(({
   images,
   shopId,
 }: {
@@ -121,12 +122,22 @@ const RestaurantImageSlider = ({
     ? (activeIndex - 1 + images.length) % images.length
     : 0;
 
+  // Memoized renderItem to avoid recreating it on every render
+  const renderItem = useCallback(({ item }: { item: string }) => (
+    <Image
+      source={{ uri: Constant.ImageURL + item }}
+      style={[sliderStyles.image, { width: SLIDER_WIDTH }]}
+    />
+  ), []);
+
+  const keyExtractor = useCallback((_: string, i: number) => `${shopId}-img-${i}`, [shopId]);
+
   return (
     <View style={sliderStyles.root}>
       <FlatList
         ref={flatRef}
         data={extendedImages}
-        keyExtractor={(_, i) => `${shopId}-img-${i}`}
+        keyExtractor={keyExtractor}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
@@ -143,12 +154,7 @@ const RestaurantImageSlider = ({
             animated: false,
           });
         }}
-        renderItem={({ item }) => (
-          <Image
-            source={{ uri: Constant.ImageURL + item }}
-            style={[sliderStyles.image, { width: SLIDER_WIDTH }]}
-          />
-        )}
+        renderItem={renderItem}
       />
       {isMultiple && (
         <View style={sliderStyles.dots}>
@@ -165,7 +171,7 @@ const RestaurantImageSlider = ({
       )}
     </View>
   );
-};
+});
 
 const RestaurantList = (props: any) => {
   const dispatch = useDispatch();
@@ -262,8 +268,106 @@ const RestaurantList = (props: any) => {
       })
       .catch((error: any) => {
         console.log('Error toggling wishlist:', error);
-      });
+      })
   };
+
+  const renderRestaurantItem = useCallback(({ item: restaurant }: { item: IRestaurant }) => (
+    <TouchableOpacity
+      activeOpacity={0.9}
+      style={styles.card}
+      onPress={() =>
+        navigation.navigate('RestaurantDetails', {
+          shopId: restaurant?.shop_id,
+        })
+      }
+    >
+      {/* Hero image area */}
+      <View style={styles.cardHero}>
+        {restaurant?.images && restaurant.images.length > 0 ? (
+          <RestaurantImageSlider
+            images={restaurant.images}
+            shopId={restaurant.shop_id}
+          />
+        ) : (
+          <Image
+            source={
+              restaurant?.image
+                ? { uri: Constant?.ImageURL + restaurant?.image }
+                : ImagePath.noShopPlaceholder
+            }
+            style={styles.cardImage}
+          />
+        )}
+        <LinearGradient
+          colors={[
+            'rgba(18, 20, 24, 0.8)',
+            'rgba(18, 20, 24, 0)',
+            'rgba(18, 20, 24, 0)',
+          ]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={styles.cardImageGradient}
+        />
+        <View
+          style={[
+            styles.cardTopRow,
+            restaurant?.status ? null : styles.cardTopRowNoBadge,
+          ]}
+        >
+          {restaurant?.status ? (
+            <View style={[styles.vipBadge, {
+              backgroundColor: restaurant?.status === "Open" ? "rgba(245, 158, 11, 0.2)" : "rgba(245, 58, 11, 0.2)",
+              borderColor: restaurant?.status === "Open" ? "rgba(245, 158, 11, 0.2)" : "rgba(245, 58, 11, 0.2)",
+            }]}>
+              <Flame size={14} color={restaurant?.status === "Open" ? colors.primary : colors.red} />
+              <Text style={[styles.vipText, { color: restaurant?.status === "Open" ? colors.primary : colors.red }]}>{restaurant?.status}</Text>
+            </View>
+          ) : null}
+          <TouchableOpacity
+            style={styles.likeButton}
+            activeOpacity={0.85}
+          // onPress={() => {
+          //   handleToggleWishlist(restaurant?.shop_id);
+          // }}
+          >
+            {restaurant?.is_wishlist ? (
+              <Heart
+                size={20}
+                color={colors.accentCoral}
+                strokeWidth={2}
+              />
+            ) : (
+              <Heart size={20} color="#FFFFFF" strokeWidth={2} />
+            )}
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Card body */}
+      <View style={styles.cardBody}>
+        <View style={styles.cardTitleRow}>
+          <Text style={styles.cardTitle}>{restaurant?.name}</Text>
+          <View style={styles.ratingBadge}>
+            <Star
+              size={12}
+              color={colors.primary}
+              fill={colors.primary}
+              strokeWidth={1.8}
+            />
+            <Text style={styles.ratingText}>
+              {restaurant?.rating}
+            </Text>
+          </View>
+        </View>
+
+        <Text style={styles.cardDetails} numberOfLines={2}>
+          {restaurant?.type} - {restaurant?.time}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  ), [navigation]);
+
+  const restaurantKeyExtractor = useCallback((item: IRestaurant) => item?.shop_id, []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -367,157 +471,50 @@ const RestaurantList = (props: any) => {
 
       {isFetching && <Loader />}
 
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={[colors.primary]}
-            tintColor={colors.primary}
-            progressBackgroundColor="#1A1A1A"
-          />
-        }
-      >
-        <ScrollView
-          horizontal
-          style={styles.chipsScroll}
-          contentContainerStyle={styles.chipsContent}
-          showsHorizontalScrollIndicator={false}
-          ref={scrollRef}
-        >
-          {categories && categories.length > 0
-            ? categories.map((item, index) => {
-              const active = item?.category_id == selectedCategory;
-              return (
-                <View
-                  key={index}
-                  onLayout={(e) => {
-                    chipXPositions.current[index] = e.nativeEvent.layout.x;
-                  }}
-                >
-                  <TouchableOpacity
-                    activeOpacity={0.88}
-                    style={active ? styles.chipActive : styles.chipInactive}
-                    onPress={() => handleSelectCategory(item?.category_id)}
-                  >
-                    <Text
-                      style={
-                        active ? styles.chipTextActive : styles.chipTextInactive
-                      }
-                    >
-                      {item?.name}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              );
-            })
-            : null}
-        </ScrollView>
-
-        {/* -- Restaurant cards -- */}
-        <View style={styles.cardsList}>
-          {restaurants && restaurants.length > 0 ? (
-            restaurants.map(restaurant => (
-              <TouchableOpacity
-                key={restaurant?.shop_id}
-                activeOpacity={0.9}
-                style={styles.card}
-                onPress={() =>
-                  navigation.navigate('RestaurantDetails', {
-                    shopId: restaurant?.shop_id,
-                  })
-                }
-              >
-                {/* Hero image area */}
-                <View style={styles.cardHero}>
-                  {restaurant?.images && restaurant.images.length > 0 ? (
-                    <RestaurantImageSlider
-                      images={restaurant.images}
-                      shopId={restaurant.shop_id}
-                    />
-                  ) : (
-                    <Image
-                      source={
-                        restaurant?.image
-                          ? { uri: Constant?.ImageURL + restaurant?.image }
-                          : ImagePath.noShopPlaceholder
-                      }
-                      style={styles.cardImage}
-                    />
-                  )}
-                  <LinearGradient
-                    colors={[
-                      'rgba(18, 20, 24, 0.8)',
-                      'rgba(18, 20, 24, 0)',
-                      'rgba(18, 20, 24, 0)',
-                    ]}
-                    start={{ x: 0.5, y: 0 }}
-                    end={{ x: 0.5, y: 1 }}
-                    style={styles.cardImageGradient}
-                  />
+      <FlatList
+        data={restaurants}
+        keyExtractor={restaurantKeyExtractor}
+        renderItem={renderRestaurantItem}
+        ItemSeparatorComponent={useCallback(() => <View style={{ height: 32 }} />, [])}
+        ListHeaderComponent={
+          <ScrollView
+            horizontal
+            style={styles.chipsScroll}
+            contentContainerStyle={styles.chipsContent}
+            showsHorizontalScrollIndicator={false}
+            ref={scrollRef}
+          >
+            {categories && categories.length > 0
+              ? categories.map((item, index) => {
+                const active = item?.category_id == selectedCategory;
+                return (
                   <View
-                    style={[
-                      styles.cardTopRow,
-                      restaurant?.status ? null : styles.cardTopRowNoBadge,
-                    ]}
+                    key={index}
+                    onLayout={(e) => {
+                      chipXPositions.current[index] = e.nativeEvent.layout.x;
+                    }}
                   >
-                    {restaurant?.status ? (
-                      <View style={[styles.vipBadge, {
-                        backgroundColor: restaurant?.status === "Open" ? "rgba(245, 158, 11, 0.2)" : "rgba(245, 58, 11, 0.2)",
-                        borderColor: restaurant?.status === "Open" ? "rgba(245, 158, 11, 0.2)" : "rgba(245, 58, 11, 0.2)",
-
-                      }]}>
-                        <Flame size={14} color={restaurant?.status === "Open" ? colors.primary : colors.red} />
-                        <Text style={[styles.vipText, { color: restaurant?.status === "Open" ? colors.primary : colors.red }]}>{restaurant?.status}</Text>
-                      </View>
-                    ) : null}
                     <TouchableOpacity
-                      style={styles.likeButton}
-                      activeOpacity={0.85}
-                    // onPress={() => {
-                    //   handleToggleWishlist(restaurant?.shop_id);
-                    // }}
+                      activeOpacity={0.88}
+                      style={active ? styles.chipActive : styles.chipInactive}
+                      onPress={() => handleSelectCategory(item?.category_id)}
                     >
-                      {restaurant?.is_wishlist ? (
-                        <Heart
-                          size={20}
-                          color={colors.accentCoral}
-                          strokeWidth={2}
-                        />
-                      ) : (
-                        <Heart size={20} color="#FFFFFF" strokeWidth={2} />
-                      )}
+                      <Text
+                        style={
+                          active ? styles.chipTextActive : styles.chipTextInactive
+                        }
+                      >
+                        {item?.name}
+                      </Text>
                     </TouchableOpacity>
                   </View>
-                </View>
-
-                {/* Card body */}
-                <View style={styles.cardBody}>
-                  <View style={styles.cardTitleRow}>
-                    <Text style={styles.cardTitle}>{restaurant?.name}</Text>
-                    <View style={styles.ratingBadge}>
-                      <Star
-                        size={12}
-                        color={colors.primary}
-                        fill={colors.primary}
-                        strokeWidth={1.8}
-                      />
-                      <Text style={styles.ratingText}>
-                        {restaurant?.rating}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <Text style={styles.cardDetails} numberOfLines={2}>
-                    {restaurant?.type} - {restaurant?.time}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            ))
-          ) : isFetching ? null : (
+                );
+              })
+              : null}
+          </ScrollView>
+        }
+        ListEmptyComponent={
+          isFetching ? null : (
             <View style={styles.emptyContainer}>
               <View style={styles.emptyContent}>
                 <View style={styles.emptyIconWrapper}>
@@ -530,9 +527,25 @@ const RestaurantList = (props: any) => {
                 </Text>
               </View>
             </View>
-          )}
-        </View>
-      </ScrollView>
+          )
+        }
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        initialNumToRender={6}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews={Platform.OS === 'android'}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+            progressBackgroundColor="#1A1A1A"
+          />
+        }
+      />
     </SafeAreaView>
   );
 };

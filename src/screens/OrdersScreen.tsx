@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
+  DeviceEventEmitter,
   Image,
   Platform,
   RefreshControl,
@@ -128,6 +129,9 @@ const OrdersScreen = () => {
   useEffect(() => {
     if (isFocused) {
       fetchOrders();
+      // DeviceEventEmitter.addListener('admin_web_login', fetchOrders);
+    } else {
+      // DeviceEventEmitter.removeAllListeners('admin_web_login')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isFocused]);
