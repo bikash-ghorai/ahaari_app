@@ -237,7 +237,8 @@ export type ICartItemRes = {
   delivery_charge_discount: {
     progress: number;
     message: string;
-  }
+  };
+  message: string;
 };
 
 export type ICoupon = {

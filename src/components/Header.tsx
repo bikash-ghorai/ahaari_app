@@ -19,7 +19,8 @@ import { useNavigation } from '@react-navigation/native';
 import { useWeatherAlert } from '../contexts/WeatherAlertContext';
 import WeatherAlertTooltip from './WeatherAlertTooltip';
 import { useCart } from '../hooks';
-import { reset } from '../utils/navigationRef';
+import { navigationRef, reset } from '../utils/navigationRef';
+import socketService from '../utils/socket-service';
 
 const Header = ({
   title,
@@ -52,7 +53,15 @@ const Header = ({
         {showBackButton && (
           <TouchableOpacity
             style={styles.topIconButton}
-            onPress={() => navigation.goBack()}
+            onPress={() => {
+              const routeName = navigationRef.getCurrentRoute()?.name;
+              socketService.logAnalytics({
+                action: 'click',
+                name: 'Back Button Pressed',
+                from: routeName ? routeName + ' Screen' : 'Unknown Screen',
+              } as any);
+              navigation.goBack();
+            }}
           >
             <ChevronLeft size={20} color="#FFFFFF" />
           </TouchableOpacity>
@@ -62,7 +71,14 @@ const Header = ({
         {showCartButton && (
           <TouchableOpacity
             style={styles.topIconButton}
-            onPress={() => reset('Tabs', { screen: 'Cart' })}
+            onPress={() => {
+              socketService.logAnalytics({
+                action: 'page_view',
+                name: 'Cart Screen',
+                from: 'Header Button Pressed',
+              });
+              reset('Tabs', { screen: 'Cart' });
+            }}
           >
             <ShoppingBag size={20} color="#FFFFFF" />
             <View style={styles.badgeDot}>

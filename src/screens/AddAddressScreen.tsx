@@ -328,10 +328,6 @@ const AddAddressScreen = () => {
         return;
       }
     }
-    if (!pincode || !pincode.trim()) {
-      showToaster('Please enter the ZIP code');
-      return;
-    }
 
     const params: IAddressAddReq = {
       type,
@@ -519,12 +515,12 @@ const AddAddressScreen = () => {
               </View>
 
               <View style={styles.halfField}>
-                <Text style={styles.fieldLabel}>ZIP CODE *</Text>
+                <Text style={styles.fieldLabel}>POSTAL CODE</Text>
                 <View style={styles.inputShell}>
                   <TextInput
                     value={pincode}
                     onChangeText={setPincode}
-                    placeholder="ZIP CODE"
+                    placeholder="POSTAL CODE"
                     placeholderTextColor={colors.textMuted}
                     style={styles.inputText}
                   />
@@ -708,7 +704,6 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: typography.caption,
     lineHeight: 14,
-    fontWeight: '600',
     letterSpacing: 0.6,
   },
   tagTextActive: {

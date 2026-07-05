@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StatusBar, StyleSheet, View, DeviceEventEmitter } from 'react-native';
+import { StatusBar, StyleSheet, View, BackHandler } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -48,6 +48,8 @@ import { store } from './src/redux/store';
 import NetInfo from '@react-native-community/netinfo';
 import { getMessaging } from '@react-native-firebase/messaging';
 import { getAnalytics, logEvent } from '@react-native-firebase/analytics';
+import { AndroidAvailabilityStatus } from 'sp-react-native-in-app-updates';
+import socketService from './src/utils/socket-service';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -80,7 +82,8 @@ function App() {
   const [currentRouteName, setCurrentRouteName] = React.useState('Splash');
   const [isConnected, setIsConnected] = useState<boolean>(true);
   const [adminLoginCode, setAdminLoginCode] = useState<string>('');
-  const [isAdminPopupVisible, setIsAdminPopupVisible] = useState<boolean>(false);
+  const [isAdminPopupVisible, setIsAdminPopupVisible] =
+    useState<boolean>(false);
 
   // Check for in-app updates
   const { isUpdateAvailable, triggerUpdate } = useInAppUpdate();
@@ -92,6 +95,27 @@ function App() {
     });
     return () => unsubscribe();
   }, []);
+
+  // 2. Insert this useEffect hook inside your function App() block:
+  useEffect(() => {
+    const handleBackPress = () => {
+      socketService.logAnalytics({
+        action: 'click',
+        name: 'Back Button Pressed',
+        from: currentRouteName + ' Screen',
+      } as any);
+      return false; // Blocks the app from closing instantly
+    };
+
+    // Add the hardware listener
+    const backHandlerSubscription = BackHandler.addEventListener(
+      'hardwareBackPress',
+      handleBackPress,
+    );
+
+    // Clean up listener when app context shifts
+    return () => backHandlerSubscription.remove();
+  }, [currentRouteName]);
 
   const updateCurrentRoute = async () => {
     const routeName = navigationRef.getCurrentRoute()?.name;
@@ -105,27 +129,32 @@ function App() {
           screen_class: routeName,
         });
       } catch (error) {
-        console.log("Failed to log screen view:", error);
+        console.log('Failed to log screen view:', error);
       }
     }
   };
 
   useEffect(() => {
-    getMessaging().registerDeviceForRemoteMessages().then(r => { });
+    getMessaging()
+      .registerDeviceForRemoteMessages()
+      .then(r => {});
     getMessaging()
       .getToken()
-      .then((token) => {
-        console.log("Token", token);
+      .then(token => {
+        console.log('Token', token);
         // store.dispatch(setFCMToken(token));
       })
-      .catch((err) => {
+      .catch(err => {
         console.error(err);
       });
 
     // Listen for FCM messages while the app is in the foreground
-    const unsubscribeForeground = getMessaging().onMessage((remoteMessage) => {
+    const unsubscribeForeground = getMessaging().onMessage(remoteMessage => {
       // Check if this is the silent admin web login data message
-      if (remoteMessage?.data?.type === 'admin_web_login' && remoteMessage?.data?.code) {
+      if (
+        remoteMessage?.data?.type === 'admin_web_login' &&
+        remoteMessage?.data?.code
+      ) {
         setAdminLoginCode(remoteMessage.data.code as string);
         setIsAdminPopupVisible(true);
         // DeviceEventEmitter.emit('admin_web_login', remoteMessage.data.code as string);
@@ -133,27 +162,40 @@ function App() {
     });
 
     // Handle tapped notifications that were received in the background
-    const unsubscribeBackground = getMessaging().onNotificationOpenedApp((remoteMessage) => {
-      if (remoteMessage?.data?.type === 'admin_web_login' && remoteMessage?.data?.code) {
-        setAdminLoginCode(remoteMessage.data.code as string);
-        setIsAdminPopupVisible(true);
-        // DeviceEventEmitter.emit('admin_web_login', remoteMessage.data.code as string);
-      }
-    });
+    const unsubscribeBackground = getMessaging().onNotificationOpenedApp(
+      remoteMessage => {
+        if (
+          remoteMessage?.data?.type === 'admin_web_login' &&
+          remoteMessage?.data?.code
+        ) {
+          setAdminLoginCode(remoteMessage.data.code as string);
+          setIsAdminPopupVisible(true);
+          // DeviceEventEmitter.emit('admin_web_login', remoteMessage.data.code as string);
+        }
+      },
+    );
 
     // Handle the case where the app was opened from a QUIT state by an FCM notification
-    getMessaging().getInitialNotification().then((remoteMessage) => {
-      console.log("getInitialNotification", remoteMessage)
-      if (remoteMessage?.data?.type === 'admin_web_login' && remoteMessage?.data?.code) {
-        setAdminLoginCode(remoteMessage.data.code as string);
-        setIsAdminPopupVisible(true);
-        // DeviceEventEmitter.emit('admin_web_login', remoteMessage.data.code as string);
-      }
-    });
+    getMessaging()
+      .getInitialNotification()
+      .then(remoteMessage => {
+        console.log('getInitialNotification', remoteMessage);
+        if (
+          remoteMessage?.data?.type === 'admin_web_login' &&
+          remoteMessage?.data?.code
+        ) {
+          setAdminLoginCode(remoteMessage.data.code as string);
+          setIsAdminPopupVisible(true);
+          // DeviceEventEmitter.emit('admin_web_login', remoteMessage.data.code as string);
+        }
+      });
 
     getMessaging().setBackgroundMessageHandler(async remoteMessage => {
-      console.log("setBackgroundMessageHandler message", remoteMessage)
-      if (remoteMessage?.data?.type === 'admin_web_login' && remoteMessage?.data?.code) {
+      console.log('setBackgroundMessageHandler message', remoteMessage);
+      if (
+        remoteMessage?.data?.type === 'admin_web_login' &&
+        remoteMessage?.data?.code
+      ) {
         setAdminLoginCode(remoteMessage.data.code as string);
         setIsAdminPopupVisible(true);
       }
@@ -176,7 +218,7 @@ function App() {
             />
             <View style={styles.container}>
               {currentRouteName !== 'Login' &&
-                currentRouteName !== 'OtpAuth' ? (
+              currentRouteName !== 'OtpAuth' ? (
                 <AppBackground />
               ) : null}
 

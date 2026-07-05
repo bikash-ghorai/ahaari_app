@@ -9,7 +9,6 @@ import {
   IHomePageData,
   IOrderDetails,
   IOrderListRes,
-  IRestaurant,
   IRestaurantDetails,
   IRestaurantRes,
 } from '../../types';
@@ -34,7 +33,9 @@ export const getRestaurants = createAsyncThunk(
   async (categoryId: string | null, thunkAPI) => {
     try {
       const { data, message }: { data: IRestaurantRes; message: string } =
-        await axios.get(`user/shops${categoryId ? `?category_id=${categoryId}` : ''}`);
+        await axios.get(
+          `user/shops${categoryId ? `?category_id=${categoryId}` : ''}`,
+        );
       return { data, message };
     } catch (error: any) {
       return thunkAPI.rejectWithValue(error);
@@ -157,7 +158,10 @@ export const getOrderDetails = createAsyncThunk(
 //For cancelling order (after payment is done)
 export const cancelOrder = createAsyncThunk(
   'app/cancelOrder',
-  async (params: { order_id: string; reason: string }, thunkAPI) => {
+  async (
+    params: { order_id: string; reason: string; refund_mode?: string },
+    thunkAPI,
+  ) => {
     try {
       const { data, message }: { data: any; message: string } =
         await axios.post(`user/cancel-order`, params);
@@ -171,7 +175,7 @@ export const cancelOrder = createAsyncThunk(
 //For pre-payment cancellation (before payment is done)
 export const prePayment = createAsyncThunk(
   'app/prePayment',
-  async (params: { order_id: string; }, thunkAPI) => {
+  async (params: { order_id: string }, thunkAPI) => {
     try {
       const { data, message }: { data: any; message: string } =
         await axios.post(`user/order-pre-payment`, params);
@@ -201,7 +205,10 @@ export const searchAPI = createAsyncThunk(
   'app/search',
   async (query: string, thunkAPI) => {
     try {
-      const { data, message }: { data: { products: any[]; shops: any[] }; message: string } =
+      const {
+        data,
+        message,
+      }: { data: { products: any[]; shops: any[] }; message: string } =
         await axios.get(`user/search?keyword=${query}`);
       return { data, message };
     } catch (error: any) {

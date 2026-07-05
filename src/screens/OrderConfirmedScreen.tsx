@@ -19,6 +19,7 @@ import { colors, layout, typography } from '../constants/theme';
 import { useDispatch } from '../redux/store';
 import { addCookingInstructions } from '../redux/app/appAction';
 import { reset } from '../utils/navigationRef';
+import socketService from '../utils/socket-service';
 
 const OrderConfirmedScreen = () => {
   const route = useRoute<any>();
@@ -31,6 +32,11 @@ const OrderConfirmedScreen = () => {
   console.log('route.params', route.params);
 
   const handleTrackLive = () => {
+    socketService.logAnalytics({
+      action: 'page_view',
+      name: 'Orders Screen',
+      from: 'OrderConfirmed Screen',
+    });
     if (!orderData?.order_id || !instructionsNote.trim()) {
       reset('Tabs', { screen: 'Orders' });
     }
@@ -45,6 +51,11 @@ const OrderConfirmedScreen = () => {
   };
 
   const handleBackHome = () => {
+    socketService.logAnalytics({
+      action: 'page_view',
+      name: 'Home Screen',
+      from: 'OrderConfirmed Screen',
+    });
     if (!orderData?.order_id || !instructionsNote.trim()) {
       reset('Tabs', { screen: 'Home' });
       return;
@@ -108,7 +119,9 @@ const OrderConfirmedScreen = () => {
               </View>
             </View>
             <Text style={styles.instructionsNote}>
-              Note: Please provide any specific instructions for the chef to ensure your meal is prepared to your liking. This will help us deliver a personalized dining experience.
+              Note: Please provide any specific instructions for the chef to
+              ensure your meal is prepared to your liking. This will help us
+              deliver a personalized dining experience.
             </Text>
           </View>
 

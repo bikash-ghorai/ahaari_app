@@ -43,6 +43,7 @@ import { useCart } from '../hooks';
 import PopupMessage from '../components/PopupMessage';
 import Loader from '../components/Loader';
 import FastImage from 'react-native-fast-image';
+import socketService from '../utils/socket-service';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
@@ -393,6 +394,12 @@ const RestaurantDetails = (props: any) => {
                             // Load fresh page for new category
                             resetProducts(category?.products || []);
                             handleScrollToStickyHeader();
+                            socketService.logAnalytics({
+                              action: 'click',
+                              name: 'Category Filter',
+                              from: 'RestaurantDetails Screen',
+                              params: category?.name || '',
+                            });
                           }}
                         >
                           <Text
@@ -638,6 +645,19 @@ const RestaurantDetails = (props: any) => {
                                         shop_id:
                                           shopDetails?.shop?.shop_id || '',
                                         quantity: 1,
+                                      }).then(() => {
+                                        if (
+                                          getCartQtyCount({
+                                            product_id: item.product_id,
+                                          }) <= 1
+                                        ) {
+                                          socketService.logAnalytics({
+                                            action: 'click',
+                                            name: 'Remove from Cart',
+                                            from: 'RestaurantDetails Screen',
+                                            params: `${item?.name} [${item.variants[0]?.name}]`,
+                                          });
+                                        }
                                       });
                                     } else {
                                       openPreview(item);
@@ -690,6 +710,12 @@ const RestaurantDetails = (props: any) => {
                                       variant_id: item.variants[0].variant_id,
                                       shop_id: shopDetails?.shop?.shop_id || '',
                                       quantity: 1,
+                                    });
+                                    socketService.logAnalytics({
+                                      action: 'click',
+                                      name: 'Add to Cart',
+                                      from: 'RestaurantDetails Screen',
+                                      params: `${item?.name} [${item.variants[0].name}]`,
                                     });
                                   } else {
                                     openPreview(item);
@@ -946,6 +972,19 @@ const RestaurantDetails = (props: any) => {
                             quantity: 1,
                           }).then(res => {
                             console.log('clg', res);
+                            if (
+                              getCartQtyCount({
+                                product_id: selectedItem.product_id,
+                                variant_id: selectedTempVariant?.variant_id,
+                              }) <= 1
+                            ) {
+                              socketService.logAnalytics({
+                                action: 'click',
+                                name: 'Remove from Cart',
+                                from: 'RestaurantDetails Screen',
+                                params: `${selectedItem?.name} [${selectedTempVariant?.name}]`,
+                              });
+                            }
                           })
                         }
                       >
@@ -984,14 +1023,20 @@ const RestaurantDetails = (props: any) => {
                     <TouchableOpacity
                       style={styles.sheetAddButton}
                       activeOpacity={0.9}
-                      onPress={() =>
+                      onPress={() => {
                         handleAddToCart({
                           product_id: selectedItem.product_id,
                           variant_id: selectedTempVariant?.variant_id || '',
                           shop_id: shopDetails?.shop?.shop_id || '',
                           quantity: 1,
-                        })
-                      }
+                        });
+                        socketService.logAnalytics({
+                          action: 'click',
+                          name: 'Add to Cart',
+                          from: 'RestaurantDetails Screen',
+                          params: `${selectedItem?.name} [${selectedTempVariant?.name}]`,
+                        });
+                      }}
                     >
                       <View
                         style={[

@@ -56,6 +56,7 @@ import { fetchUserCurrentLocation } from '../utils/helper';
 import { setUserCurrentCoords } from '../redux/user/userSlice';
 import Loader from '../components/Loader';
 import { setIsBadWeather } from '../redux/app/appSlice';
+import socketService from '../utils/socket-service';
 
 type HomeScreenNavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<RootTabParamList, 'Home'>,
@@ -98,8 +99,10 @@ const HomeScreen = () => {
     : currentLocationLabel;
 
   React.useEffect(() => {
-    requestNotificationPermission();
     handleFetchHomePageData();
+    setTimeout(() => {
+      requestNotificationPermission();
+    }, 1000);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -245,7 +248,14 @@ const HomeScreen = () => {
         <View style={styles.headerRight}>
           <TouchableOpacity
             style={styles.headerRightSize}
-            onPress={() => navigation.navigate('Search')}
+            onPress={() => {
+              socketService.logAnalytics({
+                action: 'page_view',
+                name: 'Search Screen',
+                from: 'Home Screen',
+              });
+              navigation.navigate('Search');
+            }}
           >
             <Search size={20} color="#FFF" />
           </TouchableOpacity>
@@ -377,6 +387,12 @@ const HomeScreen = () => {
                       activeOpacity={0.8}
                       style={styles.categoryItem}
                       onPress={() => {
+                        socketService.logAnalytics({
+                          action: 'page_view',
+                          name: 'Restaurants Screen',
+                          from: 'Home Screen',
+                          params: cat?.name || '',
+                        });
                         reset('Tabs', {
                           screen: 'Restaurants',
                           params: { category_id: cat?.category_id || null },
@@ -500,6 +516,20 @@ const HomeScreen = () => {
                                   variant_id: item?.variant_id,
                                   shop_id: item?.shop_id || '',
                                   quantity: 1,
+                                }).then(res => {
+                                  console.log('res', res);
+                                  if (
+                                    getCartQtyCount({
+                                      product_id: item.product_id,
+                                    }) <= 1
+                                  ) {
+                                    socketService.logAnalytics({
+                                      action: 'click',
+                                      name: 'Remove from Cart',
+                                      from: 'Home Screen',
+                                      params: item?.name,
+                                    });
+                                  }
                                 });
                               }}
                             >
@@ -557,6 +587,12 @@ const HomeScreen = () => {
                                     isRecreateCart: true,
                                   });
                                 }
+                                socketService.logAnalytics({
+                                  action: 'click',
+                                  name: 'Add to Cart',
+                                  from: 'Home Screen',
+                                  params: item?.name,
+                                });
                               });
                             }}
                           >
@@ -627,11 +663,17 @@ const HomeScreen = () => {
                   <TouchableOpacity
                     key={index}
                     style={styles.restaurantCard}
-                    onPress={() =>
+                    onPress={() => {
+                      socketService.logAnalytics({
+                        action: 'page_view',
+                        name: 'RestaurantDetails Screen',
+                        from: 'Home Screen',
+                        params: restaurant?.name || '',
+                      });
                       navigation.navigate('RestaurantDetails', {
                         shopId: restaurant?.shop_id,
-                      })
-                    }
+                      });
+                    }}
                   >
                     <Image
                       source={

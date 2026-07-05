@@ -1,3 +1,4 @@
+/* eslint-disable react-native/no-inline-styles */
 import React, { useState, useEffect } from 'react';
 import {
   Image,
@@ -13,7 +14,18 @@ import {
 import { BlurView } from '@react-native-community/blur';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { ArrowLeft, ArrowUpLeft, History, Search, X, Star, Plus, Minus, ShoppingBag, Circle, Triangle, StarIcon, BadgePercent } from 'lucide-react-native';
+import {
+  ArrowUpLeft,
+  History,
+  Search,
+  X,
+  Plus,
+  Minus,
+  Circle,
+  Triangle,
+  StarIcon,
+  BadgePercent,
+} from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, layout, typography } from '../constants/theme';
@@ -23,9 +35,9 @@ import { useCart } from '../hooks';
 import Loader from '../components/Loader';
 import { Constant } from '../constants/Constant';
 import { ImagePath } from '../constants/ImagePath';
-import { IRestaurant, IProduct } from '../types';
 import Header from '../components/Header';
 import PopupMessage from '../components/PopupMessage';
+import socketService from '../utils/socket-service';
 
 type RecentSearch = {
   id: string;
@@ -41,8 +53,8 @@ type ISearchProduct = {
   description: string;
   price: number;
   type: 'Veg' | 'Non-Veg';
-  image: null
-}
+  image: null;
+};
 type ISearchRestaurant = {
   shop_id: string;
   name: string;
@@ -52,27 +64,72 @@ type ISearchRestaurant = {
   have_discount: boolean;
   offer: string | null;
   rating: number | string;
-}
-const trendingSearches = ['Truffle Burger', 'Sushi', 'Vegan Bowl', 'Spicy Ramen', 'Artisan Pizza'];
-
-const initialRecentSearches: RecentSearch[] = [
-  { id: 'blueberry-cheesecake', title: 'Blueberry Cheesecake', subtitle: 'Dessert  -  2 days ago' },
-  { id: 'pasta-carbonara', title: 'Pasta Carbonara', subtitle: 'Italian  -  Last week' },
-  { id: 'smoothie-king', title: 'Smoothie King', subtitle: 'Drinks  -  Last week' },
+};
+const trendingSearches = [
+  'Truffle Burger',
+  'Sushi',
+  'Vegan Bowl',
+  'Spicy Ramen',
+  'Artisan Pizza',
 ];
 
-const GlassLayer = ({ radius, androidTint = 'rgba(8, 12, 18, 0.18)' }: { radius: number; androidTint?: string }) => (
+const initialRecentSearches: RecentSearch[] = [
+  {
+    id: 'blueberry-cheesecake',
+    title: 'Blueberry Cheesecake',
+    subtitle: 'Dessert  -  2 days ago',
+  },
+  {
+    id: 'pasta-carbonara',
+    title: 'Pasta Carbonara',
+    subtitle: 'Italian  -  Last week',
+  },
+  {
+    id: 'smoothie-king',
+    title: 'Smoothie King',
+    subtitle: 'Drinks  -  Last week',
+  },
+];
+
+const normalizeSearchArray = <T,>(value: unknown): T[] => {
+  if (Array.isArray(value)) {
+    return value as T[];
+  }
+
+  if (value && typeof value === 'object') {
+    const candidate = value as {
+      data?: unknown;
+      items?: unknown;
+      rows?: unknown;
+    };
+
+    if (Array.isArray(candidate.data)) {
+      return candidate.data as T[];
+    }
+
+    if (Array.isArray(candidate.items)) {
+      return candidate.items as T[];
+    }
+
+    if (Array.isArray(candidate.rows)) {
+      return candidate.rows as T[];
+    }
+  }
+
+  return [];
+};
+
+const GlassLayer = ({
+  _radius,
+  androidTint = 'rgba(8, 12, 18, 0.18)',
+}: {
+  _radius: number;
+  androidTint?: string;
+}) => (
   <>
     <BlurView
       pointerEvents="none"
-      style={[{
-        position: 'absolute',
-        top: 0,
-        right: 0,
-        bottom: 0,
-        left: 0,
-        borderRadius: radius
-      }]}
+      style={styles.glassLayerFill}
       blurType="dark"
       blurAmount={30}
       reducedTransparencyFallbackColor="rgba(18, 20, 24, 0.36)"
@@ -81,17 +138,7 @@ const GlassLayer = ({ radius, androidTint = 'rgba(8, 12, 18, 0.18)' }: { radius:
     {Platform.OS === 'android' ? (
       <View
         pointerEvents="none"
-        style={[
-          {
-            position: 'absolute',
-            top: 0,
-            right: 0,
-            bottom: 0,
-            left: 0,
-            borderRadius: radius,
-            backgroundColor: androidTint,
-          },
-        ]}
+        style={[styles.glassLayerFill, { backgroundColor: androidTint }]}
       />
     ) : null}
   </>
@@ -118,7 +165,8 @@ const SearchScreen = () => {
       try {
         const stored = await AsyncStorage.getItem('@recent_searches');
         if (stored) {
-          setRecentList(JSON.parse(stored));
+          const parsed = JSON.parse(stored);
+          setRecentList(Array.isArray(parsed) ? parsed : initialRecentSearches);
         } else {
           setRecentList(initialRecentSearches);
         }
@@ -132,7 +180,7 @@ const SearchScreen = () => {
 
   // Sync route param with input query
   useEffect(() => {
-    if (route.params?.initialQuery) {
+    if (typeof route.params?.initialQuery === 'string') {
       setQuery(route.params.initialQuery);
     }
   }, [route.params?.initialQuery]);
@@ -152,8 +200,12 @@ const SearchScreen = () => {
       dispatch(searchAPI(trimmed))
         .unwrap()
         .then((res: any) => {
-          setSearchProducts(res.data?.products || []);
-          setSearchShops(res.data?.shops || []);
+          setSearchProducts(
+            normalizeSearchArray<ISearchProduct>(res.data?.products),
+          );
+          setSearchShops(
+            normalizeSearchArray<ISearchRestaurant>(res.data?.shops),
+          );
         })
         .catch((err: any) => {
           console.log('Error executing search API:', err);
@@ -163,7 +215,7 @@ const SearchScreen = () => {
         .finally(() => {
           setIsSearching(false);
         });
-    }, 500); // 400ms debounce
+    }, 700); // 400ms debounce
 
     return () => clearTimeout(delayDebounceFn);
   }, [query, dispatch]);
@@ -173,13 +225,22 @@ const SearchScreen = () => {
     if (!trimmed) return;
 
     const updatedList = [
-      { id: trimmed.toLowerCase().replace(/\s+/g, '-'), title: trimmed, subtitle: `Food  -  Just now` },
-      ...recentList.filter(item => item.title.toLowerCase() !== trimmed.toLowerCase())
+      {
+        id: trimmed.toLowerCase().replace(/\s+/g, '-'),
+        title: trimmed,
+        subtitle: `Food  -  Just now`,
+      },
+      ...recentList.filter(
+        item => item.title.toLowerCase() !== trimmed.toLowerCase(),
+      ),
     ].slice(0, 5);
 
     setRecentList(updatedList);
     try {
-      await AsyncStorage.setItem('@recent_searches', JSON.stringify(updatedList));
+      await AsyncStorage.setItem(
+        '@recent_searches',
+        JSON.stringify(updatedList),
+      );
     } catch (e) {
       console.log('Error saving recent searches', e);
     }
@@ -223,6 +284,10 @@ const SearchScreen = () => {
       });
   };
   const handleReplaceCartItem = () => {
+    if (!duplicateRestaurenProduct) {
+      return;
+    }
+
     setDuplicateRestaurenProduct(null);
     addProduct({
       ...duplicateRestaurenProduct,
@@ -237,11 +302,7 @@ const SearchScreen = () => {
       <StatusBar barStyle="light-content" />
 
       {/* --- HEADER --- */}
-      <Header
-        title='Search'
-        showBackButton={true}
-        showCartButton={true}
-      />
+      <Header title="Search" showBackButton={true} showCartButton={true} />
 
       <ScrollView
         style={styles.scrollView}
@@ -266,11 +327,15 @@ const SearchScreen = () => {
               <View pointerEvents="none" style={styles.searchGlow} />
 
               <View style={styles.searchFieldCard}>
-                <GlassLayer radius={24} />
+                <GlassLayer _radius={24} />
 
                 <View style={styles.searchFieldContent}>
                   <View style={styles.searchIconSlot}>
-                    <Search size={18} color={colors.primary} strokeWidth={2.5} />
+                    <Search
+                      size={18}
+                      color={colors.primary}
+                      strokeWidth={2.5}
+                    />
                   </View>
 
                   <TextInput
@@ -300,7 +365,7 @@ const SearchScreen = () => {
 
           {/* --- CONTENT CONDITIONAL STATES --- */}
           {isSearching ? (
-            <View style={{ paddingVertical: 40 }}>
+            <View style={styles.searchLoadingContainer}>
               <Loader message="Searching..." fullScreen={false} />
             </View>
           ) : !isQueryActive ? (
@@ -309,7 +374,9 @@ const SearchScreen = () => {
               {/* Trending Searches */}
               <View style={styles.sectionBlock}>
                 <View style={styles.sectionHeaderRow}>
-                  <Text style={styles.sectionHeadingTrending}>Trending Searches</Text>
+                  <Text style={styles.sectionHeadingTrending}>
+                    Trending Searches
+                  </Text>
                   <View style={styles.sectionDividerPad}>
                     <View style={styles.sectionDivider} />
                   </View>
@@ -323,7 +390,7 @@ const SearchScreen = () => {
                       activeOpacity={0.88}
                       onPress={() => handleSelectSearch(item)}
                     >
-                      <GlassLayer radius={16} />
+                      <GlassLayer _radius={16} />
                       <Text style={styles.searchChipText}>{item}</Text>
                     </TouchableOpacity>
                   ))}
@@ -333,9 +400,14 @@ const SearchScreen = () => {
               {/* Recent Searches */}
               <View style={styles.recentSectionBlock}>
                 <View style={styles.recentHeaderRow}>
-                  <Text style={styles.sectionHeadingRecent}>Recent Searches</Text>
+                  <Text style={styles.sectionHeadingRecent}>
+                    Recent Searches
+                  </Text>
                   {recentList.length > 0 && (
-                    <TouchableOpacity activeOpacity={0.8} onPress={handleClearAll}>
+                    <TouchableOpacity
+                      activeOpacity={0.8}
+                      onPress={handleClearAll}
+                    >
                       <Text style={styles.clearAllText}>Clear All</Text>
                     </TouchableOpacity>
                   )}
@@ -349,20 +421,33 @@ const SearchScreen = () => {
                       activeOpacity={0.9}
                       onPress={() => handleSelectSearch(item.title)}
                     >
-                      <GlassLayer radius={24} androidTint="rgba(8, 12, 18, 0.16)" />
+                      <GlassLayer
+                        _radius={24}
+                        androidTint="rgba(8, 12, 18, 0.16)"
+                      />
 
                       <View style={styles.recentCardLeft}>
                         <View style={styles.recentIconShell}>
-                          <History size={18} color="#71717A" strokeWidth={2.3} />
+                          <History
+                            size={18}
+                            color="#71717A"
+                            strokeWidth={2.3}
+                          />
                         </View>
 
                         <View style={styles.recentCopyBlock}>
                           <Text style={styles.recentTitle}>{item.title}</Text>
-                          <Text style={styles.recentSubtitle}>{item.subtitle}</Text>
+                          <Text style={styles.recentSubtitle}>
+                            {item.subtitle}
+                          </Text>
                         </View>
                       </View>
 
-                      <ArrowUpLeft size={15} color="#52525B" strokeWidth={2.2} />
+                      <ArrowUpLeft
+                        size={15}
+                        color="#52525B"
+                        strokeWidth={2.2}
+                      />
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -371,7 +456,7 @@ const SearchScreen = () => {
           ) : !hasResults ? (
             // --- EMPTY RESULTS ---
             <View style={styles.noResultsCard}>
-              <GlassLayer radius={24} />
+              <GlassLayer _radius={24} />
               <Search size={48} color={colors.textTertiary} strokeWidth={1.5} />
               <Text style={styles.noResultsTitle}>No results found</Text>
               <Text style={styles.noResultsSubtitle}>
@@ -384,7 +469,9 @@ const SearchScreen = () => {
               {/* Dishes results */}
               {searchProducts.length > 0 && (
                 <View style={styles.sectionBlock}>
-                  <Text style={styles.resultsHeading}>Dishes matching "{query}"</Text>
+                  <Text style={styles.resultsHeading}>
+                    Dishes matching "{query}"
+                  </Text>
                   <View style={styles.resultsList}>
                     {searchProducts.map((item, index) => (
                       <TouchableOpacity
@@ -402,25 +489,9 @@ const SearchScreen = () => {
                               }
                               style={styles.menuImageSmall}
                             />
-                            <View
-                              style={{
-                                position: 'absolute',
-                                top: 6,
-                                left: 6,
-                              }}
-                            >
+                            <View style={styles.productTypeBadgePosition}>
                               {item?.type === 'Veg' ? (
-                                <View
-                                  style={{
-                                    height: 20,
-                                    width: 20,
-                                    justifyContent: 'center',
-                                    alignItems: 'center',
-                                    borderRadius: 4,
-                                    borderWidth: 3,
-                                    borderColor: colors.success,
-                                  }}
-                                >
+                                <View style={styles.productTypeVegBadge}>
                                   <Circle
                                     size={10}
                                     color={colors.success}
@@ -428,17 +499,7 @@ const SearchScreen = () => {
                                   />
                                 </View>
                               ) : item?.type === 'Non-Veg' ? (
-                                <View
-                                  style={{
-                                    height: 20,
-                                    width: 20,
-                                    justifyContent: 'center',
-                                    alignItems: 'center',
-                                    borderRadius: 4,
-                                    borderWidth: 3,
-                                    borderColor: colors.nonVeg,
-                                  }}
-                                >
+                                <View style={styles.productTypeNonVegBadge}>
                                   <Triangle
                                     size={10}
                                     color={colors.nonVeg}
@@ -458,7 +519,10 @@ const SearchScreen = () => {
                                 ₹{item?.price}
                               </Text>
                             </View>
-                            <Text style={styles.smallDescription} numberOfLines={2}>
+                            <Text
+                              style={styles.smallDescription}
+                              numberOfLines={2}
+                            >
                               {item?.description}
                             </Text>
                             <View style={styles.smallBottomRow}>
@@ -479,9 +543,22 @@ const SearchScreen = () => {
                                       removeProduct({
                                         product_id: item.product_id,
                                         variant_id: item.variant_id,
-                                        shop_id:
-                                          item?.shop_id || '',
+                                        shop_id: item?.shop_id || '',
                                         quantity: 1,
+                                      }).then(() => {
+                                        if (
+                                          getCartQtyCount({
+                                            product_id: item.product_id,
+                                            variant_id: item.variant_id,
+                                          }) <= 1
+                                        ) {
+                                          socketService.logAnalytics({
+                                            action: 'click',
+                                            name: 'Remove from Cart',
+                                            from: 'Search Screen',
+                                            params: item?.name || '',
+                                          });
+                                        }
                                       });
                                     }}
                                   >
@@ -504,8 +581,7 @@ const SearchScreen = () => {
                                       handleAddToCart({
                                         product_id: item.product_id,
                                         variant_id: item.variant_id,
-                                        shop_id:
-                                          item?.shop_id || '',
+                                        shop_id: item?.shop_id || '',
                                         quantity: 1,
                                       });
                                     }}
@@ -525,9 +601,14 @@ const SearchScreen = () => {
                                     handleAddToCart({
                                       product_id: item.product_id,
                                       variant_id: item.variant_id,
-                                      shop_id:
-                                        item?.shop_id || '',
+                                      shop_id: item?.shop_id || '',
                                       quantity: 1,
+                                    });
+                                    socketService.logAnalytics({
+                                      action: 'click',
+                                      name: 'Add to Cart',
+                                      from: 'Search Screen',
+                                      params: item?.name || '',
                                     });
                                   }}
                                 >
@@ -550,17 +631,25 @@ const SearchScreen = () => {
               {/* Restaurants results */}
               {searchShops.length > 0 && (
                 <View style={styles.sectionBlock}>
-                  <Text style={styles.resultsHeading}>Restaurants matching "{query}"</Text>
+                  <Text style={styles.resultsHeading}>
+                    Restaurants matching "{query}"
+                  </Text>
                   <View style={styles.resultsList}>
                     {searchShops.map((restaurant, index) => (
                       <TouchableOpacity
                         key={index}
                         style={styles.restaurantCard}
-                        onPress={() =>
+                        onPress={() => {
+                          socketService.logAnalytics({
+                            action: 'page_view',
+                            name: 'RestaurantDetails Screen',
+                            from: 'Search Screen',
+                            params: restaurant?.name,
+                          });
                           navigation.navigate('RestaurantDetails', {
                             shopId: restaurant?.shop_id,
-                          })
-                        }
+                          });
+                        }}
                       >
                         <Image
                           source={
@@ -572,16 +661,19 @@ const SearchScreen = () => {
                         />
                         <View style={styles.restaurantInfo}>
                           <View style={styles.restaurantHeader}>
-                            <Text style={styles.restaurantName}>
-                              {restaurant?.name}
-                            </Text>
                             <View
                               style={{
-                                flexDirection: 'row',
-                                alignItems: 'center',
-                                gap: 4,
+                                flex: 1,
                               }}
                             >
+                              <Text
+                                style={styles.restaurantName}
+                                numberOfLines={2}
+                              >
+                                {restaurant?.name}
+                              </Text>
+                            </View>
+                            <View style={styles.restaurantMetaRow}>
                               <StarIcon
                                 size={12}
                                 color={colors.primary}
@@ -596,19 +688,7 @@ const SearchScreen = () => {
                             {restaurant?.type} - {restaurant?.time}
                           </Text>
                           {restaurant?.have_discount ? (
-                            <View
-                              style={{
-                                flexDirection: 'row',
-                                alignItems: 'center',
-                                gap: 5,
-                                marginTop: 5,
-                                backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                                paddingHorizontal: 8,
-                                paddingVertical: 5,
-                                borderRadius: 6,
-                                alignSelf: 'flex-start',
-                              }}
-                            >
+                            <View style={styles.restaurantOfferRow}>
                               <BadgePercent size={15} color={colors.primary} />
                               <Text style={styles.badgeText}>
                                 {restaurant?.offer}
@@ -744,6 +824,16 @@ const styles = StyleSheet.create({
     right: -4,
     bottom: -4,
     borderRadius: 24,
+  },
+  glassLayerFill: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+  },
+  searchLoadingContainer: {
+    paddingVertical: 40,
   },
   searchFieldCard: {
     width: '100%',
@@ -1162,6 +1252,29 @@ const styles = StyleSheet.create({
     fontSize: typography.smPlus,
     fontWeight: '700',
   },
+  productTypeBadgePosition: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+  },
+  productTypeVegBadge: {
+    height: 20,
+    width: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 4,
+    borderWidth: 3,
+    borderColor: colors.success,
+  },
+  productTypeNonVegBadge: {
+    height: 20,
+    width: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 4,
+    borderWidth: 3,
+    borderColor: colors.nonVeg,
+  },
   // --- RESTAURANT CARD (USED IN RESTAURANT RESULTS) ---
   restaurantCard: {
     backgroundColor: colors.glass,
@@ -1186,6 +1299,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  restaurantMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   restaurantName: {
     color: colors.textPrimary,
     fontSize: typography.md,
@@ -1196,6 +1314,17 @@ const styles = StyleSheet.create({
     fontSize: typography.sm,
     marginTop: 4,
     marginBottom: 8,
+  },
+  restaurantOfferRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 5,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
   },
   restaurantBadges: {
     flexDirection: 'row',

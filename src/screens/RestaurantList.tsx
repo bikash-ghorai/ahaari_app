@@ -1,3 +1,4 @@
+/* eslint-disable react/no-unstable-nested-components */
 /* eslint-disable react-native/no-inline-styles */
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
@@ -37,141 +38,146 @@ import { getRestaurants, toggleWishlist } from '../redux/app/appAction';
 import { Constant } from '../constants/Constant';
 import { ImagePath } from '../constants/ImagePath';
 import Loader from '../components/Loader';
+import socketService from '../utils/socket-service';
 
 const CARD_IMAGE_HEIGHT = 256;
 const SLIDER_WIDTH = Dimensions.get('window').width - layout.screenPadding * 2;
 
-const RestaurantImageSlider = React.memo(({
-  images,
-  shopId,
-}: {
-  images: string[];
-  shopId: string;
-}) => {
-  const isMultiple = images.length > 1;
-  // [last, img0, img1, ..., imgN-1, first] — clones at both ends for seamless loop
-  const extendedImages = isMultiple
-    ? [images[images.length - 1], ...images, images[0]]
-    : images;
+const RestaurantImageSlider = React.memo(
+  ({ images, shopId }: { images: string[]; shopId: string }) => {
+    const isMultiple = images.length > 1;
+    // [last, img0, img1, ..., imgN-1, first] — clones at both ends for seamless loop
+    const extendedImages = isMultiple
+      ? [images[images.length - 1], ...images, images[0]]
+      : images;
 
-  const startIndex = isMultiple ? 1 : 0;
-  const [activeIndex, setActiveIndex] = useState(startIndex);
-  const flatRef = useRef<FlatList>(null);
-  const activeIndexRef = useRef(startIndex);
+    const startIndex = isMultiple ? 1 : 0;
+    const [activeIndex, setActiveIndex] = useState(startIndex);
+    const flatRef = useRef<FlatList>(null);
+    const activeIndexRef = useRef(startIndex);
 
-  // Initialise scroll position to index 1 (skip the leading clone)
-  useEffect(() => {
-    if (!isMultiple) {
-      return;
-    }
-    const t = setTimeout(() => {
-      flatRef.current?.scrollToIndex({ index: 1, animated: false });
-    }, 0);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Auto-slide: always go forward; silently reset when clone is shown
-  useEffect(() => {
-    if (!isMultiple) {
-      return;
-    }
-    const timer = setInterval(() => {
-      const next = activeIndexRef.current + 1;
-      flatRef.current?.scrollToIndex({ index: next, animated: true });
-      activeIndexRef.current = next;
-      setActiveIndex(next);
-
-      // Landed on the trailing clone (copy of first image) → jump to real first
-      if (next === extendedImages.length - 1) {
-        setTimeout(() => {
-          flatRef.current?.scrollToIndex({ index: 1, animated: false });
-          activeIndexRef.current = 1;
-          setActiveIndex(1);
-        }, 400);
+    // Initialise scroll position to index 1 (skip the leading clone)
+    useEffect(() => {
+      if (!isMultiple) {
+        return;
       }
-    }, 3000);
-    return () => clearInterval(timer);
-  }, [isMultiple, extendedImages.length]);
+      const t = setTimeout(() => {
+        flatRef.current?.scrollToIndex({ index: 1, animated: false });
+      }, 0);
+      return () => clearTimeout(t);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
-  // Handle manual swipes hitting the clone frames
-  const onMomentumScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    if (!isMultiple) {
-      return;
-    }
-    const idx = Math.round(e.nativeEvent.contentOffset.x / SLIDER_WIDTH);
-    activeIndexRef.current = idx;
-    setActiveIndex(idx);
+    // Auto-slide: always go forward; silently reset when clone is shown
+    useEffect(() => {
+      if (!isMultiple) {
+        return;
+      }
+      const timer = setInterval(() => {
+        const next = activeIndexRef.current + 1;
+        flatRef.current?.scrollToIndex({ index: next, animated: true });
+        activeIndexRef.current = next;
+        setActiveIndex(next);
 
-    if (idx === 0) {
-      // Swiped backward past the first image → jump to real last
-      const realLast = images.length;
-      flatRef.current?.scrollToIndex({ index: realLast, animated: false });
-      activeIndexRef.current = realLast;
-      setActiveIndex(realLast);
-    } else if (idx === extendedImages.length - 1) {
-      // Swiped forward past the last image → jump to real first
-      flatRef.current?.scrollToIndex({ index: 1, animated: false });
-      activeIndexRef.current = 1;
-      setActiveIndex(1);
-    }
-  };
+        // Landed on the trailing clone (copy of first image) → jump to real first
+        if (next === extendedImages.length - 1) {
+          setTimeout(() => {
+            flatRef.current?.scrollToIndex({ index: 1, animated: false });
+            activeIndexRef.current = 1;
+            setActiveIndex(1);
+          }, 400);
+        }
+      }, 3000);
+      return () => clearInterval(timer);
+    }, [isMultiple, extendedImages.length]);
 
-  // Map extended index → original 0-based dot index
-  const dotIndex = isMultiple
-    ? (activeIndex - 1 + images.length) % images.length
-    : 0;
+    // Handle manual swipes hitting the clone frames
+    const onMomentumScrollEnd = (
+      e: NativeSyntheticEvent<NativeScrollEvent>,
+    ) => {
+      if (!isMultiple) {
+        return;
+      }
+      const idx = Math.round(e.nativeEvent.contentOffset.x / SLIDER_WIDTH);
+      activeIndexRef.current = idx;
+      setActiveIndex(idx);
 
-  // Memoized renderItem to avoid recreating it on every render
-  const renderItem = useCallback(({ item }: { item: string }) => (
-    <Image
-      source={{ uri: Constant.ImageURL + item }}
-      style={[sliderStyles.image, { width: SLIDER_WIDTH }]}
-    />
-  ), []);
+      if (idx === 0) {
+        // Swiped backward past the first image → jump to real last
+        const realLast = images.length;
+        flatRef.current?.scrollToIndex({ index: realLast, animated: false });
+        activeIndexRef.current = realLast;
+        setActiveIndex(realLast);
+      } else if (idx === extendedImages.length - 1) {
+        // Swiped forward past the last image → jump to real first
+        flatRef.current?.scrollToIndex({ index: 1, animated: false });
+        activeIndexRef.current = 1;
+        setActiveIndex(1);
+      }
+    };
 
-  const keyExtractor = useCallback((_: string, i: number) => `${shopId}-img-${i}`, [shopId]);
+    // Map extended index → original 0-based dot index
+    const dotIndex = isMultiple
+      ? (activeIndex - 1 + images.length) % images.length
+      : 0;
 
-  return (
-    <View style={sliderStyles.root}>
-      <FlatList
-        ref={flatRef}
-        data={extendedImages}
-        keyExtractor={keyExtractor}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        scrollEventThrottle={16}
-        onMomentumScrollEnd={onMomentumScrollEnd}
-        getItemLayout={(_, index) => ({
-          length: SLIDER_WIDTH,
-          offset: SLIDER_WIDTH * index,
-          index,
-        })}
-        onScrollToIndexFailed={({ index }) => {
-          flatRef.current?.scrollToOffset({
+    // Memoized renderItem to avoid recreating it on every render
+    const renderItem = useCallback(
+      ({ item }: { item: string }) => (
+        <Image
+          source={{ uri: Constant.ImageURL + item }}
+          style={[sliderStyles.image, { width: SLIDER_WIDTH }]}
+        />
+      ),
+      [],
+    );
+
+    const keyExtractor = useCallback(
+      (_: string, i: number) => `${shopId}-img-${i}`,
+      [shopId],
+    );
+
+    return (
+      <View style={sliderStyles.root}>
+        <FlatList
+          ref={flatRef}
+          data={extendedImages}
+          keyExtractor={keyExtractor}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          scrollEventThrottle={16}
+          onMomentumScrollEnd={onMomentumScrollEnd}
+          getItemLayout={(_, index) => ({
+            length: SLIDER_WIDTH,
             offset: SLIDER_WIDTH * index,
-            animated: false,
-          });
-        }}
-        renderItem={renderItem}
-      />
-      {isMultiple && (
-        <View style={sliderStyles.dots}>
-          {images.map((_, i) => (
-            <View
-              key={i}
-              style={[
-                sliderStyles.dot,
-                i === dotIndex && sliderStyles.dotActive,
-              ]}
-            />
-          ))}
-        </View>
-      )}
-    </View>
-  );
-});
+            index,
+          })}
+          onScrollToIndexFailed={({ index }) => {
+            flatRef.current?.scrollToOffset({
+              offset: SLIDER_WIDTH * index,
+              animated: false,
+            });
+          }}
+          renderItem={renderItem}
+        />
+        {isMultiple && (
+          <View style={sliderStyles.dots}>
+            {images.map((_, i) => (
+              <View
+                key={i}
+                style={[
+                  sliderStyles.dot,
+                  i === dotIndex && sliderStyles.dotActive,
+                ]}
+              />
+            ))}
+          </View>
+        )}
+      </View>
+    );
+  },
+);
 
 const RestaurantList = (props: any) => {
   const dispatch = useDispatch();
@@ -200,7 +206,7 @@ const RestaurantList = (props: any) => {
     }
     setSelectedCategory(category_id_params);
     const index = categories.findIndex(
-      (item) => item.category_id === category_id_params
+      item => item.category_id === category_id_params,
     );
     if (index === -1) {
       return;
@@ -210,7 +216,11 @@ const RestaurantList = (props: any) => {
       const x = chipXPositions.current[index];
       if (x !== undefined) {
         // Subtract a small margin so the chip isn't flush against the edge
-        scrollRef.current?.scrollTo({ x: Math.max(0, x - 16), y: 0, animated: true });
+        scrollRef.current?.scrollTo({
+          x: Math.max(0, x - 16),
+          y: 0,
+          animated: true,
+        });
       }
     }, 100);
     return () => clearTimeout(timer);
@@ -268,106 +278,148 @@ const RestaurantList = (props: any) => {
       })
       .catch((error: any) => {
         console.log('Error toggling wishlist:', error);
-      })
+      });
   };
 
-  const renderRestaurantItem = useCallback(({ item: restaurant }: { item: IRestaurant }) => (
-    <TouchableOpacity
-      activeOpacity={0.9}
-      style={styles.card}
-      onPress={() =>
-        navigation.navigate('RestaurantDetails', {
-          shopId: restaurant?.shop_id,
-        })
-      }
-    >
-      {/* Hero image area */}
-      <View style={styles.cardHero}>
-        {restaurant?.images && restaurant.images.length > 0 ? (
-          <RestaurantImageSlider
-            images={restaurant.images}
-            shopId={restaurant.shop_id}
-          />
-        ) : (
-          <Image
-            source={
-              restaurant?.image
-                ? { uri: Constant?.ImageURL + restaurant?.image }
-                : ImagePath.noShopPlaceholder
-            }
-            style={styles.cardImage}
-          />
-        )}
-        <LinearGradient
-          colors={[
-            'rgba(18, 20, 24, 0.8)',
-            'rgba(18, 20, 24, 0)',
-            'rgba(18, 20, 24, 0)',
-          ]}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
-          style={styles.cardImageGradient}
-        />
-        <View
-          style={[
-            styles.cardTopRow,
-            restaurant?.status ? null : styles.cardTopRowNoBadge,
-          ]}
-        >
-          {restaurant?.status ? (
-            <View style={[styles.vipBadge, {
-              backgroundColor: restaurant?.status === "Open" ? "rgba(245, 158, 11, 0.2)" : "rgba(245, 58, 11, 0.2)",
-              borderColor: restaurant?.status === "Open" ? "rgba(245, 158, 11, 0.2)" : "rgba(245, 58, 11, 0.2)",
-            }]}>
-              <Flame size={14} color={restaurant?.status === "Open" ? colors.primary : colors.red} />
-              <Text style={[styles.vipText, { color: restaurant?.status === "Open" ? colors.primary : colors.red }]}>{restaurant?.status}</Text>
-            </View>
-          ) : null}
-          <TouchableOpacity
-            style={styles.likeButton}
-            activeOpacity={0.85}
-          // onPress={() => {
-          //   handleToggleWishlist(restaurant?.shop_id);
-          // }}
-          >
-            {restaurant?.is_wishlist ? (
-              <Heart
-                size={20}
-                color={colors.accentCoral}
-                strokeWidth={2}
-              />
-            ) : (
-              <Heart size={20} color="#FFFFFF" strokeWidth={2} />
-            )}
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Card body */}
-      <View style={styles.cardBody}>
-        <View style={styles.cardTitleRow}>
-          <Text style={styles.cardTitle}>{restaurant?.name}</Text>
-          <View style={styles.ratingBadge}>
-            <Star
-              size={12}
-              color={colors.primary}
-              fill={colors.primary}
-              strokeWidth={1.8}
+  const renderRestaurantItem = useCallback(
+    ({ item: restaurant }: { item: IRestaurant }) => (
+      <TouchableOpacity
+        activeOpacity={0.9}
+        style={styles.card}
+        onPress={() => {
+          socketService.logAnalytics({
+            action: 'page_view',
+            name: 'RestaurantDetails Screen',
+            from: 'Restaurants Screen',
+            params: restaurant?.name || '',
+          });
+          navigation.navigate('RestaurantDetails', {
+            shopId: restaurant?.shop_id,
+          });
+        }}
+      >
+        {/* Hero image area */}
+        <View style={styles.cardHero}>
+          {restaurant?.images && restaurant.images.length > 0 ? (
+            <RestaurantImageSlider
+              images={restaurant.images}
+              shopId={restaurant.shop_id}
             />
-            <Text style={styles.ratingText}>
-              {restaurant?.rating}
-            </Text>
+          ) : (
+            <Image
+              source={
+                restaurant?.image
+                  ? { uri: Constant?.ImageURL + restaurant?.image }
+                  : ImagePath.noShopPlaceholder
+              }
+              style={styles.cardImage}
+            />
+          )}
+          <LinearGradient
+            colors={[
+              'rgba(18, 20, 24, 0.8)',
+              'rgba(18, 20, 24, 0)',
+              'rgba(18, 20, 24, 0)',
+            ]}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+            style={styles.cardImageGradient}
+          />
+          <View
+            style={[
+              styles.cardTopRow,
+              restaurant?.status ? null : styles.cardTopRowNoBadge,
+            ]}
+          >
+            {restaurant?.status ? (
+              <View
+                style={[
+                  styles.vipBadge,
+                  {
+                    backgroundColor:
+                      restaurant?.status === 'Open'
+                        ? 'rgba(245, 158, 11, 0.2)'
+                        : 'rgba(245, 58, 11, 0.2)',
+                    borderColor:
+                      restaurant?.status === 'Open'
+                        ? 'rgba(245, 158, 11, 0.2)'
+                        : 'rgba(245, 58, 11, 0.2)',
+                  },
+                ]}
+              >
+                <Flame
+                  size={14}
+                  color={
+                    restaurant?.status === 'Open' ? colors.primary : colors.red
+                  }
+                />
+                <Text
+                  style={[
+                    styles.vipText,
+                    {
+                      color:
+                        restaurant?.status === 'Open'
+                          ? colors.primary
+                          : colors.red,
+                    },
+                  ]}
+                >
+                  {restaurant?.status}
+                </Text>
+              </View>
+            ) : null}
+            <TouchableOpacity
+              style={styles.likeButton}
+              activeOpacity={0.85}
+              // onPress={() => {
+              //   handleToggleWishlist(restaurant?.shop_id);
+              // }}
+              onPress={() => {
+                socketService.logAnalytics({
+                  action: 'click',
+                  name: 'Add to Wishlist',
+                  from: 'Restaurants Screen',
+                  params: restaurant?.name || '',
+                });
+              }}
+            >
+              {restaurant?.is_wishlist ? (
+                <Heart size={20} color={colors.accentCoral} strokeWidth={2} />
+              ) : (
+                <Heart size={20} color="#FFFFFF" strokeWidth={2} />
+              )}
+            </TouchableOpacity>
           </View>
         </View>
 
-        <Text style={styles.cardDetails} numberOfLines={2}>
-          {restaurant?.type} - {restaurant?.time}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  ), [navigation]);
+        {/* Card body */}
+        <View style={styles.cardBody}>
+          <View style={styles.cardTitleRow}>
+            <Text style={styles.cardTitle}>{restaurant?.name}</Text>
+            <View style={styles.ratingBadge}>
+              <Star
+                size={12}
+                color={colors.primary}
+                fill={colors.primary}
+                strokeWidth={1.8}
+              />
+              <Text style={styles.ratingText}>{restaurant?.rating}</Text>
+            </View>
+          </View>
 
-  const restaurantKeyExtractor = useCallback((item: IRestaurant) => item?.shop_id, []);
+          <Text style={styles.cardDetails} numberOfLines={2}>
+            {restaurant?.type} - {restaurant?.time}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    ),
+    [navigation],
+  );
+
+  const restaurantKeyExtractor = useCallback(
+    (item: IRestaurant) => item?.shop_id,
+    [],
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -424,7 +476,14 @@ const RestaurantList = (props: any) => {
               borderColor: colors.glassBorder,
               overflow: 'hidden',
             }}
-            onPress={() => navigation.navigate('Search')}
+            onPress={() => {
+              socketService.logAnalytics({
+                action: 'page_view',
+                name: 'Search Screen',
+                from: 'Restaurants Screen',
+              });
+              navigation.navigate('Search');
+            }}
           >
             <Search size={20} color="#FFF" />
           </TouchableOpacity>
@@ -475,7 +534,12 @@ const RestaurantList = (props: any) => {
         data={restaurants}
         keyExtractor={restaurantKeyExtractor}
         renderItem={renderRestaurantItem}
-        ItemSeparatorComponent={useCallback(() => <View style={{ height: 32 }} />, [])}
+        ItemSeparatorComponent={useCallback(
+          () => (
+            <View style={{ height: 32 }} />
+          ),
+          [],
+        )}
         ListHeaderComponent={
           <ScrollView
             horizontal
@@ -486,30 +550,40 @@ const RestaurantList = (props: any) => {
           >
             {categories && categories.length > 0
               ? categories.map((item, index) => {
-                const active = item?.category_id == selectedCategory;
-                return (
-                  <View
-                    key={index}
-                    onLayout={(e) => {
-                      chipXPositions.current[index] = e.nativeEvent.layout.x;
-                    }}
-                  >
-                    <TouchableOpacity
-                      activeOpacity={0.88}
-                      style={active ? styles.chipActive : styles.chipInactive}
-                      onPress={() => handleSelectCategory(item?.category_id)}
+                  const active = item?.category_id == selectedCategory;
+                  return (
+                    <View
+                      key={index}
+                      onLayout={e => {
+                        chipXPositions.current[index] = e.nativeEvent.layout.x;
+                      }}
                     >
-                      <Text
-                        style={
-                          active ? styles.chipTextActive : styles.chipTextInactive
-                        }
+                      <TouchableOpacity
+                        activeOpacity={0.88}
+                        style={active ? styles.chipActive : styles.chipInactive}
+                        onPress={() => {
+                          handleSelectCategory(item?.category_id);
+                          socketService.logAnalytics({
+                            action: 'click',
+                            name: 'Category Filter',
+                            from: 'Restaurants Screen',
+                            params: item?.name || '',
+                          });
+                        }}
                       >
-                        {item?.name}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                );
-              })
+                        <Text
+                          style={
+                            active
+                              ? styles.chipTextActive
+                              : styles.chipTextInactive
+                          }
+                        >
+                          {item?.name}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })
               : null}
           </ScrollView>
         }

@@ -81,7 +81,7 @@ const faqItems = [
   {
     id: 'refunds',
     question: 'How do I request a refund?',
-    answer: 'Open the order in your history and tap “Report a problem”.',
+    answer: 'Open the order in your history and tap “Contact Support”.',
   },
   {
     id: 'tracking',
@@ -97,12 +97,12 @@ const faqItems = [
     id: 'payment',
     question: 'Can I change my payment method?',
     answer:
-      'You can switch payment methods at checkout before placing an order.',
+      'You can switch payment methods at checkout or after placing an order.',
   },
   {
     id: 'address',
     question: 'How do I update my delivery address?',
-    answer: 'Go to Profile > Addresses and edit or add a new location.',
+    answer: 'Go to Profile > Addresses and delete or add a new location.',
   },
 ];
 
@@ -194,7 +194,7 @@ const HelpCenterScreen = () => {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.card}>
+        {/* <View style={styles.card}>
           <Text style={styles.cardTitle}>Self-service</Text>
           <View style={styles.selfServiceGrid}>
             {selfServiceItems.map(item => {
@@ -217,7 +217,7 @@ const HelpCenterScreen = () => {
               );
             })}
           </View>
-        </View>
+        </View> */}
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Service standards</Text>

@@ -19,7 +19,6 @@ import {
   MapPin,
   Minus,
   Plus,
-  Search,
   ShoppingCart,
   Tag,
   Wallet,
@@ -28,13 +27,13 @@ import {
   Zap,
   Circle,
   Triangle,
+  Bell,
 } from 'lucide-react-native';
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 import { colors, layout, typography } from '../constants/theme';
-import GlassLayer from '../components/GlassLayer';
 import { useWeatherAlert } from '../contexts/WeatherAlertContext';
 import { useCart } from '../hooks';
 import { useDispatch, useSelector } from '../redux/store';
@@ -50,6 +49,8 @@ import { navigate } from '../utils/navigationRef';
 import RazorpayCheckout from 'react-native-razorpay';
 import { showToaster } from '../utils/toaster';
 import Loader from '../components/Loader';
+import socketService from '../utils/socket-service';
+import WeatherAlertTooltip from '../components/WeatherAlertTooltip';
 
 const { height } = Dimensions.get('window');
 
@@ -68,7 +69,7 @@ const CartScreen = () => {
   const [paymentMethod, setPaymentMethod] = useState<IPaymentMethod | ''>('');
   const [useWalletBalance, setUseWalletBalance] = useState(false);
   const [isShowLoader, setIsShowLoader] = useState(true);
-  const { isBadWeather } = useWeatherAlert();
+  const { isBadWeather, show } = useWeatherAlert();
 
   const [originalCartValue, setOriginalCartValue] =
     useState<ICartItemRes | null>(null);
@@ -82,6 +83,11 @@ const CartScreen = () => {
   };
 
   const handleViewAllCoupons = () => {
+    socketService.logAnalytics({
+      action: 'click',
+      name: 'View Coupons',
+      from: 'Cart Screen',
+    });
     navigate('CouponList');
   };
 
@@ -91,6 +97,10 @@ const CartScreen = () => {
     } else {
       setIsShowLoader(false);
     }
+    if (isBadWeather && isFocused) {
+      show();
+    }
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cartValue, isFocused, isNonEmptyCart]);
 
@@ -106,8 +116,8 @@ const CartScreen = () => {
           data.payment_method.cod.is_selected
             ? 'COD'
             : data.payment_method.online.is_selected
-              ? 'Online'
-              : '',
+            ? 'Online'
+            : '',
         );
       })
       .catch(error => {
@@ -135,7 +145,7 @@ const CartScreen = () => {
       );
       const discount =
         originalCartValue?.coupon?.applied &&
-          originalCartValue?.coupon?.discount
+        originalCartValue?.coupon?.discount
           ? originalCartValue.coupon.discount
           : 0;
       return base + extraCharges + vipCharge + paymentCharge - discount;
@@ -180,6 +190,13 @@ const CartScreen = () => {
         console.log('data', data);
         if (data && data?.payment_type === 'COD') {
           setIsShowLoader(false);
+          socketService.logAnalytics({
+            action: 'page_view',
+            name: 'OrderConfirmed Screen',
+            from: 'Cart Screen',
+            params:
+              paymentMethod === 'COD' ? 'Cash on Delivery' : 'Online Payment',
+          });
           navigate('OrderConfirmed', {
             order_data: data,
           });
@@ -221,13 +238,34 @@ const CartScreen = () => {
             paynow({ options, orderCreateData: data });
           } else {
             setIsShowLoader(false);
+            socketService.logAnalytics({
+              action: 'page_view',
+              name: 'OrderFailed Screen',
+              from: 'Cart Screen',
+              params: 'Gateway Key Missing',
+            });
             navigate('OrderFailed');
           }
         }
       })
       .catch(() => {
         setIsShowLoader(false);
+        socketService.logAnalytics({
+          action: 'page_view',
+          name: 'OrderFailed Screen',
+          from: 'Cart Screen',
+          params: 'Checkout API Error',
+        });
         navigate('OrderFailed');
+      })
+      .finally(() => {
+        socketService.logAnalytics({
+          action: 'click',
+          name: 'Checkout',
+          from: 'Cart Screen',
+          params:
+            paymentMethod === 'COD' ? 'Cash on Delivery' : 'Online Payment',
+        });
       });
   };
 
@@ -235,6 +273,13 @@ const CartScreen = () => {
     RazorpayCheckout.open(options)
       .then(data => {
         console.log('payment success', data);
+        socketService.logAnalytics({
+          action: 'page_view',
+          name: 'OrderConfirmed Screen',
+          from: 'Cart Screen',
+          params:
+            paymentMethod === 'COD' ? 'Cash on Delivery' : 'Online Payment',
+        });
         navigate('OrderConfirmed', {
           order_data: orderCreateData,
         });
@@ -242,7 +287,12 @@ const CartScreen = () => {
       })
       .catch(error => {
         console.log('error', error);
-
+        socketService.logAnalytics({
+          action: 'page_view',
+          name: 'OrderFailed Screen',
+          from: 'Cart Screen',
+          params: error?.error?.description || 'Payment Gateway Error',
+        });
         navigate('OrderFailed');
       })
       .finally(() => {
@@ -252,6 +302,7 @@ const CartScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <WeatherAlertTooltip />
       <View
         style={{
           paddingHorizontal: layout.screenPadding,
@@ -293,22 +344,32 @@ const CartScreen = () => {
           }}
         >
           <TouchableOpacity
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              backgroundColor: colors.glass,
-              borderWidth: 1,
-              borderColor: colors.glassBorder,
-              alignItems: 'center',
-              justifyContent: 'center',
-              overflow: 'hidden',
+            style={styles.headerRightSize}
+            onPress={() => {
+              if (isBadWeather) {
+                show();
+              }
             }}
-            activeOpacity={0.9}
-            onPress={() => navigate('Search')}
+            accessibilityLabel="Weather warning"
           >
-            <GlassLayer radius={20} tint="rgba(18, 20, 24, 0.24)" />
-            <Search size={20} color="#FFFFFF" />
+            {isBadWeather ? (
+              <AlertTriangle size={20} color={colors.accentCoral} />
+            ) : (
+              <>
+                <Bell size={20} color="#FFF" />
+                <View
+                  style={{
+                    position: 'absolute',
+                    top: 10,
+                    right: 10,
+                    width: 8,
+                    height: 8,
+                    backgroundColor: colors.primary,
+                    borderRadius: 4,
+                  }}
+                />
+              </>
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -317,9 +378,7 @@ const CartScreen = () => {
         <>
           <ScrollView
             style={styles.scrollView}
-            contentContainerStyle={[
-              styles.scrollContent,
-            ]}
+            contentContainerStyle={[styles.scrollContent]}
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.heroCard}>
@@ -435,7 +494,7 @@ const CartScreen = () => {
 
             <View style={styles.itemList}>
               {originalCartValue?.items &&
-                originalCartValue?.items.length > 0 ? (
+              originalCartValue?.items.length > 0 ? (
                 originalCartValue?.items?.map((item, index) => (
                   <View key={index} style={styles.itemCard}>
                     <View>
@@ -521,6 +580,19 @@ const CartScreen = () => {
                                   shop_id:
                                     originalCartValue?.shop?.shop_id || '',
                                   quantity: 1,
+                                }).then(() => {
+                                  if (
+                                    getCartQtyCount({
+                                      variant_id: item.variant_id,
+                                    }) <= 1
+                                  ) {
+                                    socketService.logAnalytics({
+                                      action: 'click',
+                                      name: 'Remove from Cart',
+                                      from: 'Cart Screen',
+                                      params: item?.name || '',
+                                    });
+                                  }
                                 });
                               }}
                             >
@@ -596,7 +668,7 @@ const CartScreen = () => {
             </View>
 
             {originalCartValue?.vip_charge &&
-              originalCartValue?.vip_charge > 0 ? (
+            originalCartValue?.vip_charge > 0 ? (
               <View style={styles.vipCard}>
                 <View style={styles.vipLeftBlock}>
                   <View style={styles.vipIconBubble}>
@@ -678,7 +750,7 @@ const CartScreen = () => {
 
             <View style={styles.paymentSection}>
               {originalCartValue?.wallet_balance &&
-                originalCartValue?.wallet_balance > 0 ? (
+              originalCartValue?.wallet_balance > 0 ? (
                 <View style={styles.walletSection}>
                   <View style={styles.walletCopyBlock}>
                     <Text style={styles.walletEyebrow}>Wallet balance</Text>
@@ -825,8 +897,8 @@ const CartScreen = () => {
               ) : null}
 
               {paymentMethod === 'COD' &&
-                originalCartValue?.payment_method?.cod &&
-                originalCartValue?.payment_method?.cod?.charge > 0 ? (
+              originalCartValue?.payment_method?.cod &&
+              originalCartValue?.payment_method?.cod?.charge > 0 ? (
                 <View style={styles.breakdownRow}>
                   <Text style={styles.breakdownLabel}>COD Charge</Text>
                   <Text style={styles.breakdownValue}>
@@ -835,8 +907,8 @@ const CartScreen = () => {
                 </View>
               ) : null}
               {paymentMethod === 'Online' &&
-                originalCartValue?.payment_method?.online &&
-                originalCartValue?.payment_method?.online?.charge > 0 ? (
+              originalCartValue?.payment_method?.online &&
+              originalCartValue?.payment_method?.online?.charge > 0 ? (
                 <View style={styles.breakdownRow}>
                   <Text style={styles.breakdownLabel}>
                     Online Payment Charge
@@ -883,16 +955,19 @@ const CartScreen = () => {
                     Wallet Balance
                   </Text>
                   <Text style={styles.breakdownDiscountValue}>
-                    -₹{originalCartValue?.wallet_balance > totalAmount ? totalAmount.toFixed(2) : originalCartValue?.wallet_balance.toFixed(2)}
+                    -₹
+                    {originalCartValue?.wallet_balance > totalAmount
+                      ? totalAmount.toFixed(2)
+                      : originalCartValue?.wallet_balance.toFixed(2)}
                   </Text>
                 </View>
               ) : null}
             </View>
-            {isBadWeather && originalCartValue?.delivery_charge_discount.progress > 0 ?
-              <View style={{ height: 320 + insets.bottom }} />
-              : isBadWeather || originalCartValue?.delivery_charge_discount.progress > 0 ?
-                <View style={{ height: 280 + insets.bottom }} /> :
-                <View style={{ height: 200 + insets.bottom }} />}
+            {originalCartValue?.delivery_charge_discount.progress > 0 ? (
+              <View style={{ height: 280 + insets.bottom }} />
+            ) : (
+              <View style={{ height: 200 + insets.bottom }} />
+            )}
           </ScrollView>
 
           <View
@@ -919,36 +994,36 @@ const CartScreen = () => {
             <View pointerEvents="none" style={styles.footerOverlay} />
 
             <View style={styles.footerContent}>
-              {isBadWeather ? (
-                <View style={styles.weatherNotice}>
-                  <View style={styles.weatherIconWrap}>
-                    <AlertTriangle size={16} color={colors.accentCoral} />
-                  </View>
-                  <View style={styles.weatherTextGroup}>
-                    <Text style={styles.weatherTitle}>Weather delay</Text>
-                    <Text style={styles.weatherSubtitle}>
-                      Bad weather conditions may cause delays.
-                    </Text>
-                  </View>
-                </View>
-              ) : null}
-              {originalCartValue?.delivery_charge_discount && originalCartValue?.delivery_charge_discount.progress > 0 ?
-                <View style={styles.progressFooterSection}>
-                  <View style={styles.progressFooterHeader}>
-                    <Text style={styles.progressFooterAmount}>
-                      {originalCartValue?.delivery_charge_discount?.message || ''}
-                    </Text>
-                  </View>
+              {originalCartValue?.checkout ? (
+                <React.Fragment>
+                  {originalCartValue?.delivery_charge_discount &&
+                  originalCartValue?.delivery_charge_discount.progress > 0 ? (
+                    <View style={styles.progressFooterSection}>
+                      <View style={styles.progressFooterHeader}>
+                        <Text style={styles.progressFooterAmount}>
+                          {originalCartValue?.delivery_charge_discount
+                            ?.message || ''}
+                        </Text>
+                      </View>
 
-                  <View style={styles.progressTrack}>
-                    <View
-                      style={[
-                        styles.progressFill,
-                        { width: `${originalCartValue?.delivery_charge_discount?.progress}%` },
-                      ]}
-                    />
-                  </View>
-                </View> : null}
+                      <View style={styles.progressTrack}>
+                        <View
+                          style={[
+                            styles.progressFill,
+                            {
+                              width: `${originalCartValue?.delivery_charge_discount?.progress}%`,
+                            },
+                          ]}
+                        />
+                      </View>
+                    </View>
+                  ) : null}
+                </React.Fragment>
+              ) : (
+                <Text style={styles.checkoutMessage}>
+                  {originalCartValue?.message || ''}
+                </Text>
+              )}
 
               <TouchableOpacity
                 style={[
@@ -1089,7 +1164,7 @@ const styles = StyleSheet.create({
   },
   addressTitle: {
     color: colors.textPrimary,
-    fontSize: typography.bodyPlus,
+    fontSize: typography.smPlus,
     lineHeight: 20,
     fontWeight: '700',
   },
@@ -1222,7 +1297,7 @@ const styles = StyleSheet.create({
   },
   itemName: {
     color: colors.textPrimary,
-    fontSize: typography.lg,
+    fontSize: typography.bodyPlus,
     fontWeight: '700',
   },
   itemSubtitle: {
@@ -1733,6 +1808,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.5,
     shadowOffset: { width: 0, height: 0 },
   },
+  checkoutMessage: {
+    color: colors.primary,
+    fontSize: typography.caption,
+    lineHeight: 14,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+  },
   checkoutButton: {
     height: 56,
     borderRadius: 16,
@@ -1828,6 +1910,18 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.6,
     textTransform: 'uppercase',
+  },
+
+  headerRightSize: {
+    width: 44,
+    height: 44,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    overflow: 'hidden',
   },
 });
 

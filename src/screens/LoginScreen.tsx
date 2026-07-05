@@ -40,6 +40,7 @@ import {
   setUserDetailsToAsyncStore,
 } from '../utils/storage';
 import { getAnalytics, setUserId } from '@react-native-firebase/analytics';
+import socketService from '../utils/socket-service';
 
 const OTP_LENGTH = 6;
 
@@ -236,11 +237,11 @@ const LoginScreen = () => {
           setApiToken(data.token);
           await setAuthTokenToAsyncStore(data.token);
           await setUserDetailsToAsyncStore(data.user);
-
+          socketService.initializeSocket(data?.user?.user_id);
           try {
             await setUserId(getAnalytics(), data?.user?.user_id);
           } catch (error) {
-            console.log("Failed to set user ID:", error);
+            console.log('Failed to set user ID:', error);
           }
 
           if (
@@ -252,10 +253,20 @@ const LoginScreen = () => {
               .unwrap()
               .finally(() => {
                 setIsLoading(false);
+                socketService.logAnalytics({
+                  action: 'page_view',
+                  name: 'Home Screen',
+                  from: 'Login Screen',
+                });
                 reset('Tabs');
               });
           } else {
             setIsLoading(false);
+            socketService.logAnalytics({
+              action: 'page_view',
+              name: 'Home Screen',
+              from: 'Login Screen',
+            });
             reset('Tabs');
           }
         } else {

@@ -16,6 +16,7 @@ import { useCart } from '../hooks';
 import BootSplash from 'react-native-bootsplash';
 import { fetchUserCurrentLocation } from '../utils/helper';
 import { updateLocation } from '../redux/user/userAction';
+import socketService from '../utils/socket-service';
 
 const SplashScreen = () => {
   const { getCart, emptyCart } = useCart();
@@ -49,6 +50,7 @@ const SplashScreen = () => {
       if (token && userDetails) {
         setApiToken(token);
         dispatch(setUserData(userDetails));
+        socketService.initializeSocket(userDetails?.user_id);
         if (coords && coords?.latitude && coords?.longitude) {
           dispatch(
             updateLocation({
@@ -59,15 +61,30 @@ const SplashScreen = () => {
             .unwrap()
             .finally(() => {
               getCart();
+              socketService.logAnalytics({
+                action: 'page_view',
+                name: 'Home Screen',
+                from: 'Splash Screen',
+              });
               reset('Tabs');
             });
         } else {
           getCart();
+          socketService.logAnalytics({
+            action: 'page_view',
+            name: 'Home Screen',
+            from: 'Splash Screen',
+          });
           reset('Tabs');
         }
       } else {
         await deleteAuthTokenFromAsyncStore();
         emptyCart();
+        socketService.logAnalytics({
+          action: 'page_view',
+          name: 'Login Screen',
+          from: 'Splash Screen',
+        });
         reset('Login');
       }
       setTimeout(() => {
@@ -77,6 +94,11 @@ const SplashScreen = () => {
       console.log('error', error);
       await deleteAuthTokenFromAsyncStore();
       emptyCart();
+      socketService.logAnalytics({
+        action: 'page_view',
+        name: 'Login Screen',
+        from: 'Splash Screen',
+      });
       reset('Login');
       setTimeout(() => {
         BootSplash.hide({ fade: true });

@@ -1,17 +1,11 @@
+/* eslint-disable react-native/no-inline-styles */
 import React from 'react';
-import {
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { BlurView } from '@react-native-community/blur';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import {
   Home,
   ReceiptText,
-  Search,
   ShoppingCart,
   User,
   UtensilsCrossed,
@@ -19,14 +13,20 @@ import {
 
 import { colors, layout, typography } from '../constants/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import socketService from '../utils/socket-service';
 
-const BottomNav = ({ state, descriptors, navigation }: BottomTabBarProps) => {
+const BottomNav = ({ state, navigation }: BottomTabBarProps) => {
   const activeRouteName = state.routes[state.index]?.name;
   const ordersTabActive = activeRouteName === 'Orders';
   const safeAreaInstance = useSafeAreaInsets();
 
   const navigateToTab = (index: number) => {
     const route = state.routes[index];
+    socketService.logAnalytics({
+      action: 'page_view',
+      name: route.name + ' Screen',
+      from: 'Bottom Tab',
+    } as any);
     navigation.navigate(route.name);
   };
 

@@ -2,7 +2,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
-  DeviceEventEmitter,
   Image,
   Platform,
   RefreshControl,
@@ -39,12 +38,13 @@ import { useWeatherAlert } from '../contexts/WeatherAlertContext';
 import WeatherAlertTooltip from '../components/WeatherAlertTooltip';
 import { useDispatch } from '../redux/store';
 import { getOrders } from '../redux/app/appAction';
-import { IActiveOrder, IOrderListRes } from '../types';
+import { IActiveOrder, IOrderListRes, IPastOrder } from '../types';
 import { ImagePath } from '../constants/ImagePath';
 import { Constant } from '../constants/Constant';
 import { handleCall, statusColors } from '../utils/helper';
 import { useCart } from '../hooks';
 import Loader from '../components/Loader';
+import socketService from '../utils/socket-service';
 
 const GlassLayer = ({
   radius,
@@ -149,8 +149,14 @@ const OrdersScreen = () => {
       });
   };
 
-  const openOrderDetails = (orderId: string) => {
-    navigation.navigate('OrderDetails', { orderId: orderId || '' });
+  const openOrderDetails = (order: IActiveOrder | IPastOrder) => {
+    socketService.logAnalytics({
+      action: 'page_view',
+      name: 'OrderDetails Screen',
+      from: 'Orders Screen',
+      params: order?.shop_name,
+    });
+    navigation.navigate('OrderDetails', { orderId: order.order_id || '' });
   };
 
   // const openRateExperience = () => {
@@ -229,7 +235,14 @@ const OrdersScreen = () => {
               borderColor: colors.glassBorder,
               overflow: 'hidden',
             }}
-            onPress={() => navigation.navigate('Search')}
+            onPress={() => {
+              socketService.logAnalytics({
+                action: 'page_view',
+                name: 'Search Screen',
+                from: 'Orders Screen',
+              });
+              navigation.navigate('Search');
+            }}
           >
             <Search size={20} color="#FFF" />
           </TouchableOpacity>
@@ -292,8 +305,8 @@ const OrdersScreen = () => {
       >
         <View style={styles.mainStack}>
           {orderListData &&
-            orderListData?.active_orders &&
-            orderListData.active_orders.length > 0 ? (
+          orderListData?.active_orders &&
+          orderListData.active_orders.length > 0 ? (
             <View style={styles.activeSection}>
               <View style={styles.activeHeaderRow}>
                 <Text style={styles.sectionTitle}>Active Order</Text>
@@ -308,7 +321,7 @@ const OrdersScreen = () => {
 
                     <TouchableOpacity
                       activeOpacity={0.88}
-                      onPress={() => openOrderDetails(order?.order_id)}
+                      onPress={() => openOrderDetails(order)}
                     >
                       <View style={styles.activeTopRow}>
                         <View style={styles.activeLeftBlock}>
@@ -317,8 +330,8 @@ const OrdersScreen = () => {
                               source={
                                 order?.shop_image
                                   ? {
-                                    uri: Constant.ImageURL + order.shop_image,
-                                  }
+                                      uri: Constant.ImageURL + order.shop_image,
+                                    }
                                   : ImagePath.noShopPlaceholder
                               }
                               style={styles.activeFoodImage}
@@ -410,10 +423,10 @@ const OrdersScreen = () => {
                               source={
                                 order?.partner_info?.picture
                                   ? {
-                                    uri:
-                                      Constant.ImageURL +
-                                      order.partner_info.picture,
-                                  }
+                                      uri:
+                                        Constant.ImageURL +
+                                        order.partner_info.picture,
+                                    }
                                   : ImagePath.noProfile
                               }
                               style={styles.courierAvatar}
@@ -472,13 +485,13 @@ const OrdersScreen = () => {
           ) : null}
 
           {orderListData &&
-            !(
-              orderListData?.active_orders &&
-              orderListData.active_orders.length > 0
-            ) &&
-            !(
-              orderListData?.past_orders && orderListData.past_orders.length > 0
-            ) ? (
+          !(
+            orderListData?.active_orders &&
+            orderListData.active_orders.length > 0
+          ) &&
+          !(
+            orderListData?.past_orders && orderListData.past_orders.length > 0
+          ) ? (
             <View style={styles.emptyContainer}>
               <View style={styles.emptyContent}>
                 <View style={styles.emptyIconWrapper}>
@@ -498,7 +511,7 @@ const OrdersScreen = () => {
           ) : null}
 
           {orderListData?.past_orders &&
-            orderListData?.past_orders.length > 0 ? (
+          orderListData?.past_orders.length > 0 ? (
             <View style={styles.historySection}>
               <Text style={styles.sectionTitle}>Order History</Text>
 
@@ -510,7 +523,7 @@ const OrdersScreen = () => {
                     <TouchableOpacity
                       activeOpacity={0.88}
                       style={styles.historyTopRow}
-                      onPress={() => openOrderDetails(order.order_id)}
+                      onPress={() => openOrderDetails(order)}
                     >
                       <View style={styles.historyImageFrame}>
                         <Image
@@ -618,6 +631,12 @@ const OrdersScreen = () => {
                             shop_id: order?.shop_id,
                             products: order?.items,
                           }).then(() => {
+                            socketService.logAnalytics({
+                              action: 'click',
+                              name: 'Reorder',
+                              from: 'Orders Screen',
+                              params: order?.shop_name || '',
+                            });
                             navigation.navigate('Cart');
                           })
                         }

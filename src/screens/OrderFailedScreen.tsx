@@ -18,6 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import GlassLayer from '../components/GlassLayer';
 import { colors, layout, typography } from '../constants/theme';
 import { reset } from '../utils/navigationRef';
+import socketService from '../utils/socket-service';
 
 type Issue = {
   id: string;
@@ -56,10 +57,20 @@ const issues: Issue[] = [
 
 const OrderFailedScreen = () => {
   const handleReturnToHome = () => {
+    socketService.logAnalytics({
+      action: 'page_view',
+      name: 'Home Screen',
+      from: 'OrderFailed Screen',
+    });
     reset('Tabs', { screen: 'Home' });
   };
 
   const handleReturnToCart = () => {
+    socketService.logAnalytics({
+      action: 'page_view',
+      name: 'Cart Screen',
+      from: 'OrderFailed Screen',
+    });
     reset('Tabs', { screen: 'Cart' });
   };
 

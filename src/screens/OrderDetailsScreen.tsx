@@ -17,7 +17,6 @@ import {
   CookingPot,
   Headset,
   Phone,
-  Rocket,
   Star,
   UtensilsIcon,
   MapPin,
@@ -52,6 +51,26 @@ import {
 import { showToaster } from '../utils/toaster';
 import RazorpayCheckout from 'react-native-razorpay';
 import Loader from '../components/Loader';
+import socketService from '../utils/socket-service';
+
+type RefundMode = 'wallet' | 'original';
+
+const refundOptions: Array<{
+  value: RefundMode;
+  title: string;
+  description: string;
+}> = [
+  {
+    value: 'wallet',
+    title: 'Wallet',
+    description: 'Instant refund to your wallet.',
+  },
+  {
+    value: 'original',
+    title: 'Original payment method',
+    description: 'Refunds take 5-7 working days.',
+  },
+];
 
 const OrderDetailsScreen = () => {
   const dispatch = useDispatch();
@@ -64,6 +83,7 @@ const OrderDetailsScreen = () => {
   const [orderDetails, setOrderDetails] = useState<IOrderDetails | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancellationReason, setCancellationReason] = useState('');
+  const [refundMode, setRefundMode] = useState<RefundMode>('wallet');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const mapRef = React.useRef<any>(null);
 
@@ -95,11 +115,18 @@ const OrderDetailsScreen = () => {
   };
 
   const handleCancelOrder = () => {
+    setRefundMode('wallet');
     setShowCancelModal(true);
   };
 
   const handlePayment = () => {
     setIsShowLoader(true);
+    socketService.logAnalytics({
+      action: 'click',
+      name: 'Pay Now',
+      from: 'OrderDetails Screen',
+      params: orderDetails?.shop_name,
+    });
     dispatch(
       prePayment({
         order_id: orderId,
@@ -169,7 +196,19 @@ const OrderDetailsScreen = () => {
       return;
     }
     setIsSubmitting(true);
-    dispatch(cancelOrder({ order_id: orderId, reason: cancellationReason }))
+    socketService.logAnalytics({
+      action: 'click',
+      name: 'Cancel Order',
+      from: 'OrderDetails Screen',
+      params: cancellationReason,
+    });
+    dispatch(
+      cancelOrder({
+        order_id: orderId,
+        reason: cancellationReason,
+        refund_mode: refundMode,
+      }),
+    )
       .unwrap()
       .then(({ message }) => {
         console.log('message', message);
@@ -183,6 +222,7 @@ const OrderDetailsScreen = () => {
       .finally(() => {
         setShowCancelModal(false);
         setCancellationReason('');
+        setRefundMode('wallet');
         setIsSubmitting(false);
       });
   };
@@ -243,7 +283,7 @@ const OrderDetailsScreen = () => {
           ) : orderDetails?.status === 'On The Way' ? (
             <View style={styles.onwayTopCard}>
               {orderDetails?.shop_coordinate &&
-                orderDetails?.delivery_coordinate ? (
+              orderDetails?.delivery_coordinate ? (
                 <View style={styles.mapViewContainer}>
                   <MapView
                     ref={mapRef}
@@ -369,7 +409,9 @@ const OrderDetailsScreen = () => {
                 {orderDetails?.otp && (
                   <View style={styles.priorityPill}>
                     <Lock size={12} color="#FFAD3A" strokeWidth={2.2} />
-                    <Text style={styles.priorityText}>OTP : {orderDetails?.otp}</Text>
+                    <Text style={styles.priorityText}>
+                      OTP : {orderDetails?.otp}
+                    </Text>
                   </View>
                 )}
               </View>
@@ -442,10 +484,10 @@ const OrderDetailsScreen = () => {
                     source={
                       orderDetails?.partner_info?.picture
                         ? {
-                          uri:
-                            Constant.ImageURL +
-                            orderDetails.partner_info.picture,
-                        }
+                            uri:
+                              Constant.ImageURL +
+                              orderDetails.partner_info.picture,
+                          }
                         : ImagePath.noProfile
                     }
                     style={styles.courierAvatar}
@@ -493,48 +535,48 @@ const OrderDetailsScreen = () => {
             <View style={styles.itemsList}>
               {orderDetails?.items && orderDetails?.items.length > 0
                 ? orderDetails.items.map((item, index) => (
-                  <View key={index} style={styles.itemCard}>
-                    <LinearGradient
-                      pointerEvents="none"
-                      colors={[
-                        'rgba(255, 255, 255, 0.01)',
-                        'rgba(255, 255, 255, 0)',
-                      ]}
-                      start={{ x: 0, y: 0.5 }}
-                      end={{ x: 1, y: 0.5 }}
-                      style={styles.itemCardHighlight}
-                    />
+                    <View key={index} style={styles.itemCard}>
+                      <LinearGradient
+                        pointerEvents="none"
+                        colors={[
+                          'rgba(255, 255, 255, 0.01)',
+                          'rgba(255, 255, 255, 0)',
+                        ]}
+                        start={{ x: 0, y: 0.5 }}
+                        end={{ x: 1, y: 0.5 }}
+                        style={styles.itemCardHighlight}
+                      />
 
-                    <View style={styles.itemRow}>
-                      <View style={styles.itemImageWrap}>
-                        <Image
-                          source={
-                            item?.image
-                              ? { uri: Constant?.ImageURL + item.image }
-                              : ImagePath.noProductPlaceholder
-                          }
-                          style={styles.itemImage}
-                        />
-                      </View>
+                      <View style={styles.itemRow}>
+                        <View style={styles.itemImageWrap}>
+                          <Image
+                            source={
+                              item?.image
+                                ? { uri: Constant?.ImageURL + item.image }
+                                : ImagePath.noProductPlaceholder
+                            }
+                            style={styles.itemImage}
+                          />
+                        </View>
 
-                      <View style={styles.itemTextColumn}>
-                        <Text style={styles.itemTitle}>{item?.name}</Text>
-                        <Text style={styles.itemSubtitle} numberOfLines={1}>
-                          {item?.description}
-                        </Text>
-                      </View>
+                        <View style={styles.itemTextColumn}>
+                          <Text style={styles.itemTitle}>{item?.name}</Text>
+                          <Text style={styles.itemSubtitle} numberOfLines={1}>
+                            {item?.description}
+                          </Text>
+                        </View>
 
-                      <View style={styles.itemPriceColumn}>
-                        <Text style={styles.itemPrice}>
-                          {currencyFormate(item?.price, 0)}
-                        </Text>
-                        <Text style={styles.itemQty}>
-                          Qty: {item?.quantity}
-                        </Text>
+                        <View style={styles.itemPriceColumn}>
+                          <Text style={styles.itemPrice}>
+                            {currencyFormate(item?.price, 0)}
+                          </Text>
+                          <Text style={styles.itemQty}>
+                            Qty: {item?.quantity}
+                          </Text>
+                        </View>
                       </View>
                     </View>
-                  </View>
-                ))
+                  ))
                 : null}
             </View>
           </View>
@@ -575,17 +617,17 @@ const OrderDetailsScreen = () => {
             </View>
 
             {orderDetails?.extra_charges &&
-              orderDetails?.extra_charges.length > 0
+            orderDetails?.extra_charges.length > 0
               ? orderDetails?.extra_charges.map((item, index) => {
-                return (
-                  <View style={styles.breakdownRow} key={index}>
-                    <Text style={styles.breakdownLabel}>{item?.label}</Text>
-                    <Text style={styles.breakdownValue}>
-                      {currencyFormate(item?.amount || 0, 2)}
-                    </Text>
-                  </View>
-                );
-              })
+                  return (
+                    <View style={styles.breakdownRow} key={index}>
+                      <Text style={styles.breakdownLabel}>{item?.label}</Text>
+                      <Text style={styles.breakdownValue}>
+                        {currencyFormate(item?.amount || 0, 2)}
+                      </Text>
+                    </View>
+                  );
+                })
               : null}
 
             {orderDetails?.discount ? (
@@ -596,7 +638,6 @@ const OrderDetailsScreen = () => {
                 </Text>
               </View>
             ) : null}
-
 
             {orderDetails?.wallet_used ? (
               <View style={styles.breakdownRow}>
@@ -634,6 +675,13 @@ const OrderDetailsScreen = () => {
               </View>
             </View>
           </View>
+          {isCancelOrPaymentBtnShow && showPaymentBtnShow ? (
+            <View style={styles.estimateNoticeCard}>
+              <Text style={styles.estimateValue}>
+                Please complete the payment to avoid COD charges.
+              </Text>
+            </View>
+          ) : null}
 
           <View
             style={{
@@ -688,7 +736,7 @@ const OrderDetailsScreen = () => {
               onPress={() => {
                 handleWhatsapp(
                   'Hello, I need help with my order id: ' +
-                  orderDetails?.order_id_label,
+                    orderDetails?.order_id_label,
                 );
               }}
             >
@@ -729,7 +777,57 @@ const OrderDetailsScreen = () => {
               />
 
               {orderDetails?.status === 'Processing' ||
-                orderDetails?.status === 'Pending' ? null : (
+              orderDetails?.status === 'Pending' ? (
+                orderDetails?.payment_type === 'Online' ? (
+                  <View style={styles.refundSection}>
+                    <View style={styles.refundHeaderRow}>
+                      <Text style={styles.refundLabel}>Refund option</Text>
+                      <Text style={styles.refundHint}>
+                        Choose where we should send your refund
+                      </Text>
+                    </View>
+
+                    <View style={styles.refundOptionsList}>
+                      {refundOptions.map(option => {
+                        const isSelected = refundMode === option.value;
+
+                        return (
+                          <TouchableOpacity
+                            key={option.value}
+                            style={[
+                              styles.refundOptionCard,
+                              isSelected && styles.refundOptionCardSelected,
+                            ]}
+                            activeOpacity={0.88}
+                            onPress={() => setRefundMode(option.value)}
+                            disabled={isSubmitting}
+                          >
+                            <View
+                              style={[
+                                styles.refundRadioOuter,
+                                isSelected && styles.refundRadioOuterSelected,
+                              ]}
+                            >
+                              {isSelected ? (
+                                <View style={styles.refundRadioInner} />
+                              ) : null}
+                            </View>
+
+                            <View style={styles.refundOptionCopy}>
+                              <Text style={styles.refundOptionTitle}>
+                                {option.title}
+                              </Text>
+                              <Text style={styles.refundOptionDescription}>
+                                {option.description}
+                              </Text>
+                            </View>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+                ) : null
+              ) : (
                 <View style={styles.weatherNotice}>
                   <View style={styles.weatherIconWrap}>
                     <AlertTriangle size={16} color={colors.accentCoral} />
@@ -751,6 +849,7 @@ const OrderDetailsScreen = () => {
                   onPress={() => {
                     setShowCancelModal(false);
                     setCancellationReason('');
+                    setRefundMode('wallet');
                   }}
                   activeOpacity={0.85}
                   disabled={isSubmitting}
@@ -858,7 +957,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: layout.screenPadding,
     paddingTop: 18,
     paddingBottom: 48,
-    gap: 32,
+    gap: 20,
   },
   summaryCard: {
     borderRadius: 24,
@@ -1568,6 +1667,79 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: typography.captionPlus,
     lineHeight: 16,
+  },
+  refundSection: {
+    gap: 12,
+  },
+  refundHeaderRow: {
+    gap: 4,
+  },
+  refundLabel: {
+    color: colors.primary,
+    fontSize: typography.caption,
+    lineHeight: 14,
+    fontWeight: '700',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  refundHint: {
+    color: colors.textMuted,
+    fontSize: typography.captionPlus,
+    lineHeight: 16,
+    fontWeight: '400',
+  },
+  refundOptionsList: {
+    gap: 10,
+  },
+  refundOptionCard: {
+    minHeight: 64,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    backgroundColor: 'rgba(12, 14, 18, 0.58)',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  refundOptionCardSelected: {
+    borderColor: 'rgba(255, 173, 58, 0.55)',
+    backgroundColor: 'rgba(255, 173, 58, 0.12)',
+  },
+  refundRadioOuter: {
+    width: 20,
+    height: 20,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.28)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  refundRadioOuterSelected: {
+    borderColor: colors.primary,
+  },
+  refundRadioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 999,
+    backgroundColor: colors.primary,
+  },
+  refundOptionCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  refundOptionTitle: {
+    color: colors.textPrimary,
+    fontSize: typography.body,
+    lineHeight: 20,
+    fontWeight: '700',
+  },
+  refundOptionDescription: {
+    color: colors.textMuted,
+    fontSize: typography.captionPlus,
+    lineHeight: 16,
+    fontWeight: '400',
   },
   /* -- Estimate Notice -- */
   estimateNoticeCard: {

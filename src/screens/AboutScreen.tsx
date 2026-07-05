@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   BadgeCheck,
@@ -21,6 +20,7 @@ import {
 import { colors, layout, typography } from '../constants/theme';
 import Header from '../components/Header';
 import { ImagePath } from '../constants/ImagePath';
+import DeviceInfo from 'react-native-device-info';
 
 const highlights = [
   {
@@ -47,6 +47,8 @@ const highlights = [
 ];
 
 const AboutScreen = () => {
+  const currentVersion = DeviceInfo.getVersion();
+
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
       <Header
@@ -83,7 +85,9 @@ const AboutScreen = () => {
               <Text style={styles.heroPillText}>Chef Verified</Text>
             </View>
             <View style={styles.heroPillMuted}>
-              <Text style={styles.heroPillMutedText}>Version 1.0</Text>
+              <Text style={styles.heroPillMutedText}>
+                Version {currentVersion}
+              </Text>
             </View>
           </View>
 
@@ -119,17 +123,25 @@ const AboutScreen = () => {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Legal & support</Text>
 
-          <TouchableOpacity style={styles.linkRow} activeOpacity={0.8} onPress={() => {
-            Linking.openURL('https://ahaari.com/privacy-policy');
-          }}>
+          <TouchableOpacity
+            style={styles.linkRow}
+            activeOpacity={0.8}
+            onPress={() => {
+              Linking.openURL('https://ahaari.com/privacy-policy');
+            }}
+          >
             <Text style={styles.linkLabel}>Privacy policy</Text>
             <ExternalLink size={18} color={colors.textMuted} />
           </TouchableOpacity>
           <View style={styles.cardDivider} />
 
-          <TouchableOpacity style={styles.linkRow} activeOpacity={0.8} onPress={() => {
-            Linking.openURL('https://ahaari.com/terms-of-service');
-          }}>
+          <TouchableOpacity
+            style={styles.linkRow}
+            activeOpacity={0.8}
+            onPress={() => {
+              Linking.openURL('https://ahaari.com/terms-of-service');
+            }}
+          >
             <Text style={styles.linkLabel}>Terms of service</Text>
             <ExternalLink size={18} color={colors.textMuted} />
           </TouchableOpacity>
