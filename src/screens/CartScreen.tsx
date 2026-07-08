@@ -116,8 +116,8 @@ const CartScreen = () => {
           data.payment_method.cod.is_selected
             ? 'COD'
             : data.payment_method.online.is_selected
-            ? 'Online'
-            : '',
+              ? 'Online'
+              : '',
         );
       })
       .catch(error => {
@@ -145,7 +145,7 @@ const CartScreen = () => {
       );
       const discount =
         originalCartValue?.coupon?.applied &&
-        originalCartValue?.coupon?.discount
+          originalCartValue?.coupon?.discount
           ? originalCartValue.coupon.discount
           : 0;
       return base + extraCharges + vipCharge + paymentCharge - discount;
@@ -494,7 +494,7 @@ const CartScreen = () => {
 
             <View style={styles.itemList}>
               {originalCartValue?.items &&
-              originalCartValue?.items.length > 0 ? (
+                originalCartValue?.items.length > 0 ? (
                 originalCartValue?.items?.map((item, index) => (
                   <View key={index} style={styles.itemCard}>
                     <View>
@@ -668,7 +668,7 @@ const CartScreen = () => {
             </View>
 
             {originalCartValue?.vip_charge &&
-            originalCartValue?.vip_charge > 0 ? (
+              originalCartValue?.vip_charge > 0 ? (
               <View style={styles.vipCard}>
                 <View style={styles.vipLeftBlock}>
                   <View style={styles.vipIconBubble}>
@@ -750,7 +750,7 @@ const CartScreen = () => {
 
             <View style={styles.paymentSection}>
               {originalCartValue?.wallet_balance &&
-              originalCartValue?.wallet_balance > 0 ? (
+                originalCartValue?.wallet_balance > 0 ? (
                 <View style={styles.walletSection}>
                   <View style={styles.walletCopyBlock}>
                     <Text style={styles.walletEyebrow}>Wallet balance</Text>
@@ -897,8 +897,8 @@ const CartScreen = () => {
               ) : null}
 
               {paymentMethod === 'COD' &&
-              originalCartValue?.payment_method?.cod &&
-              originalCartValue?.payment_method?.cod?.charge > 0 ? (
+                originalCartValue?.payment_method?.cod &&
+                originalCartValue?.payment_method?.cod?.charge > 0 ? (
                 <View style={styles.breakdownRow}>
                   <Text style={styles.breakdownLabel}>COD Charge</Text>
                   <Text style={styles.breakdownValue}>
@@ -907,8 +907,8 @@ const CartScreen = () => {
                 </View>
               ) : null}
               {paymentMethod === 'Online' &&
-              originalCartValue?.payment_method?.online &&
-              originalCartValue?.payment_method?.online?.charge > 0 ? (
+                originalCartValue?.payment_method?.online &&
+                originalCartValue?.payment_method?.online?.charge > 0 ? (
                 <View style={styles.breakdownRow}>
                   <Text style={styles.breakdownLabel}>
                     Online Payment Charge
@@ -997,7 +997,7 @@ const CartScreen = () => {
               {originalCartValue?.checkout ? (
                 <React.Fragment>
                   {originalCartValue?.delivery_charge_discount &&
-                  originalCartValue?.delivery_charge_discount.progress > 0 ? (
+                    originalCartValue?.delivery_charge_discount.progress > 0 ? (
                     <View style={styles.progressFooterSection}>
                       <View style={styles.progressFooterHeader}>
                         <Text style={styles.progressFooterAmount}>
@@ -1019,11 +1019,10 @@ const CartScreen = () => {
                     </View>
                   ) : null}
                 </React.Fragment>
-              ) : (
-                <Text style={styles.checkoutMessage}>
-                  {originalCartValue?.message || ''}
-                </Text>
-              )}
+              ) : null}
+              <Text style={styles.checkoutMessage}>
+                {originalCartValue?.message || ''}
+              </Text>
 
               <TouchableOpacity
                 style={[
@@ -1809,7 +1808,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
   },
   checkoutMessage: {
-    color: colors.primary,
+    color: colors.accentCoral,
     fontSize: typography.caption,
     lineHeight: 14,
     fontWeight: '700',

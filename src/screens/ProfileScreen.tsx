@@ -322,7 +322,7 @@ const ProfileScreen = () => {
 
           <View style={styles.listCard}>
             <TouchableOpacity style={styles.listRow} onPress={() => {
-                Linking.openURL('https://ahaari.com/privacy-policy');
+              Linking.openURL('https://ahaari.com/privacy-policy');
             }}>
               <Text style={styles.listRowLabelMuted}>Terms & Condition</Text>
               <ExternalLink size={20} color="#6C7078" />
@@ -331,7 +331,7 @@ const ProfileScreen = () => {
             <View style={styles.listDivider} />
 
             <TouchableOpacity style={styles.listRow} onPress={() => {
-                Linking.openURL('https://ahaari.com/privacy-policy');
+              Linking.openURL('https://ahaari.com/privacy-policy');
             }}>
               <Text style={styles.listRowLabelMuted}>Privacy Policy</Text>
               <ExternalLink size={20} color="#6C7078" />

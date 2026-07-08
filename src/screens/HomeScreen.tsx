@@ -298,42 +298,94 @@ const HomeScreen = () => {
         >
           {homePageData?.event ? (
             <View style={styles.heroCard}>
-              <View style={styles.heroImageContainer}>
-                <Image
-                  source={{
-                    uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAxGNL0DERG9T_7taHIeOdBtSkXq8JXFF91p8Ku5vFG2nq9Fp4D9CzarNep_RZao1ui5qQGiBjarEGJd2rNGW8mHo9sx1EDTXKlgo8jBBlmXibf6gO2ps9lBe3bmUF_J2X0JTjIXNG4YbjscmB_hpnU-zlDA4s3QBWJwz-IkaZ85CCtAuFd0opEClyacyiZgMCcrvmDNDiacCEkHHz9mx6M-eQm8mKJeVN72a4x3J6-8upK89Je--LYh0-LvsFgARxE-Ee75BXFM5Q',
-                  }}
-                  style={styles.heroImage}
-                />
-                <LinearGradient
-                  colors={['transparent', 'rgba(0, 0, 0, 0.62)']}
-                  start={{ x: 0.5, y: 0.25 }}
-                  end={{ x: 0.5, y: 1 }}
-                  style={styles.heroOverlay}
-                />
-              </View>
-              <View style={styles.heroContent}>
-                <View style={styles.eventBadge}>
-                  <Calendar size={12} color="#FFB000" />
-                  <Text style={styles.eventBadgeText}>UPCOMING EVENT</Text>
+              {homePageData?.event?.image && (
+                <View style={styles.heroImageContainer}>
+                  <Image
+                    source={{
+                      uri: Constant.ImageURL + homePageData?.event?.image,
+                    }}
+                    style={styles.heroImage}
+                  />
+                  <LinearGradient
+                    colors={['transparent', 'rgba(0, 0, 0, 0.62)']}
+                    start={{ x: 0.5, y: 0.25 }}
+                    end={{ x: 0.5, y: 1 }}
+                    style={styles.heroOverlay}
+                  />
                 </View>
-                <Text style={styles.heroTitle}>
-                  Celebrate Chloe's Birthday Soon!
-                </Text>
-                <Text style={styles.heroSubtitle}>
-                  Make her day special with her favorite artisanal treats and
-                  desserts from the best bakeries.
-                </Text>
-                <TouchableOpacity style={styles.planButton}>
-                  <Text style={styles.planButtonText}>Plan Party</Text>
-                </TouchableOpacity>
+              )}
+              <View style={styles.heroContent}>
+                {homePageData?.event?.tag ? (
+                  <View style={styles.eventBadge}>
+                    <Calendar size={12} color="#FFB000" />
+                    <Text style={styles.eventBadgeText}>{homePageData?.event?.tag}</Text>
+                  </View>
+                ) : null}
+                {homePageData?.event?.title ? (
+                  <Text style={styles.heroTitle}>
+                    {homePageData?.event?.title}
+                  </Text>
+                ) : null}
+                {homePageData?.event?.subtitle ? (
+                  <Text style={styles.heroSubtitle}>
+                    {homePageData?.event?.subtitle}
+                  </Text>
+                ) : null}
+                {homePageData?.event?.have_button ? (
+                  <TouchableOpacity style={styles.planButton} onPress={() => {
+                    socketService.logAnalytics({
+                      action: 'click',
+                      name: 'Event Button',
+                      from: 'Home Screen',
+                      params: homePageData?.event?.redirect_to,
+                    });
+                    if (homePageData?.event?.redirect_to == 'cart') {
+                      addProduct({
+                        product_id: homePageData?.event?.item?.product_id,
+                        variant_id: homePageData?.event?.item?.variant_id,
+                        shop_id: homePageData?.event?.item?.shop_id || '',
+                        quantity: 1,
+                      }).then(res => {
+                        console.log('ress', res);
+                        if (res.type === 'different_shop_error') {
+                          showToaster(
+                            'Replaced cart items with the new product from a different restaurant.',
+                          );
+                          addProduct({
+                            product_id: homePageData?.event?.item?.product_id,
+                            variant_id: homePageData?.event?.item?.variant_id,
+                            shop_id: homePageData?.event?.item?.shop_id || '',
+                            quantity: 1,
+                            isRecreateCart: true,
+                          });
+                        }
+                        reset('Tabs', {
+                          screen: 'Cart'
+                        });
+                      });
+                    } else if (homePageData?.event?.redirect_to == 'restaurant') {
+                      navigation.navigate('RestaurantDetails', {
+                        shopId: homePageData?.event?.redirect_id,
+                      });
+                    } else if (homePageData?.event?.redirect_to == 'profile') {
+                      navigation.navigate('PersonalInfo');
+                    } else {
+                      reset('Tabs', {
+                        screen: 'Restaurants',
+                        params: { category_id: homePageData?.event?.redirect_id || null },
+                      });
+                    }
+                  }}>
+                    <Text style={styles.planButtonText}>{homePageData?.event?.button_text || 'Plan Party'}</Text>
+                  </TouchableOpacity>
+                ) : null}
               </View>
             </View>
           ) : (
             <View style={styles.heroCard}>
               <View style={styles.heroImageContainer}>
                 {homePageData?.slides &&
-                homePageData?.slides[activeHeroIndex] ? (
+                  homePageData?.slides[activeHeroIndex] ? (
                   <Animated.View
                     style={[
                       styles.heroImageMotion,
@@ -422,7 +474,7 @@ const HomeScreen = () => {
           ) : null}
 
           {homePageData?.todaySpecials &&
-          homePageData?.todaySpecials.length > 0 ? (
+            homePageData?.todaySpecials.length > 0 ? (
             <>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Today's Specials</Text>
@@ -505,7 +557,7 @@ const HomeScreen = () => {
                           </Text>
                         </View>
                         {getCartQtyCount({ product_id: item.product_id }) >
-                        0 ? (
+                          0 ? (
                           <View style={styles.qtyPillSmall}>
                             <TouchableOpacity
                               style={styles.qtyButtonSmall}
@@ -685,9 +737,15 @@ const HomeScreen = () => {
                     />
                     <View style={styles.restaurantInfo}>
                       <View style={styles.restaurantHeader}>
-                        <Text style={styles.restaurantName}>
-                          {restaurant?.name}
-                        </Text>
+                        <View
+                          style={{
+                            flex: 1,
+                          }}
+                        >
+                          <Text style={styles.restaurantName}>
+                            {restaurant?.name}
+                          </Text>
+                        </View>
                         <View
                           style={{
                             flexDirection: 'row',

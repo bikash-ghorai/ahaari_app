@@ -19,7 +19,8 @@ type SocketEmitNameInterface =
   | 'View Coupons'
   | 'Reorder'
   | 'Cancel Order'
-  | 'Pay Now';
+  | 'Pay Now'
+  | 'Event Button';
 
 interface SocketEmitDataInterface {
   action: SocketEmitActionType;
