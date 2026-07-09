@@ -57,6 +57,7 @@ import { setUserCurrentCoords } from '../redux/user/userSlice';
 import Loader from '../components/Loader';
 import { setIsBadWeather } from '../redux/app/appSlice';
 import socketService from '../utils/socket-service';
+import DeviceInfo from 'react-native-device-info';
 
 type HomeScreenNavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<RootTabParamList, 'Home'>,
@@ -100,6 +101,7 @@ const HomeScreen = () => {
 
   React.useEffect(() => {
     handleFetchHomePageData();
+    updateDeviceInfo();
     setTimeout(() => {
       requestNotificationPermission();
     }, 1000);
@@ -130,6 +132,17 @@ const HomeScreen = () => {
       .finally(() => {
         setIsHomePageDataFetching(false);
       });
+  };
+
+  const updateDeviceInfo = async () => {
+    const currentVersion = DeviceInfo.getVersion();
+    const deviceName = await DeviceInfo.getDeviceName();
+    const systemVersion = DeviceInfo.getSystemVersion();
+    socketService.emit('device_info', {
+      version: currentVersion,
+      device_name: deviceName,
+      system_version: systemVersion,
+    });
   };
 
   React.useEffect(() => {
@@ -296,7 +309,7 @@ const HomeScreen = () => {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {homePageData?.event ? (
+          {homePageData?.event && homePageData?.event?.status ? (
             <View style={styles.heroCard}>
               {homePageData?.event?.image && (
                 <View style={styles.heroImageContainer}>

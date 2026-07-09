@@ -61,14 +61,16 @@ class SocketService {
 
   emit(event: string, data: any) {
     if (this.socket) {
-      this.socket.emit(event, data);
+      this.socket.emit(event, {
+        user_id: store.getState().user.userData?.user_id,
+        session_id: this.sessionId,
+        ...data,
+      });
     }
   }
 
   logAnalytics(data: SocketEmitDataInterface) {
     if (this.socket) {
-      console.log('socket', this.socket);
-      console.log('sessionId', this.sessionId);
       this.socket.emit('analytics', {
         user_id: store.getState().user.userData?.user_id,
         session_id: this.sessionId,
@@ -79,7 +81,6 @@ class SocketService {
 
   on(event: string, callback: any) {
     if (this.socket) {
-      console.log('socket on', this.socket.id);
       this.socket.on(event, callback);
     }
   }
