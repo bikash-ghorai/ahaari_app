@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StatusBar, StyleSheet, View, BackHandler } from 'react-native';
+import { StatusBar, StyleSheet, View, BackHandler, NativeModules, Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -47,10 +47,10 @@ import { Provider } from 'react-redux';
 import { store } from './src/redux/store';
 import NetInfo from '@react-native-community/netinfo';
 import { getMessaging } from '@react-native-firebase/messaging';
-import { getAnalytics, logEvent } from '@react-native-firebase/analytics';
-import { AndroidAvailabilityStatus } from 'sp-react-native-in-app-updates';
 import socketService from './src/utils/socket-service';
+import { setReferrer } from './src/utils/storage';
 
+const { InstallReferrerModule } = NativeModules;
 const Tab = createBottomTabNavigator<RootTabParamList>();
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const navigationTheme = {
@@ -93,6 +93,7 @@ function App() {
       setIsConnected(!!state.isConnected);
       console.log('state', state);
     });
+    checkDeferredDeepLink();
     return () => unsubscribe();
   }, []);
 
@@ -121,18 +122,19 @@ function App() {
     const routeName = navigationRef.getCurrentRoute()?.name;
     if (routeName && routeName !== currentRouteName) {
       setCurrentRouteName(routeName);
-
-      // Tell Firebase Analytics about the new screen
-      try {
-        await logEvent(getAnalytics(), 'screen_view', {
-          screen_name: routeName,
-          screen_class: routeName,
-        });
-      } catch (error) {
-        console.log('Failed to log screen view:', error);
-      }
     }
   };
+
+  const checkDeferredDeepLink = async () => {
+    const referrer = await InstallReferrerModule.getReferrerString();
+      if (Platform.OS === 'android') {
+        if (referrer && referrer !== '') {
+          // console.log('Android App Installed from matching server link. Destination:', referrer);
+          // store in local storage or state management for later use
+          await setReferrer(referrer);
+        }
+      }
+    };
 
   useEffect(() => {
     getMessaging()

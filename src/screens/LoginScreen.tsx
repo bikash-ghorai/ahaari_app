@@ -36,10 +36,11 @@ import { reset } from '../utils/navigationRef';
 import messaging from '@react-native-firebase/messaging';
 import { setApiToken } from '../utils/axios';
 import {
+  getReferrer,
+  removeReferrer,
   setAuthTokenToAsyncStore,
   setUserDetailsToAsyncStore,
 } from '../utils/storage';
-import { getAnalytics, setUserId } from '@react-native-firebase/analytics';
 import socketService from '../utils/socket-service';
 
 const OTP_LENGTH = 6;
@@ -225,10 +226,12 @@ const LoginScreen = () => {
       setIsLoading(false);
       return;
     }
+    const referrer = await getReferrer();
     dispatch(
       firebaseLogin({
         id_token: idToken,
         device_token: fcmToken || '',
+        referrer: referrer || null,
       }),
     )
       .unwrap()
@@ -239,7 +242,6 @@ const LoginScreen = () => {
           await setUserDetailsToAsyncStore(data.user);
           socketService.initializeSocket(data?.user?.user_id);
           try {
-            await setUserId(getAnalytics(), data?.user?.user_id);
           } catch (error) {
             console.log('Failed to set user ID:', error);
           }
@@ -251,13 +253,14 @@ const LoginScreen = () => {
           ) {
             dispatch(updateLocation(userCurrentCoords))
               .unwrap()
-              .finally(() => {
+              .finally(async () => {
                 setIsLoading(false);
                 socketService.logAnalytics({
                   action: 'page_view',
                   name: 'Home Screen',
                   from: 'Login Screen',
                 });
+                await removeReferrer();
                 reset('Tabs');
               });
           } else {
@@ -267,6 +270,7 @@ const LoginScreen = () => {
               name: 'Home Screen',
               from: 'Login Screen',
             });
+            await removeReferrer();
             reset('Tabs');
           }
         } else {

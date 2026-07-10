@@ -228,10 +228,13 @@ const RestaurantList = (props: any) => {
 
   useEffect(() => {
     if (isFocused) {
+      if (!category_id_params) {
+        setSelectedCategory('');
+      }
       getShopHandler(selectedCategory);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isFocused, selectedCategory]);
+  }, [isFocused]);
 
   const getShopHandler = (categoryId: string | null, silent = false) => {
     if (!silent) {

@@ -33,6 +33,7 @@ export type IVerifyUserReq = {
 export type IFirebaseLoginReq = {
   id_token?: string;
   device_token?: string;
+  referrer?: string | null;
 };
 
 export type IHomePageData = {

@@ -83,8 +83,8 @@ android {
         applicationId "com.ahaari"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 20
-        versionName "2.0"
+        versionCode 25
+        versionName "2.5"
     }
     signingConfigs {
         debug {
@@ -124,12 +124,6 @@ dependencies {
         implementation jscFlavor
     }
 
-    // Import the Firebase BoM
-    implementation(platform("com.google.firebase:firebase-bom:34.15.0"))
-
-
-    // TODO: Add the dependencies for Firebase products you want to use
-    // When using the BoM, don't specify versions in Firebase dependencies
-    implementation("com.google.firebase:firebase-analytics")
+    implementation("com.android.installreferrer:installreferrer:2.2")
 
 }

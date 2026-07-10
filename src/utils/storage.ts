@@ -5,6 +5,7 @@ const USER_DETAILS = '@userdetailsToAsyncStore';
 const USER_CART_DATA = '@usercartdataToAsyncStore';
 const LOCATION = '@location';
 const FCM_TOKEN = '@fcmtoken';
+const REFERRER = '@referrer';
 
 // -----------Auth Token------
 export const getAuthTokenFromAsyncStore = async (): Promise<string | null> => {
@@ -150,6 +151,38 @@ export const setFCMToken = async (value: string): Promise<boolean> => {
   try {
     const ftoken = JSON.stringify(value);
     await AsyncStorage.setItem(FCM_TOKEN, ftoken);
+    return true;
+  } catch (e) {
+    console.log('error', e);
+    return false;
+  }
+};
+
+// -----------Referrer------
+export const getReferrer = async (): Promise<string> => {
+  try {
+    const referrer = await AsyncStorage.getItem(REFERRER);
+    return referrer != null ? JSON.parse(referrer) : '';
+  } catch (e) {
+    console.log('error', e);
+    return '';
+  }
+};
+
+export const setReferrer = async (value: string): Promise<boolean> => {
+  try {
+    const referrer = JSON.stringify(value);
+    await AsyncStorage.setItem(REFERRER, referrer);
+    return true;
+  } catch (e) {
+    console.log('error', e);
+    return false;
+  }
+};
+
+export const removeReferrer = async (): Promise<boolean> => {
+  try {
+    await AsyncStorage.removeItem(REFERRER);
     return true;
   } catch (e) {
     console.log('error', e);

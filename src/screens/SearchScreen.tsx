@@ -66,30 +66,14 @@ type ISearchRestaurant = {
   rating: number | string;
 };
 const trendingSearches = [
-  'Truffle Burger',
-  'Sushi',
-  'Vegan Bowl',
-  'Spicy Ramen',
-  'Artisan Pizza',
+  'Pizza',
+  'Biriyani',
+  'Momos',
+  'Choco Vanilla Mouse',
+  'Egg Chicken Roll',
 ];
 
-const initialRecentSearches: RecentSearch[] = [
-  {
-    id: 'blueberry-cheesecake',
-    title: 'Blueberry Cheesecake',
-    subtitle: 'Dessert  -  2 days ago',
-  },
-  {
-    id: 'pasta-carbonara',
-    title: 'Pasta Carbonara',
-    subtitle: 'Italian  -  Last week',
-  },
-  {
-    id: 'smoothie-king',
-    title: 'Smoothie King',
-    subtitle: 'Drinks  -  Last week',
-  },
-];
+const initialRecentSearches: RecentSearch[] = [];
 
 const normalizeSearchArray = <T,>(value: unknown): T[] => {
   if (Array.isArray(value)) {
@@ -398,11 +382,12 @@ const SearchScreen = () => {
               </View>
 
               {/* Recent Searches */}
-              <View style={styles.recentSectionBlock}>
-                <View style={styles.recentHeaderRow}>
-                  <Text style={styles.sectionHeadingRecent}>
-                    Recent Searches
-                  </Text>
+              {initialRecentSearches.length > 0 && (
+                <View style={styles.recentSectionBlock}>
+                  <View style={styles.recentHeaderRow}>
+                    <Text style={styles.sectionHeadingRecent}>
+                      Recent Searches
+                    </Text>
                   {recentList.length > 0 && (
                     <TouchableOpacity
                       activeOpacity={0.8}
@@ -452,6 +437,7 @@ const SearchScreen = () => {
                   ))}
                 </View>
               </View>
+              )}
             </>
           ) : !hasResults ? (
             // --- EMPTY RESULTS ---

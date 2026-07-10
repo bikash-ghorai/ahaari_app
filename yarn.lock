@@ -2223,13 +2223,6 @@
   resolved "https://registry.yarnpkg.com/@react-native-community/netinfo/-/netinfo-12.0.1.tgz#fec75f4093c27778479d8927b4f51f133b8a13a4"
   integrity sha512-P/3caXIvfYSJG8AWJVefukg+ZGRPs+M4Lp3pNJtgcTYoJxCjWrKQGNnCkj/Cz//zWa/avGed0i/wzm0T8vV2IQ==
 
-"@react-native-firebase/analytics@^25.1.0":
-  version "25.1.0"
-  resolved "https://registry.yarnpkg.com/@react-native-firebase/analytics/-/analytics-25.1.0.tgz#86403866033d53b4353f70028dc9aaac811f27cf"
-  integrity sha512-H8IrrJ5Hn0PvFzRWkvriUtQCTLqJcdpgEURDJxrEnc+hRtI9VHDH8HKDVawcBlJS34Oj6pppdlzxJl2QOWlq5A==
-  dependencies:
-    superstruct "^2.0.2"
-
 "@react-native-firebase/app@^24.1.0":
   version "24.1.0"
   resolved "https://registry.yarnpkg.com/@react-native-firebase/app/-/app-24.1.0.tgz#d14a52a11c24ecf9ac90b23b44bc173db53b9363"
@@ -7624,11 +7617,6 @@ strnum@^1.0.5:
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/strnum/-/strnum-1.1.2.tgz#57bca4fbaa6f271081715dbc9ed7cee5493e28e4"
   integrity sha512-vrN+B7DBIoTTZjnPNewwhx6cBA/H+IS7rfW68n7XxC1y7uoiGQBxaKzqucGUgavX15dJgiGztLJ8vxuEzwqBdA==
-
-superstruct@^2.0.2:
-  version "2.0.2"
-  resolved "https://registry.yarnpkg.com/superstruct/-/superstruct-2.0.2.tgz#3f6d32fbdc11c357deff127d591a39b996300c54"
-  integrity sha512-uV+TFRZdXsqXTL2pRvujROjdZQ4RAlBUS5BTh9IGm+jTqQntYThciG/qu57Gs69yjnVUSqdxF9YLmSnpupBW9A==
 
 supports-color@^7.1.0:
   version "7.2.0"
