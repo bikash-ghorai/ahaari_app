@@ -94,6 +94,8 @@ export type IRestaurant = {
   type: string;
   delivery_time: string;
   time: string;
+  have_discount: boolean;
+  offer: string | null;
 };
 
 export type IRestaurantRes = {

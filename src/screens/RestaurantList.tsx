@@ -18,6 +18,7 @@ import {
 
 import {
   AlertTriangle,
+  BadgePercent,
   Bell,
   Flame,
   Heart,
@@ -201,12 +202,12 @@ const RestaurantList = (props: any) => {
   );
 
   useEffect(() => {
-    if (!category_id_params || categories.length === 0) {
+    if (!selectedCategory || categories.length === 0) {
       return;
     }
-    setSelectedCategory(category_id_params);
+    // setSelectedCategory(category_id_params);
     const index = categories.findIndex(
-      item => item.category_id === category_id_params,
+      item => item.category_id === selectedCategory,
     );
     if (index === -1) {
       return;
@@ -224,7 +225,7 @@ const RestaurantList = (props: any) => {
       }
     }, 100);
     return () => clearTimeout(timer);
-  }, [category_id_params, categories]);
+  }, [categories]);
 
   useEffect(() => {
     if (isFocused) {
@@ -390,10 +391,38 @@ const RestaurantList = (props: any) => {
               )}
             </TouchableOpacity>
           </View>
+          {restaurant?.have_discount ? (
+            <View
+              style={{
+                position: 'absolute',
+                left: 16,
+                bottom: 16,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 5,
+                marginTop: 5,
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                paddingHorizontal: 8,
+                paddingVertical: 5,
+                borderRadius: 6,
+                alignSelf: 'flex-start',
+              }}
+            >
+              <BadgePercent size={15} color={colors.primary} />
+              <Text style={{
+                color: colors.primary,
+                fontSize: typography.sm,
+                fontWeight: 'bold'
+              }}>
+                {restaurant?.offer}
+              </Text>
+            </View>
+          ) : null}
         </View>
 
         {/* Card body */}
         <View style={styles.cardBody}>
+
           <View style={styles.cardTitleRow}>
             <Text style={styles.cardTitle}>{restaurant?.name}</Text>
             <View style={styles.ratingBadge}>
@@ -403,13 +432,14 @@ const RestaurantList = (props: any) => {
                 fill={colors.primary}
                 strokeWidth={1.8}
               />
-              <Text style={styles.ratingText}>{restaurant?.rating}</Text>
+              <Text style={styles.ratingText}>{restaurant?.rating || '0.0'}</Text>
             </View>
           </View>
 
           <Text style={styles.cardDetails} numberOfLines={2}>
             {restaurant?.type} - {restaurant?.time}
           </Text>
+
         </View>
       </TouchableOpacity>
     ),
@@ -550,40 +580,40 @@ const RestaurantList = (props: any) => {
           >
             {categories && categories.length > 0
               ? categories.map((item, index) => {
-                  const active = item?.category_id == selectedCategory;
-                  return (
-                    <View
-                      key={index}
-                      onLayout={e => {
-                        chipXPositions.current[index] = e.nativeEvent.layout.x;
+                const active = item?.category_id == selectedCategory;
+                return (
+                  <View
+                    key={index}
+                    onLayout={e => {
+                      chipXPositions.current[index] = e.nativeEvent.layout.x;
+                    }}
+                  >
+                    <TouchableOpacity
+                      activeOpacity={0.88}
+                      style={active ? styles.chipActive : styles.chipInactive}
+                      onPress={() => {
+                        handleSelectCategory(item?.category_id);
+                        socketService.logAnalytics({
+                          action: 'click',
+                          name: 'Category Filter',
+                          from: 'Restaurants Screen',
+                          params: item?.name || '',
+                        });
                       }}
                     >
-                      <TouchableOpacity
-                        activeOpacity={0.88}
-                        style={active ? styles.chipActive : styles.chipInactive}
-                        onPress={() => {
-                          handleSelectCategory(item?.category_id);
-                          socketService.logAnalytics({
-                            action: 'click',
-                            name: 'Category Filter',
-                            from: 'Restaurants Screen',
-                            params: item?.name || '',
-                          });
-                        }}
+                      <Text
+                        style={
+                          active
+                            ? styles.chipTextActive
+                            : styles.chipTextInactive
+                        }
                       >
-                        <Text
-                          style={
-                            active
-                              ? styles.chipTextActive
-                              : styles.chipTextInactive
-                          }
-                        >
-                          {item?.name}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  );
-                })
+                        {item?.name}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })
               : null}
           </ScrollView>
         }

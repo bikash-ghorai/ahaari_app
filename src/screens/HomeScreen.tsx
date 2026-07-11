@@ -327,72 +327,73 @@ const HomeScreen = () => {
                   />
                 </View>
               )}
-              <View style={styles.heroContent}>
-                {homePageData?.event?.tag ? (
-                  <View style={styles.eventBadge}>
-                    <Calendar size={12} color="#FFB000" />
-                    <Text style={styles.eventBadgeText}>{homePageData?.event?.tag}</Text>
-                  </View>
-                ) : null}
-                {homePageData?.event?.title ? (
-                  <Text style={styles.heroTitle}>
-                    {homePageData?.event?.title}
-                  </Text>
-                ) : null}
-                {homePageData?.event?.subtitle ? (
-                  <Text style={styles.heroSubtitle}>
-                    {homePageData?.event?.subtitle}
-                  </Text>
-                ) : null}
-                {homePageData?.event?.have_button ? (
-                  <TouchableOpacity style={styles.planButton} onPress={() => {
-                    socketService.logAnalytics({
-                      action: 'click',
-                      name: 'Event Button',
-                      from: 'Home Screen',
-                      params: homePageData?.event?.redirect_to,
-                    });
-                    if (homePageData?.event?.redirect_to == 'cart') {
-                      addProduct({
-                        product_id: homePageData?.event?.item?.product_id,
-                        variant_id: homePageData?.event?.item?.variant_id,
-                        shop_id: homePageData?.event?.item?.shop_id || '',
-                        quantity: 1,
-                      }).then(res => {
-                        console.log('ress', res);
-                        if (res.type === 'different_shop_error') {
-                          showToaster(
-                            'Replaced cart items with the new product from a different restaurant.',
-                          );
-                          addProduct({
-                            product_id: homePageData?.event?.item?.product_id,
-                            variant_id: homePageData?.event?.item?.variant_id,
-                            shop_id: homePageData?.event?.item?.shop_id || '',
-                            quantity: 1,
-                            isRecreateCart: true,
+              {(homePageData?.event?.tag || homePageData?.event?.title || homePageData?.event?.subtitle || homePageData?.event?.have_button) ? (
+                <View style={styles.heroContent}>
+                  {homePageData?.event?.tag ? (
+                    <View style={styles.eventBadge}>
+                      <Calendar size={12} color="#FFB000" />
+                      <Text style={styles.eventBadgeText}>{homePageData?.event?.tag}</Text>
+                    </View>
+                  ) : null}
+                  {homePageData?.event?.title ? (
+                    <Text style={styles.heroTitle}>
+                      {homePageData?.event?.title}
+                    </Text>
+                  ) : null}
+                  {homePageData?.event?.subtitle ? (
+                    <Text style={styles.heroSubtitle}>
+                      {homePageData?.event?.subtitle}
+                    </Text>
+                  ) : null}
+                  {homePageData?.event?.have_button ? (
+                    <TouchableOpacity style={styles.planButton} onPress={() => {
+                      socketService.logAnalytics({
+                        action: 'click',
+                        name: 'Event Button',
+                        from: 'Home Screen',
+                        params: homePageData?.event?.redirect_to,
+                      });
+                      if (homePageData?.event?.redirect_to == 'cart') {
+                        addProduct({
+                          product_id: homePageData?.event?.item?.product_id,
+                          variant_id: homePageData?.event?.item?.variant_id,
+                          shop_id: homePageData?.event?.item?.shop_id || '',
+                          quantity: 1,
+                        }).then(res => {
+                          if (res.type === 'different_shop_error') {
+                            showToaster(
+                              'Replaced cart items with the new product from a different restaurant.',
+                            );
+                            addProduct({
+                              product_id: homePageData?.event?.item?.product_id,
+                              variant_id: homePageData?.event?.item?.variant_id,
+                              shop_id: homePageData?.event?.item?.shop_id || '',
+                              quantity: 1,
+                              isRecreateCart: true,
+                            });
+                          }
+                          reset('Tabs', {
+                            screen: 'Cart'
                           });
-                        }
-                        reset('Tabs', {
-                          screen: 'Cart'
                         });
-                      });
-                    } else if (homePageData?.event?.redirect_to == 'restaurant') {
-                      navigation.navigate('RestaurantDetails', {
-                        shopId: homePageData?.event?.redirect_id,
-                      });
-                    } else if (homePageData?.event?.redirect_to == 'profile') {
-                      navigation.navigate('PersonalInfo');
-                    } else {
-                      reset('Tabs', {
-                        screen: 'Restaurants',
-                        params: { category_id: homePageData?.event?.redirect_id || null },
-                      });
-                    }
-                  }}>
-                    <Text style={styles.planButtonText}>{homePageData?.event?.button_text || 'Plan Party'}</Text>
-                  </TouchableOpacity>
-                ) : null}
-              </View>
+                      } else if (homePageData?.event?.redirect_to == 'restaurant') {
+                        navigation.navigate('RestaurantDetails', {
+                          shopId: homePageData?.event?.redirect_id,
+                        });
+                      } else if (homePageData?.event?.redirect_to == 'profile') {
+                        navigation.navigate('PersonalInfo');
+                      } else {
+                        reset('Tabs', {
+                          screen: 'Restaurants',
+                          params: { category_id: homePageData?.event?.redirect_id || null },
+                        });
+                      }
+                    }}>
+                      <Text style={styles.planButtonText}>{homePageData?.event?.button_text || 'Plan Party'}</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+              ) : null}
             </View>
           ) : (
             <View style={styles.heroCard}>

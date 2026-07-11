@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import { BlurView } from '@react-native-community/blur';
 import {
+  BadgePercent,
   Circle,
   Clock3,
   Minus,
@@ -322,9 +323,30 @@ const RestaurantDetails = (props: any) => {
             />
 
             <View style={styles.heroDetails}>
-              <Text style={styles.heroKicker}>
-                {shopDetails?.shop?.address}
-              </Text>
+              {shopDetails?.shop?.have_discount ? (
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 5,
+                    marginBottom: 10,
+                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                    paddingHorizontal: 8,
+                    paddingVertical: 5,
+                    borderRadius: 6,
+                    alignSelf: 'flex-start',
+                  }}
+                >
+                  <BadgePercent size={15} color={colors.primary} />
+                  <Text style={{
+                    color: colors.primary,
+                    fontSize: typography.sm,
+                    fontWeight: 'bold'
+                  }}>
+                    {shopDetails?.shop?.offer}
+                  </Text>
+                </View>
+              ) : null}
               <Text style={styles.heroTitle}>{shopDetails?.shop?.name}</Text>
 
               <View style={styles.metaRow}>
@@ -353,6 +375,7 @@ const RestaurantDetails = (props: any) => {
                   </View>
                 ) : null}
               </View>
+              
             </View>
           </View>
 
@@ -375,45 +398,45 @@ const RestaurantDetails = (props: any) => {
               >
                 {shopDetails?.categories && shopDetails?.categories.length > 0
                   ? shopDetails?.categories.map((category, index) => {
-                      const isActive =
-                        selectedCategory?.category_id === category?.category_id;
+                    const isActive =
+                      selectedCategory?.category_id === category?.category_id;
 
-                      return (
-                        <TouchableOpacity
-                          key={index}
-                          activeOpacity={0.9}
+                    return (
+                      <TouchableOpacity
+                        key={index}
+                        activeOpacity={0.9}
+                        style={
+                          isActive
+                            ? styles.categoryPillActive
+                            : styles.categoryPill
+                        }
+                        onPress={() => {
+                          setSelectedCategory(category);
+                          // Reset search text when switching category
+                          setSearchText(null);
+                          // Load fresh page for new category
+                          resetProducts(category?.products || []);
+                          handleScrollToStickyHeader();
+                          socketService.logAnalytics({
+                            action: 'click',
+                            name: 'Category Filter',
+                            from: 'RestaurantDetails Screen',
+                            params: category?.name || '',
+                          });
+                        }}
+                      >
+                        <Text
                           style={
                             isActive
-                              ? styles.categoryPillActive
-                              : styles.categoryPill
+                              ? styles.categoryPillTextActive
+                              : styles.categoryPillText
                           }
-                          onPress={() => {
-                            setSelectedCategory(category);
-                            // Reset search text when switching category
-                            setSearchText(null);
-                            // Load fresh page for new category
-                            resetProducts(category?.products || []);
-                            handleScrollToStickyHeader();
-                            socketService.logAnalytics({
-                              action: 'click',
-                              name: 'Category Filter',
-                              from: 'RestaurantDetails Screen',
-                              params: category?.name || '',
-                            });
-                          }}
                         >
-                          <Text
-                            style={
-                              isActive
-                                ? styles.categoryPillTextActive
-                                : styles.categoryPillText
-                            }
-                          >
-                            {category?.name}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })
+                          {category?.name}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })
                   : null}
               </ScrollView>
 
@@ -631,8 +654,8 @@ const RestaurantDetails = (props: any) => {
                                 </Text>
                               </View>
                             ) : getCartQtyCount({
-                                product_id: item.product_id,
-                              }) > 0 ? (
+                              product_id: item.product_id,
+                            }) > 0 ? (
                               <View style={styles.qtyPillSmall}>
                                 <TouchableOpacity
                                   style={styles.qtyButtonSmall}
@@ -937,7 +960,7 @@ const RestaurantDetails = (props: any) => {
                   ]}
                 >
                   {!selectedTempVariant ||
-                  selectedTempVariant.status !== 'Available' ? (
+                    selectedTempVariant.status !== 'Available' ? (
                     <View style={styles.sheetAddButton}>
                       <View
                         style={[
@@ -957,9 +980,9 @@ const RestaurantDetails = (props: any) => {
                       </View>
                     </View>
                   ) : getCartQtyCount({
-                      product_id: selectedItem.product_id,
-                      variant_id: selectedTempVariant?.variant_id,
-                    }) > 0 ? (
+                    product_id: selectedItem.product_id,
+                    variant_id: selectedTempVariant?.variant_id,
+                  }) > 0 ? (
                     <View style={styles.sheetQtyPill}>
                       <TouchableOpacity
                         style={styles.sheetQtyButton}
@@ -1133,9 +1156,8 @@ const styles = StyleSheet.create({
   },
   heroDetails: {
     position: 'absolute',
-    left: 32,
-    right: 32,
-    bottom: 32,
+    left: 16,
+    bottom: 16,
   },
   heroKicker: {
     color: colors.primary,

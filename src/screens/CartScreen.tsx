@@ -97,12 +97,14 @@ const CartScreen = () => {
     } else {
       setIsShowLoader(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cartValue, isFocused, isNonEmptyCart]);
+
+  useEffect(() => {
     if (isBadWeather && isFocused) {
       show();
     }
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cartValue, isFocused, isNonEmptyCart]);
+  }, [isFocused]);
 
   const fetchCartDetails = () => {
     setIsShowLoader(true);
