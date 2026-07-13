@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import {
   Animated,
-  FlatList,
   Image,
   Modal,
   PermissionsAndroid,
@@ -13,7 +12,6 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  useWindowDimensions,
   View,
 } from 'react-native';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
@@ -38,7 +36,6 @@ import {
   StarIcon,
   Triangle,
 } from 'lucide-react-native';
-import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, layout, typography } from '../constants/theme';

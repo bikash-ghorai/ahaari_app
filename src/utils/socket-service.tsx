@@ -60,7 +60,7 @@ class SocketService {
   }
 
   emit(event: string, data: any) {
-    if (this.socket) {
+    if (this.socket && !__DEV__) {
       this.socket.emit(event, {
         user_id: store.getState().user.userData?.user_id,
         session_id: this.sessionId,
@@ -70,7 +70,7 @@ class SocketService {
   }
 
   logAnalytics(data: SocketEmitDataInterface) {
-    if (this.socket) {
+    if (this.socket && !__DEV__) {
       this.socket.emit('analytics', {
         user_id: store.getState().user.userData?.user_id,
         session_id: this.sessionId,

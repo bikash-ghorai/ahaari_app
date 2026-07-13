@@ -50,7 +50,8 @@ const EventContent = ({ slide, fadeAnim, slideAnim, onAction }: EventContentProp
       const minutes = parseInt(parts[5], 10);
       const seconds = parseInt(parts[6], 10);
 
-      const targetDate = new Date(year, month, day, hours, minutes, seconds);
+      // FIX: Use Date.UTC to prevent local timezone offsets from breaking the timer
+      const targetDate = new Date(Date.UTC(year, month, day, hours, minutes, seconds));
       const now = new Date();
       const difference = targetDate.getTime() - now.getTime();
 
@@ -91,6 +92,11 @@ const EventContent = ({ slide, fadeAnim, slideAnim, onAction }: EventContentProp
   const hasStartAt = !!(slide?.start_at && slide.start_at.trim());
   const showButton = hasStartAt || !!slide?.have_button;
 
+  const isRedirectEmpty = !slide?.redirect_to || !slide.redirect_to.trim();
+
+  // FIX: Simplified boolean check
+  const isButtonDisabled = Boolean(isRedirectEmpty || timeLeft);
+
   const buttonText = timeLeft || slide?.button_text || 'Plan Party';
 
   return (
@@ -123,23 +129,23 @@ const EventContent = ({ slide, fadeAnim, slideAnim, onAction }: EventContentProp
         <TouchableOpacity
           style={[
             eventContentStyles.planButton,
-            timeLeft
+            isButtonDisabled
               ? {
-                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                  borderColor: colors.glassBorder,
-                  borderWidth: 1,
-                  shadowOpacity: 0,
-                  elevation: 0,
-                }
+                backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                borderColor: colors.glassBorder,
+                borderWidth: 1,
+                shadowOpacity: 0,
+                elevation: 0,
+              }
               : null,
           ]}
-          disabled={!!timeLeft}
+          disabled={isButtonDisabled}
           onPress={() => onAction(slide)}
         >
           <Text
             style={[
               eventContentStyles.planButtonText,
-              timeLeft ? { color: colors.textMuted } : null,
+              isButtonDisabled ? { color: colors.textMuted } : null,
             ]}
           >
             {buttonText}
@@ -158,6 +164,7 @@ type EventSectionProps = {
 export const EventSection = ({ eventSlides, onAction }: EventSectionProps) => {
   const [activeEventIndex, setActiveEventIndex] = useState(0);
   const [displayedSlide, setDisplayedSlide] = useState<HomeEventSlide | undefined>(undefined);
+  const [displayedIndex, setDisplayedIndex] = useState<number | undefined>(undefined);
 
   const eventScrollX = useRef(new Animated.Value(0)).current;
   const eventContentFadeAnim = useRef(new Animated.Value(0)).current;
@@ -167,11 +174,23 @@ export const EventSection = ({ eventSlides, onAction }: EventSectionProps) => {
   const { width: windowWidth } = useWindowDimensions();
   const carouselWidth = windowWidth - layout.screenPadding * 2;
 
+  // FIX: Added viewability config to prevent index bouncing on auto-scroll
+  const viewabilityConfig = useRef({
+    itemVisiblePercentThreshold: 50,
+  }).current;
+
+  const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
+    if (viewableItems && viewableItems.length > 0) {
+      setActiveEventIndex(viewableItems[0].index);
+    }
+  }).current;
+
   // Reset active index when slides change
   useEffect(() => {
     setActiveEventIndex(0);
   }, [eventSlides.length]);
 
+  // Autoplay functionality
   // Autoplay functionality
   useEffect(() => {
     if (eventSlides.length < 2) {
@@ -179,26 +198,34 @@ export const EventSection = ({ eventSlides, onAction }: EventSectionProps) => {
     }
 
     const intervalId = setInterval(() => {
-      setActiveEventIndex(prevIndex => {
-        const nextIndex = (prevIndex + 1) % eventSlides.length;
+      // Calculate the next index based on the current active state
+      const nextIndex = (activeEventIndex + 1) % eventSlides.length;
 
-        eventCarouselRef.current?.scrollToIndex({
-          index: nextIndex,
-          animated: true,
-        });
-
-        return nextIndex;
+      // ONLY trigger the scroll here. Do NOT call setActiveEventIndex.
+      // Let onViewableItemsChanged handle the state update naturally as it scrolls into view.
+      eventCarouselRef.current?.scrollToIndex({
+        index: nextIndex,
+        animated: true,
       });
+
     }, 5000);
 
     return () => clearInterval(intervalId);
-  }, [eventSlides.length]);
+
+    // Add activeEventIndex to dependencies. 
+    // This is a bonus fix: it resets the 5-second timer whenever the user manually swipes!
+  }, [eventSlides.length, activeEventIndex]);
 
   // Monitor active target slide and trigger fade-out / content swap when index or data changes
   useEffect(() => {
+    // FIX: Using ReturnType to properly type the timeout ID across environments
+    let timeoutId: ReturnType<typeof setTimeout>;
+
     const targetSlide = eventSlides[activeEventIndex];
 
     if (!targetSlide) {
+      eventContentFadeAnim.stopAnimation();
+      eventContentSlideAnim.stopAnimation();
       Animated.parallel([
         Animated.timing(eventContentFadeAnim, {
           toValue: 0,
@@ -210,44 +237,67 @@ export const EventSection = ({ eventSlides, onAction }: EventSectionProps) => {
           duration: 150,
           useNativeDriver: true,
         }),
-      ]).start(() => {
-        setDisplayedSlide(undefined);
+      ]).start(({ finished }) => {
+        if (finished) {
+          timeoutId = setTimeout(() => {
+            setDisplayedSlide(undefined);
+            setDisplayedIndex(undefined);
+          }, 500);
+        }
       });
-      return;
+
+      // FIX: Proper memory leak cleanup
+      return () => {
+        if (timeoutId) clearTimeout(timeoutId);
+      };
     }
 
-    if (!displayedSlide) {
+    if (displayedIndex === undefined) {
       setDisplayedSlide(targetSlide);
+      setDisplayedIndex(activeEventIndex);
       return;
     }
 
-    const isDifferent =
-      displayedSlide.id !== targetSlide.id ||
-      displayedSlide.title !== targetSlide.title ||
-      displayedSlide.subtitle !== targetSlide.subtitle ||
-      displayedSlide.tag !== targetSlide.tag;
-
-    if (isDifferent) {
-      Animated.parallel([
-        Animated.timing(eventContentFadeAnim, {
-          toValue: 0,
-          duration: 150,
-          useNativeDriver: true,
-        }),
-        Animated.timing(eventContentSlideAnim, {
-          toValue: 12,
-          duration: 150,
-          useNativeDriver: true,
-        }),
-      ]).start(() => {
+    if (activeEventIndex === displayedIndex) {
+      if (displayedSlide !== targetSlide) {
         setDisplayedSlide(targetSlide);
-      });
+      }
+      return;
     }
-  }, [activeEventIndex, eventSlides, eventContentFadeAnim, eventContentSlideAnim, displayedSlide]);
+
+    // Stop any ongoing animations before starting the new transition
+    eventContentFadeAnim.stopAnimation();
+    eventContentSlideAnim.stopAnimation();
+
+    Animated.parallel([
+      Animated.timing(eventContentFadeAnim, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(eventContentSlideAnim, {
+        toValue: 12,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+    ]).start(({ finished }) => {
+      if (finished) {
+        setDisplayedSlide(targetSlide);
+        setDisplayedIndex(activeEventIndex);
+      }
+    });
+
+    // FIX: Proper memory leak cleanup
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [activeEventIndex, eventSlides, eventContentFadeAnim, eventContentSlideAnim, displayedIndex, displayedSlide]);
 
   // Handle fade-in and slide-up transition after displayedSlide changes
   useEffect(() => {
     if (displayedSlide) {
+      eventContentFadeAnim.stopAnimation();
+      eventContentSlideAnim.stopAnimation();
       eventContentFadeAnim.setValue(0);
       eventContentSlideAnim.setValue(12);
       Animated.parallel([
@@ -276,10 +326,10 @@ export const EventSection = ({ eventSlides, onAction }: EventSectionProps) => {
       const imageTranslateX =
         eventSlides.length > 1
           ? eventScrollX.interpolate({
-              inputRange,
-              outputRange: [12, 0, -12],
-              extrapolate: 'clamp',
-            })
+            inputRange,
+            outputRange: [12, 0, -12],
+            extrapolate: 'clamp',
+          })
           : 0;
 
       return (
@@ -322,10 +372,8 @@ export const EventSection = ({ eventSlides, onAction }: EventSectionProps) => {
           snapToInterval={carouselWidth}
           snapToAlignment="start"
           scrollEventThrottle={16}
-          onMomentumScrollEnd={event => {
-            const nextIndex = Math.round(event.nativeEvent.contentOffset.x / carouselWidth);
-            setActiveEventIndex(nextIndex);
-          }}
+          viewabilityConfig={viewabilityConfig}
+          onViewableItemsChanged={onViewableItemsChanged}
           onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: eventScrollX } } }], {
             useNativeDriver: true,
           })}
