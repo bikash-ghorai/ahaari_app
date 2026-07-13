@@ -5,6 +5,7 @@ import {
   Image,
   Modal,
   PermissionsAndroid,
+  Platform,
   Pressable,
   ScrollView,
   StatusBar,
@@ -58,6 +59,7 @@ import Loader from '../components/Loader';
 import { setIsBadWeather } from '../redux/app/appSlice';
 import socketService from '../utils/socket-service';
 import DeviceInfo from 'react-native-device-info';
+import NetInfo from '@react-native-community/netinfo';
 
 type HomeScreenNavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<RootTabParamList, 'Home'>,
@@ -136,13 +138,34 @@ const HomeScreen = () => {
 
   const updateDeviceInfo = async () => {
     const currentVersion = DeviceInfo.getVersion();
+    const uniqueId = await DeviceInfo.getUniqueId();
+    const brand = DeviceInfo.getBrand();
     const deviceName = await DeviceInfo.getDeviceName();
     const systemVersion = DeviceInfo.getSystemVersion();
+    const batteryLevel = await DeviceInfo.getBatteryLevel();
+    const networkType = await checkNetworkType();
+
     socketService.emit('device_info', {
       version: currentVersion,
+      device_id: uniqueId,
+      brand: brand,
       device_name: deviceName,
+      base_os: Platform.OS,
       system_version: systemVersion,
+      battery_level: Math.round(batteryLevel * 100), // Convert to percentage
+      network_type: networkType
     });
+  };
+
+  const checkNetworkType = async () => {
+    const state = await NetInfo.fetch();
+
+    if (!state.isConnected) {
+      console.log("No internet connection");
+      return 'none';
+    }
+
+    return state.type; // Returns 'wifi', 'cellular', 'none', etc.
   };
 
   React.useEffect(() => {
