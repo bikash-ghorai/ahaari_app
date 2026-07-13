@@ -27,7 +27,6 @@ import {
   ArrowRight,
   BadgePercent,
   Bell,
-  Calendar,
   ChevronDown,
   Circle,
   LocateFixed,
@@ -52,12 +51,13 @@ import { getAddressList, updateLocation } from '../redux/user/userAction';
 import { Constant } from '../constants/Constant';
 import { ImagePath } from '../constants/ImagePath';
 import { homePageAPI } from '../redux/app/appAction';
-import { IHomePageData } from '../types';
+import { HomeEventSlide, IHomePageData } from '../types';
 import { useCart } from '../hooks';
 import { showToaster } from '../utils/toaster';
 import { fetchUserCurrentLocation } from '../utils/helper';
 import { setUserCurrentCoords } from '../redux/user/userSlice';
 import Loader from '../components/Loader';
+import EventSection from '../components/EventSection';
 import { setIsBadWeather } from '../redux/app/appSlice';
 import socketService from '../utils/socket-service';
 import DeviceInfo from 'react-native-device-info';
@@ -67,69 +67,6 @@ type HomeScreenNavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<RootTabParamList, 'Home'>,
   NativeStackNavigationProp<RootStackParamList>
 >;
-
-type HomeEventSlide = {
-  id?: string | number;
-  image?: string;
-  tag?: string;
-  title?: string;
-  subtitle?: string;
-  have_button?: boolean;
-  button_text?: string;
-  redirect_to?: string;
-  redirect_id?: string | number;
-  item?: {
-    product_id?: string;
-    variant_id?: string;
-    shop_id?: string;
-  };
-  [key: string]: any;
-};
-
-
-// Separate component so React never unmounts it during slide transitions.
-// The stable identity means the Animated.Value opacity runs without flicker.
-type EventContentProps = {
-  slide: HomeEventSlide | undefined;
-  fadeAnim: Animated.Value;
-  slideAnim: Animated.Value;
-  onAction: (slide: HomeEventSlide) => void;
-};
-
-const EventContent = ({ slide, fadeAnim, slideAnim, onAction }: EventContentProps) => (
-  <Animated.View
-    style={[
-      eventContentStyles.heroContent,
-      {
-        opacity: fadeAnim,
-        transform: [{ translateY: slideAnim }],
-      },
-    ]}
-  >
-    {slide?.tag ? (
-      <View style={eventContentStyles.eventBadge}>
-        <Calendar size={12} color="#FFB000" />
-        <Text style={eventContentStyles.eventBadgeText}>{slide.tag}</Text>
-      </View>
-    ) : null}
-    {slide?.title ? (
-      <Text style={eventContentStyles.heroTitle} numberOfLines={1}>{slide.title}</Text>
-    ) : null}
-    {slide?.subtitle ? (
-      <Text style={eventContentStyles.heroSubtitle} numberOfLines={2}>{slide.subtitle}</Text>
-    ) : null}
-    {slide?.have_button ? (
-      <TouchableOpacity
-        style={eventContentStyles.planButton}
-        onPress={() => onAction(slide)}
-      >
-        <Text style={eventContentStyles.planButtonText}>
-          {slide.button_text || 'Plan Party'}
-        </Text>
-      </TouchableOpacity>
-    ) : null}
-  </Animated.View>
-);
 
 const HomeScreen = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
@@ -144,16 +81,8 @@ const HomeScreen = () => {
     useState<boolean>(true);
 
   const [activeHeroIndex, setActiveHeroIndex] = React.useState(0);
-  const [activeEventIndex, setActiveEventIndex] = React.useState(0);
-  // Tracks which slide's content is actually rendered (swaps only when faded out)
-  const [displayedSlide, setDisplayedSlide] = React.useState<HomeEventSlide | undefined>(undefined);
   const heroFadeAnim = React.useRef(new Animated.Value(0)).current;
   const heroSlideAnim = React.useRef(new Animated.Value(24)).current;
-  const eventScrollX = React.useRef(new Animated.Value(0)).current;
-  const eventContentFadeAnim = React.useRef(new Animated.Value(0)).current;
-  const eventContentSlideAnim = React.useRef(new Animated.Value(12)).current;
-  const eventCarouselRef = React.useRef<FlatList<HomeEventSlide>>(null);
-  const { width: windowWidth } = useWindowDimensions();
 
   const [selectedAddressId, setSelectedAddressId] = React.useState('');
   const [isAddressSheetOpen, setIsAddressSheetOpen] = React.useState(false);
@@ -161,13 +90,8 @@ const HomeScreen = () => {
   const [currentPlace, setCurrentPlace] = React.useState<string | null>(null);
 
   const heroSlideCount = homePageData?.slides?.length || 0;
-  const heroCarouselWidth = windowWidth - layout.screenPadding * 2;
 
-  const eventSlides = React.useMemo(() => homePageData?.event?.items || [], [homePageData]);
-
-  const hasEventHero =
-    eventSlides.length > 0 &&
-    (Array.isArray(homePageData?.event) || homePageData?.event?.status !== false);
+  const eventSlides = React.useMemo(() => homePageData?.events || [], [homePageData]);
 
   const currentLocationLabel = React.useMemo(() => {
     if (currentPlace) {
@@ -259,106 +183,6 @@ const HomeScreen = () => {
 
     return () => clearInterval(intervalId);
   }, [heroSlideCount]);
-
-  React.useEffect(() => {
-    setActiveEventIndex(0);
-  }, [eventSlides.length]);
-
-  React.useEffect(() => {
-    if (eventSlides.length < 2) {
-      return;
-    }
-
-    const intervalId = setInterval(() => {
-      setActiveEventIndex(prevIndex => {
-        const nextIndex = (prevIndex + 1) % eventSlides.length;
-
-        eventCarouselRef.current?.scrollToIndex({
-          index: nextIndex,
-          animated: true,
-        });
-
-        return nextIndex;
-      });
-    }, 5000);
-
-    return () => clearInterval(intervalId);
-  }, [eventSlides.length]);
-
-  // 1. Monitor active target slide and trigger fade-out / content swap when index or data changes
-  React.useEffect(() => {
-    const targetSlide = eventSlides[activeEventIndex];
-
-    if (!targetSlide) {
-      // Fade out and clear displayed slide if target slide doesn't exist
-      Animated.parallel([
-        Animated.timing(eventContentFadeAnim, {
-          toValue: 0,
-          duration: 150,
-          useNativeDriver: true,
-        }),
-        Animated.timing(eventContentSlideAnim, {
-          toValue: 12,
-          duration: 150,
-          useNativeDriver: true,
-        }),
-      ]).start(() => {
-        setDisplayedSlide(undefined);
-      });
-      return;
-    }
-
-    // Initial load: set content immediately (fade-in is handled by the second effect)
-    if (!displayedSlide) {
-      setDisplayedSlide(targetSlide);
-      return;
-    }
-
-    // Check if the slide content is different
-    const isDifferent =
-      displayedSlide.id !== targetSlide.id ||
-      displayedSlide.title !== targetSlide.title ||
-      displayedSlide.subtitle !== targetSlide.subtitle ||
-      displayedSlide.tag !== targetSlide.tag;
-
-    if (isDifferent) {
-      // Fade out first, then swap slide content
-      Animated.parallel([
-        Animated.timing(eventContentFadeAnim, {
-          toValue: 0,
-          duration: 150,
-          useNativeDriver: true,
-        }),
-        Animated.timing(eventContentSlideAnim, {
-          toValue: 12,
-          duration: 150,
-          useNativeDriver: true,
-        }),
-      ]).start(() => {
-        setDisplayedSlide(targetSlide);
-      });
-    }
-  }, [activeEventIndex, eventSlides, eventContentFadeAnim, eventContentSlideAnim, displayedSlide]);
-
-  // 2. Handle fade-in and slide-up transition only after the new slide content has been rendered in React state
-  React.useEffect(() => {
-    if (displayedSlide) {
-      eventContentFadeAnim.setValue(0);
-      eventContentSlideAnim.setValue(12);
-      Animated.parallel([
-        Animated.timing(eventContentFadeAnim, {
-          toValue: 1,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-        Animated.timing(eventContentSlideAnim, {
-          toValue: 0,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }
-  }, [displayedSlide, eventContentFadeAnim, eventContentSlideAnim]);
 
   React.useEffect(() => {
     heroFadeAnim.setValue(0);
@@ -483,52 +307,7 @@ const HomeScreen = () => {
     [addProduct, navigation],
   );
 
-  // Renders only the image for each FlatList slide.
-  // Content is rendered separately below and fades in/out independently.
-  const renderEventSlide = React.useCallback(
-    (eventItem: HomeEventSlide, index: number) => {
-      const inputRange = [
-        heroCarouselWidth * (index - 1),
-        heroCarouselWidth * index,
-        heroCarouselWidth * (index + 1),
-      ];
 
-      // Slight parallax on the image as it slides
-      const imageTranslateX = eventSlides.length > 1
-        ? eventScrollX.interpolate({
-          inputRange,
-          outputRange: [12, 0, -12],
-          extrapolate: 'clamp',
-        })
-        : 0;
-
-      return (
-        <View
-          key={eventItem?.id ?? index}
-          style={[styles.heroSlide, { width: heroCarouselWidth }]}
-        >
-          {eventItem?.image ? (
-            <Animated.Image
-              source={{ uri: Constant.ImageURL + eventItem?.image }}
-              style={[
-                styles.heroImage,
-                { transform: [{ translateX: imageTranslateX }] },
-              ]}
-            />
-          ) : null}
-          {/* Subtle gradient at image bottom for aesthetics */}
-          <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.35)']}
-            start={{ x: 0.5, y: 0.4 }}
-            end={{ x: 0.5, y: 1 }}
-            style={styles.heroOverlay}
-            pointerEvents="none"
-          />
-        </View>
-      );
-    },
-    [eventScrollX, eventSlides.length, heroCarouselWidth],
-  );
 
 
   return (
@@ -613,69 +392,8 @@ const HomeScreen = () => {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {hasEventHero ? (
-            <>
-              <View style={styles.heroCard}>
-                {eventSlides.length > 1 ? (
-                  <Animated.FlatList
-                    ref={eventCarouselRef}
-                    data={eventSlides}
-                    keyExtractor={(item, index) => String(item?.id ?? index)}
-                    horizontal
-                    pagingEnabled
-                    showsHorizontalScrollIndicator={false}
-                    bounces={false}
-                    decelerationRate="fast"
-                    snapToInterval={heroCarouselWidth}
-                    snapToAlignment="start"
-                    scrollEventThrottle={16}
-                    onMomentumScrollEnd={event => {
-                      const nextIndex = Math.round(
-                        event.nativeEvent.contentOffset.x / heroCarouselWidth,
-                      );
-
-                      setActiveEventIndex(nextIndex);
-                    }}
-                    onScroll={Animated.event(
-                      [{ nativeEvent: { contentOffset: { x: eventScrollX } } }],
-                      { useNativeDriver: true },
-                    )}
-                    getItemLayout={(_, index) => ({
-                      length: heroCarouselWidth,
-                      offset: heroCarouselWidth * index,
-                      index,
-                    })}
-                    renderItem={({ item, index }) => renderEventSlide(item, index)}
-                  />
-                ) : eventSlides[0] ? (
-                  renderEventSlide(eventSlides[0], 0)
-                ) : null}
-
-                {/* Dots — between image and content */}
-                {eventSlides.length > 1 ? (
-                  <View style={styles.heroDots} pointerEvents="none">
-                    {eventSlides.map((slide, index) => (
-                      <View
-                        key={slide?.id ?? index}
-                        style={[
-                          styles.heroDot,
-                          index === activeEventIndex ? styles.heroDotActive : null,
-                        ]}
-                      />
-                    ))}
-                  </View>
-                ) : null}
-
-                {/* EventContent is a stable component — never unmounts between slides.
-                  Opacity animates smoothly with no flicker. */}
-                <EventContent
-                  slide={displayedSlide}
-                  fadeAnim={eventContentFadeAnim}
-                  slideAnim={eventContentSlideAnim}
-                  onAction={handleEventAction}
-                />
-              </View>
-            </>
+          {eventSlides.length > 0 ? (
+            <EventSection eventSlides={eventSlides} onAction={handleEventAction} />
           ) : (
             <View style={styles.heroCard}>
               <View style={styles.heroImageContainer}>
@@ -1325,58 +1043,7 @@ const HomeScreen = () => {
 
 export default HomeScreen;
 
-// Styles used by the EventContent component (declared above HomeScreen).
-// Mirrors the relevant entries from the main `styles` object below.
-const eventContentStyles = StyleSheet.create({
-  heroContent: {
-    padding: 24,
-    gap: 16,
-  },
-  eventBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(255, 176, 0, 0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 99,
-    alignSelf: 'flex-start',
-  },
-  eventBadgeText: {
-    color: colors.primary,
-    fontSize: typography.sm,
-    fontWeight: 'bold',
-  },
-  heroTitle: {
-    color: colors.textPrimary,
-    fontSize: typography.xxl,
-    fontWeight: 'bold',
-    lineHeight: 32,
-  },
-  heroSubtitle: {
-    color: colors.textSecondary,
-    fontSize: typography.body,
-    lineHeight: 20,
-  },
-  planButton: {
-    backgroundColor: colors.primary,
-    paddingVertical: 12,
-    borderRadius: 24,
-    paddingHorizontal: layout.screenPadding,
-    alignItems: 'center',
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.35,
-    shadowRadius: 20,
-    elevation: 12,
-    width: '100%',
-  },
-  planButtonText: {
-    color: colors.black,
-    fontSize: typography.md,
-    fontWeight: 'bold',
-  },
-});
+
 
 const styles = StyleSheet.create({
   container: {
@@ -1476,10 +1143,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  heroSlide: {
-    aspectRatio: 16 / 10,
-    overflow: 'hidden',
-  },
   heroImage: {
     width: '100%',
     height: '100%',
@@ -1504,62 +1167,6 @@ const styles = StyleSheet.create({
     width: 20,
     backgroundColor: colors.primary,
     borderColor: 'rgba(255, 176, 0, 0.5)',
-  },
-  heroOverlay: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-  },
-  // Content in normal flow below image — fades independently of image scroll
-  heroContent: {
-    padding: 24,
-    gap: 16,
-  },
-  eventBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(255, 176, 0, 0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 99,
-    alignSelf: 'flex-start',
-  },
-  eventBadgeText: {
-    color: colors.primary,
-    fontSize: typography.sm,
-    fontWeight: 'bold',
-  },
-  heroTitle: {
-    color: colors.textPrimary,
-    fontSize: typography.xxl,
-    fontWeight: 'bold',
-    lineHeight: 32,
-  },
-  heroSubtitle: {
-    color: colors.textSecondary,
-    fontSize: typography.body,
-    lineHeight: 20,
-  },
-  planButton: {
-    backgroundColor: colors.primary,
-    paddingVertical: 12,
-    borderRadius: 24,
-    paddingHorizontal: layout.screenPadding,
-    alignItems: 'center',
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.35,
-    shadowRadius: 20,
-    elevation: 12,
-    width: '100%',
-  },
-  planButtonText: {
-    color: colors.black,
-    fontSize: typography.md,
-    fontWeight: 'bold',
   },
   sectionHeader: {
     flexDirection: 'row',

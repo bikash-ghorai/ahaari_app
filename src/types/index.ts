@@ -36,6 +36,25 @@ export type IFirebaseLoginReq = {
   referrer?: string | null;
 };
 
+export type HomeEventSlide = {
+  id?: string | number;
+  image?: string;
+  tag?: string;
+  title?: string;
+  subtitle?: string;
+  have_button?: boolean;
+  button_text?: string;
+  redirect_to?: string;
+  redirect_id?: string | number;
+  item?: {
+    product_id?: string;
+    variant_id?: string;
+    shop_id?: string;
+  };
+  start_at: string | null;
+  [key: string]: any;
+};
+
 export type IHomePageData = {
   slides: Array<{
     id: string;
@@ -73,16 +92,7 @@ export type IHomePageData = {
     offer: string | null;
     rating: number | string;
   }>;
-  event: null | {
-    status?: boolean;
-    items: Array<{
-      id: string;
-      image: string;
-      title?: string;
-      description?: string;
-      [key: string]: any;
-    }>;
-  };
+  events: Array<HomeEventSlide>;
   topRated: null | any;
   bad_weather: boolean;
 };
