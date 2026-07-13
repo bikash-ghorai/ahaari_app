@@ -73,7 +73,16 @@ export type IHomePageData = {
     offer: string | null;
     rating: number | string;
   }>;
-  event: null | any;
+  event: null | {
+    status?: boolean;
+    items: Array<{
+      id: string;
+      image: string;
+      title?: string;
+      description?: string;
+      [key: string]: any;
+    }>;
+  };
   topRated: null | any;
   bad_weather: boolean;
 };
