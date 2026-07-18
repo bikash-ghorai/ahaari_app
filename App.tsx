@@ -264,7 +264,7 @@ function App() {
                   theme={navigationTheme}
                   onReady={updateCurrentRoute}
                   onStateChange={updateCurrentRoute}
-                  // linking={linking}
+                  linking={linking}
                 >
                   <Stack.Navigator
                     screenOptions={{
