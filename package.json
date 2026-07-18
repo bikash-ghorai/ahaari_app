@@ -37,6 +37,7 @@
     "react-native-bootsplash": "^7.3.1",
     "react-native-device-info": "^15.0.2",
     "react-native-fast-image": "^8.6.3",
+    "react-native-fbsdk-next": "^13.4.3",
     "react-native-geolocation-service": "^5.3.1",
     "react-native-gesture-handler": "^2.31.1",
     "react-native-google-places-autocomplete": "^2.1.9",

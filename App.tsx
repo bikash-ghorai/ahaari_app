@@ -49,6 +49,7 @@ import NetInfo from '@react-native-community/netinfo';
 import { getMessaging } from '@react-native-firebase/messaging';
 import socketService from './src/utils/socket-service';
 import { setReferrer } from './src/utils/storage';
+import { Settings } from 'react-native-fbsdk-next';
 
 const { InstallReferrerModule } = NativeModules;
 const Tab = createBottomTabNavigator<RootTabParamList>();
@@ -58,6 +59,30 @@ const navigationTheme = {
   colors: {
     ...DefaultTheme.colors,
     background: 'transparent',
+  },
+};
+
+const linking = {
+  prefixes: [
+    'ahaari://',
+    'https://ahri.my',
+  ],
+
+  config: {
+    screens: {
+      Tabs: {
+        screens: {
+          Home: 'home',
+        },
+      },
+
+      RestaurantDetails: {
+        path: 'shop/:shopId',
+        parse: {
+          shopId: String,
+        },
+      },
+    },
   },
 };
 
@@ -127,19 +152,19 @@ function App() {
 
   const checkDeferredDeepLink = async () => {
     const referrer = await InstallReferrerModule.getReferrerString();
-      if (Platform.OS === 'android') {
-        if (referrer && referrer !== '') {
-          // console.log('Android App Installed from matching server link. Destination:', referrer);
-          // store in local storage or state management for later use
-          await setReferrer(referrer);
-        }
+    if (Platform.OS === 'android') {
+      if (referrer && referrer !== '') {
+        // console.log('Android App Installed from matching server link. Destination:', referrer);
+        // store in local storage or state management for later use
+        await setReferrer(referrer);
       }
-    };
+    }
+  };
 
   useEffect(() => {
     getMessaging()
       .registerDeviceForRemoteMessages()
-      .then(r => {});
+      .then(r => { });
     getMessaging()
       .getToken()
       .then(token => {
@@ -209,6 +234,15 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    // Required for iOS (Android auto-initializes based on the AndroidManifest)
+    Settings.initializeSDK();
+
+    // Optional: Enable automatic app event logging
+    Settings.setAutoLogAppEventsEnabled(true);
+    Settings.setAdvertiserTrackingEnabled(true);
+  }, []);
+
   return (
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
@@ -220,7 +254,7 @@ function App() {
             />
             <View style={styles.container}>
               {currentRouteName !== 'Login' &&
-              currentRouteName !== 'OtpAuth' ? (
+                currentRouteName !== 'OtpAuth' ? (
                 <AppBackground />
               ) : null}
 
@@ -230,6 +264,7 @@ function App() {
                   theme={navigationTheme}
                   onReady={updateCurrentRoute}
                   onStateChange={updateCurrentRoute}
+                  // linking={linking}
                 >
                   <Stack.Navigator
                     screenOptions={{
