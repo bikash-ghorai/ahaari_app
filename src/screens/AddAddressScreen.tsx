@@ -166,10 +166,9 @@ const AddAddressScreen = () => {
   const googlePlacesRef = useRef<null | any>(null);
   const { userData } = useSelector((state: any) => state.user);
   const safeAreaInstance = useSafeAreaInsets();
-
-  const isUserNameAvailable =
-    userData && userData?.first_name && userData?.last_name;
-
+  
+  const isUserNameAvailable = userData && userData?.first_name && userData?.last_name;
+  
   // Location state
   const [location, setLocation] = useState({
     latitude: 22.3912558,
@@ -177,8 +176,9 @@ const AddAddressScreen = () => {
     latitudeDelta: 0.015,
     longitudeDelta: 0.015,
   });
-
+  
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+  const [locationFetched, setLocationFetched] = useState(false);
 
   // Form state
   const [type, setType] = useState<IAddressAddReq['type']>(
@@ -239,6 +239,7 @@ const AddAddressScreen = () => {
         }
         reverseGeocodeLocation(latitude, longitude);
         setIsLoadingLocation(false);
+        setLocationFetched(true);
       },
       error => {
         console.log('Geolocation error:', error);
@@ -279,6 +280,7 @@ const AddAddressScreen = () => {
   const handleMapRegionChange = (newLocation: any) => {
     setLocation(newLocation);
     reverseGeocodeLocation(newLocation.latitude, newLocation.longitude);
+    setLocationFetched(true);
   };
 
   const handlePlaceSelected = (data: any, details: any = null) => {
@@ -293,6 +295,7 @@ const AddAddressScreen = () => {
 
       setLocation(newLocation);
       setAddress(data.description);
+      setLocationFetched(true);
 
       if (mapRef?.current) {
         mapRef.current.animateToRegion(newLocation, 1000);
@@ -551,7 +554,8 @@ const AddAddressScreen = () => {
             >
               <TouchableOpacity
                 activeOpacity={0.95}
-                style={styles.primaryButton}
+                style={[ styles.primaryButton, { opacity: locationFetched ? 1 : 0.5 }]}
+                disabled={!locationFetched}
                 onPress={handleSaveAddress}
               >
                 <LinearGradient

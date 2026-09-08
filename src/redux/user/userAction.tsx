@@ -12,6 +12,7 @@ import {
   IFirebaseLoginReq,
   ILoginReq,
   ISendOtpReq,
+  IupdateFCMReq,
   IUpdateLocationReq,
   IVerifyUserReq,
 } from '../../types';
@@ -275,6 +276,25 @@ export const topUpWallet = createAsyncThunk(
       await setUserDetailsToAsyncStore(data);
       return { data, message };
     } catch (error: any) {
+      return thunkAPI.rejectWithValue(error);
+    }
+  },
+);
+
+
+//For updating FCM token
+export const updateFCM = createAsyncThunk(
+  'user/updateFCM',
+  async (params: IupdateFCMReq, thunkAPI) => {
+    try {
+      const { data, message }: any = await axios.post(
+        'user/update-fcm-token',
+        params,
+      );
+      // showToaster(message);
+      return { data, message };
+    } catch (error: any) {
+      showToaster(error);
       return thunkAPI.rejectWithValue(error);
     }
   },

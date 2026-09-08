@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import {
   Animated,
   Image,
+  Linking,
   Modal,
   PermissionsAndroid,
   Platform,
@@ -44,7 +45,7 @@ import { useWeatherAlert } from '../contexts/WeatherAlertContext';
 import type { RootStackParamList, RootTabParamList } from '../types/navigation';
 import { navigate, reset } from '../utils/navigationRef';
 import { useDispatch, useSelector } from '../redux/store';
-import { getAddressList, updateLocation } from '../redux/user/userAction';
+import { getAddressList, updateFCM, updateLocation } from '../redux/user/userAction';
 import { Constant } from '../constants/Constant';
 import { ImagePath } from '../constants/ImagePath';
 import { homePageAPI } from '../redux/app/appAction';
@@ -59,6 +60,7 @@ import { setIsBadWeather } from '../redux/app/appSlice';
 import socketService from '../utils/socket-service';
 import DeviceInfo from 'react-native-device-info';
 import NetInfo from '@react-native-community/netinfo';
+import messaging from '@react-native-firebase/messaging';
 
 type HomeScreenNavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<RootTabParamList, 'Home'>,
@@ -85,6 +87,7 @@ const HomeScreen = () => {
   const [isAddressSheetOpen, setIsAddressSheetOpen] = React.useState(false);
   const [isLocating, setIsLocating] = React.useState(false);
   const [currentPlace, setCurrentPlace] = React.useState<string | null>(null);
+  const [isNotifiPermissionGranted, setIsNotifiPermissionGranted] = React.useState(false);
 
   const heroSlideCount = homePageData?.slides?.length || 0;
 
@@ -103,6 +106,7 @@ const HomeScreen = () => {
     : currentLocationLabel;
 
   React.useEffect(() => {
+    _handleUpdateFCM();
     handleFetchHomePageData();
     updateDeviceInfo();
     setTimeout(() => {
@@ -112,10 +116,14 @@ const HomeScreen = () => {
   }, []);
 
   const requestNotificationPermission = async () => {
+    console.log('Requesting notification permission...');
     try {
       await PermissionsAndroid.request(
         PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
       );
+      const isPermissionGranted = await messaging().hasPermission();
+      console.log('Notification permission granted:', isPermissionGranted);
+      setIsNotifiPermissionGranted(isPermissionGranted === messaging.AuthorizationStatus.AUTHORIZED);
     } catch (err) {
       console.log('requestNotificationPermission error: ', err);
     }
@@ -135,6 +143,11 @@ const HomeScreen = () => {
       .finally(() => {
         setIsHomePageDataFetching(false);
       });
+  };
+
+  const _handleUpdateFCM = async () => {
+    const token = await messaging().getToken();
+    dispatch(updateFCM({ token: token }));
   };
 
   const updateDeviceInfo = async () => {
@@ -222,7 +235,7 @@ const HomeScreen = () => {
         }
 
         const data = await response.json();
-        console.log('Reverse geocoding result:', data);
+        // console.log('Reverse geocoding result:', data);
         const bestResult = Array.isArray(data?.results)
           ? data.results[0]
           : null;
@@ -294,18 +307,17 @@ const HomeScreen = () => {
         });
       } else if (eventItem?.redirect_to == 'profile') {
         navigation.navigate('PersonalInfo');
-      } else {
+      } else if (eventItem?.redirect_to == 'restaurants') {
         reset('Tabs', {
           screen: 'Restaurants',
           params: { category_id: eventItem?.redirect_id || null },
         });
+      } else if (eventItem?.redirect_to  === 'url') {
+        Linking.openURL(eventItem?.redirect_id)
       }
     },
     [addProduct, navigation],
   );
-
-
-
 
   return (
     <SafeAreaView style={styles.container}>
@@ -357,6 +369,8 @@ const HomeScreen = () => {
             onPress={() => {
               if (isBadWeather) {
                 show();
+              } else {
+                requestNotificationPermission();
               }
             }}
             accessibilityLabel="Weather warning"
@@ -366,17 +380,21 @@ const HomeScreen = () => {
             ) : (
               <>
                 <Bell size={20} color="#FFF" />
-                <View
-                  style={{
-                    position: 'absolute',
-                    top: 10,
-                    right: 10,
-                    width: 8,
-                    height: 8,
-                    backgroundColor: colors.primary,
-                    borderRadius: 4,
-                  }}
-                />
+                {isNotifiPermissionGranted ?
+                  null
+                  :
+                  <View
+                    style={{
+                      position: 'absolute',
+                      top: 10,
+                      right: 10,
+                      width: 8,
+                      height: 8,
+                      backgroundColor: colors.primary,
+                      borderRadius: 4,
+                    }}
+                  />
+                }
               </>
             )}
           </TouchableOpacity>
@@ -467,7 +485,7 @@ const HomeScreen = () => {
                         ) : (
                           <Image
                             source={{
-                              uri: `https://delico.definescreen.com/uploads/categories/CAT1770731544.jpg`,
+                              uri: Constant.ImageURL + cat?.image,
                             }}
                             style={styles.categoryIcon}
                           />

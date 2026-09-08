@@ -40,6 +40,7 @@ import { useDispatch, useSelector } from '../redux/store';
 import {
   addCartItem,
   checkoutCart,
+  emptyCartItem,
   removeCoupon,
 } from '../redux/app/appAction';
 import { ICartItemRes, IPaymentMethod } from '../types';
@@ -92,8 +93,12 @@ const CartScreen = () => {
   };
 
   useEffect(() => {
-    if (cartValue && isFocused && isNonEmptyCart) {
-      fetchCartDetails();
+    if (isFocused) {
+      if (isNonEmptyCart) {
+        fetchCartDetails();
+      } else {
+        _handleEmptyCart();
+      }
     } else {
       setIsShowLoader(false);
     }
@@ -106,6 +111,9 @@ const CartScreen = () => {
     }
   }, [isFocused]);
 
+  const _handleEmptyCart = () => {
+    dispatch(emptyCartItem())
+  };
   const fetchCartDetails = () => {
     setIsShowLoader(true);
     setUseWalletBalance(false);
@@ -1022,9 +1030,10 @@ const CartScreen = () => {
                   ) : null}
                 </React.Fragment>
               ) : null}
-              <Text style={styles.checkoutMessage}>
-                {originalCartValue?.message || ''}
-              </Text>
+              {originalCartValue?.message ?
+                <Text style={styles.checkoutMessage}>
+                  {originalCartValue?.message || ''}
+                </Text> : null}
 
               <TouchableOpacity
                 style={[
@@ -1167,7 +1176,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontSize: typography.smPlus,
     lineHeight: 20,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   changeAddressButton: {
     minWidth: 78,

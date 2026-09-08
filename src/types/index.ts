@@ -36,6 +36,10 @@ export type IFirebaseLoginReq = {
   referrer?: string | null;
 };
 
+export type IupdateFCMReq = {
+  token: string;
+};
+
 export type HomeEventSlide = {
   id?: string | number;
   image?: string;
@@ -45,7 +49,7 @@ export type HomeEventSlide = {
   have_button?: boolean;
   button_text?: string;
   redirect_to?: string;
-  redirect_id?: string | number;
+  redirect_id?: any;
   item?: {
     product_id?: string;
     variant_id?: string;

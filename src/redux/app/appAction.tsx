@@ -71,6 +71,20 @@ export const addCartItem = createAsyncThunk(
   },
 );
 
+//For Emptying cart
+export const emptyCartItem = createAsyncThunk(
+  'app/emptyCartItem',
+  async (_, thunkAPI) => {
+    try {
+      const { data, message }: { data: any; message: string } =
+        await axios.get('user/empty-cart');
+      return { data, message };
+    } catch (error: any) {
+      return thunkAPI.rejectWithValue(error);
+    }
+  },
+);
+
 //For getting coupons
 export const getCoupons = createAsyncThunk(
   'app/getCoupons',
