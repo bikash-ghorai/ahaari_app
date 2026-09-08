@@ -119,6 +119,8 @@ export type IRestaurant = {
   time: string;
   have_discount: boolean;
   offer: string | null;
+  fssai_no?: string;
+  fssai_expiry?: string;
 };
 
 export type IRestaurantRes = {

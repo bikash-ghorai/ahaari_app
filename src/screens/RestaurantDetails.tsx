@@ -1,9 +1,10 @@
 /* eslint-disable react-native/no-inline-styles */
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
   Dimensions,
+  Image,
   Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -19,13 +20,17 @@ import {
 import { BlurView } from '@react-native-community/blur';
 import {
   BadgePercent,
+  ChevronRight,
   Circle,
   Clock3,
   Minus,
   Plus,
   Search,
+  ShieldCheck,
+  ShoppingBag,
   Star,
   Triangle,
+  X,
 } from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {
@@ -45,6 +50,7 @@ import PopupMessage from '../components/PopupMessage';
 import Loader from '../components/Loader';
 import FastImage from 'react-native-fast-image';
 import socketService from '../utils/socket-service';
+import { reset } from '../utils/navigationRef';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
@@ -53,7 +59,27 @@ const RestaurantDetails = (props: any) => {
   const shopId = props?.route?.params?.shopId || '';
   const safeAreaInstance = useSafeAreaInsets();
 
-  const { getCartQtyCount, addProduct, removeProduct } = useCart();
+  const { cartValue, getCartQtyCount, addProduct, removeProduct } = useCart();
+  const [isBarDismissed, setIsBarDismissed] = useState(false);
+
+  const totalCartCount = useMemo(() => {
+    if (!cartValue?.products || cartValue.products.length === 0) return 0;
+    return cartValue.products.reduce(
+      (acc: number, item: any) => acc + (item.quantity || 1),
+      0,
+    );
+  }, [cartValue]);
+
+  const prevCountRef = useRef(totalCartCount);
+  useEffect(() => {
+    if (totalCartCount > prevCountRef.current) {
+      setIsBarDismissed(false);
+    }
+    prevCountRef.current = totalCartCount;
+  }, [totalCartCount]);
+
+  const isCartFloatingVisible = totalCartCount > 0 && !isBarDismissed;
+
   const [duplicateRestaurenProduct, setDuplicateRestaurenProduct] =
     useState<any>(null);
 
@@ -375,7 +401,6 @@ const RestaurantDetails = (props: any) => {
                   </View>
                 ) : null}
               </View>
-              
             </View>
           </View>
 
@@ -800,6 +825,40 @@ const RestaurantDetails = (props: any) => {
                 />
               )}
             </View>
+
+            {/* FSSAI License & Expiry Info Card */}
+            {shopDetails?.shop?.fssai_no && (
+              <View style={styles.fssaiContainer}>
+                <View style={styles.fssaiCard}>
+                  <View style={styles.fssaiTopRow}>
+                    <View style={styles.fssaiLogoBadge}>
+                      <Image
+                        source={ImagePath.fssaiLogo}
+                        style={styles.fssaiLogoImage}
+                        resizeMode="contain"
+                      />
+                    </View>
+                    <View style={styles.fssaiDetailsCol}>
+                      <View style={styles.fssaiRow}>
+                        <Text style={styles.fssaiLabel}>License No.</Text>
+                        <Text style={styles.fssaiValue}>
+                          {shopDetails?.shop?.fssai_no}
+                        </Text>
+                      </View>
+                      <View style={styles.fssaiRow}>
+                        <Text style={styles.fssaiLabel}>Expiry Date</Text>
+                        <View style={styles.fssaiExpiryWrap}>
+                          <ShieldCheck size={13} color="#10B981" strokeWidth={2.4} />
+                          <Text style={styles.fssaiExpiryText}>
+                            {shopDetails?.shop?.fssai_expiry}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            )}
           </View>
         </ScrollView>
       ) : (
@@ -1092,6 +1151,89 @@ const RestaurantDetails = (props: any) => {
           </View>
         </Animated.View>
       </Modal>
+      {isCartFloatingVisible ? (
+        <View
+          style={[
+            styles.floatingCartContainer,
+            {
+              bottom:
+                safeAreaInstance.bottom > 0
+                  ? safeAreaInstance.bottom + 8
+                  : 16,
+            },
+          ]}
+        >
+          <BlurView
+            style={styles.bottomNavBlur}
+            blurType="dark"
+            blurAmount={15}
+            blurRadius={10}
+            downsampleFactor={1}
+            overlayColor="transparent"
+            reducedTransparencyFallbackColor="rgba(0, 0, 0, 0)"
+          />
+          <TouchableOpacity
+            style={styles.floatingCartLeftAction}
+            activeOpacity={0.88}
+            onPress={() => {
+              scrollRef.current?.scrollTo({
+                y: heroHeightRef.current || 300,
+                animated: true,
+              });
+            }}
+          >
+            <View style={styles.floatingCartIconWrap}>
+              <ShoppingBag
+                size={20}
+                color={colors.primary}
+                strokeWidth={2.2}
+              />
+            </View>
+            <View style={styles.floatingCartInfo}>
+              <Text style={styles.floatingCartShopName} numberOfLines={1}>
+                {shopDetails?.shop?.name || 'Your Cart'}
+              </Text>
+              <View style={styles.floatingCartSubtextRow}>
+                <Text style={styles.floatingCartSubtext}>View Menu</Text>
+                <ChevronRight
+                  size={12}
+                  color={colors.primary}
+                  strokeWidth={2.6}
+                />
+              </View>
+            </View>
+          </TouchableOpacity>
+
+          <View style={styles.floatingCartRightGroup}>
+            <TouchableOpacity
+              style={styles.floatingCartButton}
+              activeOpacity={0.88}
+              onPress={() => {
+                socketService.logAnalytics({
+                  action: 'page_view',
+                  name: 'Cart Screen',
+                  from: 'RestaurantDetails Screen',
+                });
+                reset('Tabs', { screen: 'Cart' });
+              }}
+            >
+              <Text style={styles.floatingCartButtonTitle}>View Cart</Text>
+              <Text style={styles.floatingCartButtonSubtitle}>
+                {totalCartCount} {totalCartCount === 1 ? 'item' : 'items'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.floatingCartDismissButton}
+              activeOpacity={0.7}
+              onPress={() => setIsBarDismissed(true)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <X size={14} color="#9BA1AD" strokeWidth={2.4} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : null}
     </SafeAreaView>
   );
 };
@@ -1820,6 +1962,154 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
     textTransform: 'uppercase',
   },
+  floatingCartContainer: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    overflow: 'hidden',
+    zIndex: 99,
+  },
+  floatingCartLeftAction: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  floatingCartIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: 'rgba(245, 158, 11, 0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.28)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  floatingCartInfo: {
+    marginLeft: 10,
+    flex: 1,
+  },
+  floatingCartShopName: {
+    color: colors.textPrimary,
+    fontSize: typography.bodyPlus,
+    fontWeight: '700',
+    lineHeight: 18,
+  },
+  floatingCartSubtextRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    marginTop: 2,
+  },
+  floatingCartSubtext: {
+    color: colors.primary,
+    fontSize: typography.captionPlus,
+    fontWeight: '600',
+  },
+  floatingCartRightGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  floatingCartButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 96,
+  },
+  floatingCartButtonTitle: {
+    color: colors.black,
+    fontSize: typography.smPlus,
+    fontWeight: '700',
+    lineHeight: 16,
+  },
+  floatingCartButtonSubtitle: {
+    color: colors.onPrimaryDark,
+    fontSize: 10,
+    fontWeight: '600',
+    lineHeight: 12,
+    marginTop: 1,
+  },
+  floatingCartDismissButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fssaiContainer: {
+    paddingHorizontal: layout.screenPadding,
+    marginTop: 20,
+    marginBottom: 16,
+  },
+  fssaiCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    padding: 16,
+  },
+  fssaiTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  fssaiLogoBadge: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    alignSelf: 'center',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fssaiLogoImage: {
+    width: 60,
+    height: 30,
+  },
+  fssaiDetailsCol: {
+    flex: 1,
+    gap: 4,
+  },
+  fssaiRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  fssaiLabel: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  fssaiValue: {
+    color: colors.textPrimary,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  fssaiExpiryWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  fssaiExpiryText: {
+    color: '#10B981',
+    fontSize: 12,
+    fontWeight: '700',
+  }
 });
 
 export default RestaurantDetails;

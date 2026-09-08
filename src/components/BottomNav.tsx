@@ -14,11 +14,23 @@ import {
 import { colors, layout, typography } from '../constants/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import socketService from '../utils/socket-service';
+import { useCart } from '../hooks';
 
 const BottomNav = ({ state, navigation }: BottomTabBarProps) => {
   const activeRouteName = state.routes[state.index]?.name;
   const ordersTabActive = activeRouteName === 'Orders';
   const safeAreaInstance = useSafeAreaInsets();
+  const { cartValue } = useCart();
+
+  const cartCount = React.useMemo(() => {
+    if (!cartValue?.products || cartValue.products.length === 0) {
+      return 0;
+    }
+    return cartValue.products.reduce(
+      (acc: number, item: any) => acc + (item.quantity || 1),
+      0,
+    );
+  }, [cartValue]);
 
   const navigateToTab = (index: number) => {
     const route = state.routes[index];
@@ -104,6 +116,13 @@ const BottomNav = ({ state, navigation }: BottomTabBarProps) => {
             accessibilityRole="button"
           >
             <ShoppingCart size={28} color="#000" />
+            {cartCount > 0 && (
+              <View style={styles.cartBadge}>
+                <Text style={styles.cartBadgeText}>
+                  {cartCount > 99 ? '99+' : cartCount}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
 
@@ -231,6 +250,26 @@ const styles = StyleSheet.create({
     borderWidth: 4,
     borderColor: colors.background,
     boxShadow: `0px 0px 25px ${colors.primary}80`,
+  },
+  cartBadge: {
+    position: 'absolute',
+    top: -3,
+    right: -3,
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#E53935',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: colors.background,
+  },
+  cartBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800',
+    lineHeight: 12,
   },
 });
 

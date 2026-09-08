@@ -7,4 +7,5 @@ export const ImagePath = {
   noProductPlaceholder: require('../assets/no_product_placeholder.jpg'),
   noProfile: require('../assets/profile.jpg'),
   preparing: require('../assets/preparing.gif'),
+  fssaiLogo: require('../assets/FSSAI_logo.png'),
 };

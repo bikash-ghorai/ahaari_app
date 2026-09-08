@@ -16,8 +16,10 @@ import {
   ArrowRight,
   AlertTriangle,
   CreditCard,
+  Heart,
   MapPin,
   Minus,
+  Pencil,
   Plus,
   ShoppingCart,
   Tag,
@@ -74,6 +76,7 @@ const CartScreen = () => {
 
   const [originalCartValue, setOriginalCartValue] =
     useState<ICartItemRes | null>(null);
+  const [selectedTip, setSelectedTip] = useState<number>(0);
 
   const handleRemovePromo = () => {
     dispatch(removeCoupon())
@@ -158,11 +161,13 @@ const CartScreen = () => {
           originalCartValue?.coupon?.discount
           ? originalCartValue.coupon.discount
           : 0;
-      return base + extraCharges + vipCharge + paymentCharge - discount;
+      return (
+        base + extraCharges + vipCharge + paymentCharge + selectedTip - discount
+      );
     } else {
       return 0;
     }
-  }, [originalCartValue, vipEnabled, paymentMethod]);
+  }, [originalCartValue, vipEnabled, paymentMethod, selectedTip]);
 
   const payableAmount = useMemo(() => {
     if (useWalletBalance) {
@@ -191,7 +196,7 @@ const CartScreen = () => {
       checkoutCart({
         is_vip: vipEnabled,
         payment_method: paymentMethod,
-        tips: 0,
+        tips: selectedTip,
         use_wallet_balance: useWalletBalance,
       }),
     )
@@ -393,16 +398,25 @@ const CartScreen = () => {
           >
             <View style={styles.heroCard}>
               <View style={styles.premiumChip}>
-                <ShoppingCart size={14} color={colors.primary} />
+                <ShoppingCart size={13} color={colors.primary} strokeWidth={2.4} />
                 <Text style={styles.premiumChipText}>PREMIUM SELECTION</Text>
               </View>
 
               <Text style={styles.heroTitle}>
                 {originalCartValue?.shop?.name || ''}
               </Text>
-              <Text style={styles.heroSubtitle} numberOfLines={2}>
-                {originalCartValue?.shop?.address || ''}
-              </Text>
+
+              <View style={styles.heroLocationRow}>
+                <MapPin
+                  size={14}
+                  color={colors.primary}
+                  strokeWidth={2.2}
+                  style={styles.heroLocationIcon}
+                />
+                <Text style={styles.heroSubtitle}>
+                  {originalCartValue?.shop?.address || ''}
+                </Text>
+              </View>
             </View>
 
             <View style={styles.addressCard}>
@@ -413,20 +427,25 @@ const CartScreen = () => {
 
                 {originalCartValue?.address ? (
                   <View style={styles.addressTextBlock}>
-                    <Text style={styles.addressLabel}>Delivery Address</Text>
                     <Text style={styles.addressTitle}>
+                      {originalCartValue?.address?.type
+                        ? `Deliver to ${originalCartValue.address.type}`
+                        : 'Delivery Address'}
+                    </Text>
+                    <Text style={styles.addressSubtitle}>
                       {originalCartValue?.address?.address +
-                        ', ' +
                         (originalCartValue?.address?.landmark
-                          ? originalCartValue?.address?.landmark + ', '
+                          ? ', ' + originalCartValue.address.landmark
                           : '') +
-                        originalCartValue?.address?.pincode}
+                        (originalCartValue?.address?.pincode
+                          ? ' - ' + originalCartValue.address.pincode
+                          : '')}
                     </Text>
                   </View>
                 ) : (
                   <View style={styles.addressTextBlock}>
-                    <Text style={styles.addressLabel}>Delivery Address</Text>
-                    <Text style={styles.addressTitle}>
+                    <Text style={styles.addressTitle}>Delivery Address</Text>
+                    <Text style={styles.addressSubtitle}>
                       Please select an address
                     </Text>
                   </View>
@@ -435,12 +454,12 @@ const CartScreen = () => {
 
               <TouchableOpacity
                 style={styles.changeAddressButton}
-                activeOpacity={0.88}
+                activeOpacity={0.85}
                 onPress={() =>
                   navigate('AddressesScreen', { routeFor: 'checkout' })
                 }
               >
-                <Text style={styles.changeAddressButtonText}>Change</Text>
+                <Pencil size={15} color={colors.primary} strokeWidth={2.4} />
               </TouchableOpacity>
             </View>
 
@@ -758,6 +777,72 @@ const CartScreen = () => {
           </ScrollView>
         </View> */}
 
+            <View style={styles.tipCard}>
+              <View style={styles.tipHeader}>
+                <View style={styles.tipIconBubble}>
+                  <Heart
+                    size={18}
+                    color={colors.primary}
+                    fill={selectedTip > 0 ? colors.primary : 'transparent'}
+                  />
+                </View>
+                <View style={styles.tipHeaderTextWrap}>
+                  <Text style={styles.tipTitle}>
+                    Tip your delivery partner
+                  </Text>
+                  <Text style={styles.tipSubtitle}>
+                    100% of your tip goes directly to the delivery partner
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.tipOptionsRow}>
+                {[10, 20, 30, 50].map(amount => {
+                  const isSelected = selectedTip === amount;
+                  return (
+                    <TouchableOpacity
+                      key={amount}
+                      style={[
+                        styles.tipPill,
+                        isSelected && styles.tipPillActive,
+                      ]}
+                      activeOpacity={0.8}
+                      onPress={() => {
+                        if (isSelected) {
+                          setSelectedTip(0);
+                        } else {
+                          setSelectedTip(amount);
+                        }
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.tipPillText,
+                          isSelected && styles.tipPillTextActive,
+                        ]}
+                      >
+                        ₹{amount}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {selectedTip > 0 ? (
+                <View style={styles.tipActiveNotice}>
+                  <Text style={styles.tipActiveNoticeText}>
+                    ₹{selectedTip} tip added to support your delivery partner!
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => setSelectedTip(0)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.tipClearText}>Remove</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : null}
+            </View>
+
             <View style={styles.paymentSection}>
               {originalCartValue?.wallet_balance &&
                 originalCartValue?.wallet_balance > 0 ? (
@@ -902,6 +987,17 @@ const CartScreen = () => {
                   <Text style={styles.breakdownLabel}>VIP Priority Fee</Text>
                   <Text style={styles.breakdownValue}>
                     ₹{originalCartValue?.vip_charge.toFixed(2)}
+                  </Text>
+                </View>
+              ) : null}
+
+              {selectedTip > 0 ? (
+                <View style={styles.breakdownRow}>
+                  <Text style={styles.breakdownLabel}>
+                    Delivery Partner Tip
+                  </Text>
+                  <Text style={styles.breakdownValue}>
+                    ₹{selectedTip.toFixed(2)}
                   </Text>
                 </View>
               ) : null}
@@ -1102,37 +1198,51 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
     backgroundColor: 'rgba(255,255,255,0.03)',
-    paddingHorizontal: layout.screenPadding,
-    paddingVertical: 24,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
     overflow: 'hidden',
   },
   premiumChip: {
     alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(245, 158, 11, 0.2)',
+    gap: 6,
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.28)',
     borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    marginBottom: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    marginBottom: 12,
   },
   premiumChipText: {
     color: colors.primary,
-    fontSize: typography.captionPlus,
-    fontWeight: '600',
-    letterSpacing: 0.2,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
   },
   heroTitle: {
     color: colors.textPrimary,
-    fontSize: typography.titlePlus,
+    fontSize: typography.xl,
     fontWeight: '700',
-    marginBottom: 14,
+    lineHeight: 26,
+    marginBottom: 6,
+  },
+  heroLocationRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+  },
+  heroLocationIcon: {
+    marginTop: 3,
   },
   heroSubtitle: {
+    flex: 1,
     color: colors.textSecondary,
-    fontSize: typography.body,
-    lineHeight: 22,
+    fontSize: typography.smPlus,
+    lineHeight: 20,
+    fontWeight: '400',
   },
   addressCard: {
     borderRadius: 24,
@@ -1142,19 +1252,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
-    gap: 10,
+    gap: 12,
   },
   addressLeftBlock: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     flex: 1,
     gap: 12,
   },
   addressIconWrap: {
-    width: 48,
-    height: 48,
+    width: 44,
+    height: 44,
     borderRadius: 12,
     backgroundColor: 'rgba(245, 158, 11, 0.1)',
     alignItems: 'center',
@@ -1163,37 +1273,29 @@ const styles = StyleSheet.create({
   addressTextBlock: {
     flex: 1,
   },
-  addressLabel: {
-    color: colors.textMuted,
-    fontSize: typography.caption,
-    lineHeight: 14,
-    fontWeight: '700',
-    letterSpacing: 1.4,
-    textTransform: 'uppercase',
-    marginBottom: 3,
-  },
   addressTitle: {
     color: colors.textPrimary,
+    fontSize: typography.bodyPlus,
+    lineHeight: 20,
+    fontWeight: '700',
+  },
+  addressSubtitle: {
+    color: colors.textSecondary,
     fontSize: typography.smPlus,
     lineHeight: 20,
-    fontWeight: '600',
+    fontWeight: '400',
+    marginTop: 4,
   },
   changeAddressButton: {
-    minWidth: 78,
-    height: 38,
+    width: 36,
+    height: 36,
     borderRadius: 10,
-    paddingHorizontal: 14,
     backgroundColor: 'rgba(245, 158, 11, 0.12)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: 'rgba(245, 158, 11, 0.3)',
-  },
-  changeAddressButtonText: {
-    color: colors.primary,
-    fontSize: typography.smPlus,
-    lineHeight: 17,
-    fontWeight: '700',
+    alignSelf: 'center',
   },
   promoCard: {
     borderRadius: 24,
@@ -1409,6 +1511,96 @@ const styles = StyleSheet.create({
   },
   toggleThumbActive: {
     alignSelf: 'flex-end',
+  },
+  tipCard: {
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    padding: 16,
+    gap: 14,
+  },
+  tipHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  tipIconBubble: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tipHeaderTextWrap: {
+    flex: 1,
+  },
+  tipTitle: {
+    color: colors.textPrimary,
+    fontSize: typography.bodyPlus,
+    fontWeight: '700',
+    lineHeight: 20,
+  },
+  tipSubtitle: {
+    color: colors.textMuted,
+    fontSize: typography.captionPlus,
+    lineHeight: 16,
+    marginTop: 2,
+  },
+  tipOptionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  tipPill: {
+    flex: 1,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tipPillActive: {
+    backgroundColor: 'rgba(245, 158, 11, 0.16)',
+    borderColor: colors.primary,
+    borderWidth: 1.5,
+  },
+  tipPillText: {
+    color: colors.textPrimary,
+    fontSize: typography.body,
+    fontWeight: '700',
+  },
+  tipPillTextActive: {
+    color: colors.primary,
+  },
+  tipActiveNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(245, 158, 11, 0.08)',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.2)',
+  },
+  tipActiveNoticeText: {
+    color: colors.primary,
+    fontSize: typography.captionPlus,
+    fontWeight: '600',
+    flex: 1,
+  },
+  tipClearText: {
+    color: colors.textMuted,
+    fontSize: typography.captionPlus,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginLeft: 8,
   },
   recommendedSection: {
     gap: 14,
