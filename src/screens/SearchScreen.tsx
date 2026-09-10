@@ -248,13 +248,15 @@ const SearchScreen = () => {
     product_id: string;
     variant_id: string;
     shop_id: string;
+    shop_name?: string;
     quantity?: number;
   }) => {
-    let { product_id, variant_id, shop_id, quantity = 1 } = _props;
+    let { product_id, variant_id, shop_id, quantity = 1, shop_name = "" } = _props;
     addProduct({
       product_id,
       variant_id,
       shop_id,
+      shop_name,
       quantity,
     })
       .then(res => {
@@ -388,55 +390,55 @@ const SearchScreen = () => {
                     <Text style={styles.sectionHeadingRecent}>
                       Recent Searches
                     </Text>
-                  {recentList.length > 0 && (
-                    <TouchableOpacity
-                      activeOpacity={0.8}
-                      onPress={handleClearAll}
-                    >
-                      <Text style={styles.clearAllText}>Clear All</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
+                    {recentList.length > 0 && (
+                      <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={handleClearAll}
+                      >
+                        <Text style={styles.clearAllText}>Clear All</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
 
-                <View style={styles.recentList}>
-                  {recentList.map((item, index) => (
-                    <TouchableOpacity
-                      key={index}
-                      style={styles.recentCard}
-                      activeOpacity={0.9}
-                      onPress={() => handleSelectSearch(item.title)}
-                    >
-                      <GlassLayer
-                        _radius={24}
-                        androidTint="rgba(8, 12, 18, 0.16)"
-                      />
+                  <View style={styles.recentList}>
+                    {recentList.map((item, index) => (
+                      <TouchableOpacity
+                        key={index}
+                        style={styles.recentCard}
+                        activeOpacity={0.9}
+                        onPress={() => handleSelectSearch(item.title)}
+                      >
+                        <GlassLayer
+                          _radius={24}
+                          androidTint="rgba(8, 12, 18, 0.16)"
+                        />
 
-                      <View style={styles.recentCardLeft}>
-                        <View style={styles.recentIconShell}>
-                          <History
-                            size={18}
-                            color="#71717A"
-                            strokeWidth={2.3}
-                          />
+                        <View style={styles.recentCardLeft}>
+                          <View style={styles.recentIconShell}>
+                            <History
+                              size={18}
+                              color="#71717A"
+                              strokeWidth={2.3}
+                            />
+                          </View>
+
+                          <View style={styles.recentCopyBlock}>
+                            <Text style={styles.recentTitle}>{item.title}</Text>
+                            <Text style={styles.recentSubtitle}>
+                              {item.subtitle}
+                            </Text>
+                          </View>
                         </View>
 
-                        <View style={styles.recentCopyBlock}>
-                          <Text style={styles.recentTitle}>{item.title}</Text>
-                          <Text style={styles.recentSubtitle}>
-                            {item.subtitle}
-                          </Text>
-                        </View>
-                      </View>
-
-                      <ArrowUpLeft
-                        size={15}
-                        color="#52525B"
-                        strokeWidth={2.2}
-                      />
-                    </TouchableOpacity>
-                  ))}
+                        <ArrowUpLeft
+                          size={15}
+                          color="#52525B"
+                          strokeWidth={2.2}
+                        />
+                      </TouchableOpacity>
+                    ))}
+                  </View>
                 </View>
-              </View>
               )}
             </>
           ) : !hasResults ? (
@@ -568,6 +570,7 @@ const SearchScreen = () => {
                                         product_id: item.product_id,
                                         variant_id: item.variant_id,
                                         shop_id: item?.shop_id || '',
+                                        shop_name: item?.shop_name || '',
                                         quantity: 1,
                                       });
                                     }}
@@ -588,6 +591,7 @@ const SearchScreen = () => {
                                       product_id: item.product_id,
                                       variant_id: item.variant_id,
                                       shop_id: item?.shop_id || '',
+                                      shop_name: item?.shop_name || '',
                                       quantity: 1,
                                     });
                                     socketService.logAnalytics({

@@ -630,6 +630,7 @@ const OrdersScreen = () => {
                           addMultipleProducts({
                             shop_id: order?.shop_id,
                             products: order?.items,
+                            shop_name: order?.shop_name || '',
                           }).then(() => {
                             socketService.logAnalytics({
                               action: 'click',

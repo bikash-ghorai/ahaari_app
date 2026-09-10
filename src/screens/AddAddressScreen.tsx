@@ -166,9 +166,9 @@ const AddAddressScreen = () => {
   const googlePlacesRef = useRef<null | any>(null);
   const { userData } = useSelector((state: any) => state.user);
   const safeAreaInstance = useSafeAreaInsets();
-  
+
   const isUserNameAvailable = userData && userData?.first_name && userData?.last_name;
-  
+
   // Location state
   const [location, setLocation] = useState({
     latitude: 22.3912558,
@@ -176,7 +176,7 @@ const AddAddressScreen = () => {
     latitudeDelta: 0.015,
     longitudeDelta: 0.015,
   });
-  
+
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [locationFetched, setLocationFetched] = useState(false);
 
@@ -189,6 +189,7 @@ const AddAddressScreen = () => {
   const [address, setAddress] = useState<IAddressAddReq['address']>('');
   const [landmark, setLandmark] = useState<IAddressAddReq['landmark']>('');
   const [pincode, setPincode] = useState<IAddressAddReq['pincode']>('');
+  const [isPincodeEditable, setisPincodeEditable] = useState<boolean>(true);
   const [phone_no, setPhoneNo] = useState<IAddressAddReq['phone_no']>('');
 
   // Request location permission and get current location
@@ -239,7 +240,6 @@ const AddAddressScreen = () => {
         }
         reverseGeocodeLocation(latitude, longitude);
         setIsLoadingLocation(false);
-        setLocationFetched(true);
       },
       error => {
         console.log('Geolocation error:', error);
@@ -260,6 +260,7 @@ const AddAddressScreen = () => {
       if (data.results && data.results.length > 0) {
         const result = data.results[0];
         setAddress(result.formatted_address);
+        setLocationFetched(true);
 
         // Extract city and postal code
         let postalCode = '';
@@ -271,6 +272,7 @@ const AddAddressScreen = () => {
         });
 
         setPincode(postalCode);
+        setisPincodeEditable(postalCode ? false : true);
       }
     } catch (error) {
       console.log('Reverse geocoding error:', error);
@@ -278,9 +280,10 @@ const AddAddressScreen = () => {
   };
 
   const handleMapRegionChange = (newLocation: any) => {
-    setLocation(newLocation);
-    reverseGeocodeLocation(newLocation.latitude, newLocation.longitude);
-    setLocationFetched(true);
+    if (locationFetched) {
+      setLocation(newLocation);
+      reverseGeocodeLocation(newLocation.latitude, newLocation.longitude);
+    }
   };
 
   const handlePlaceSelected = (data: any, details: any = null) => {
@@ -305,6 +308,7 @@ const AddAddressScreen = () => {
       details.address_components.forEach((component: any) => {
         if (component.types.includes('postal_code')) {
           setPincode(component.long_name);
+          setisPincodeEditable(component.long_name ? false : true);
         }
       });
     }
@@ -526,6 +530,7 @@ const AddAddressScreen = () => {
                     placeholder="POSTAL CODE"
                     placeholderTextColor={colors.textMuted}
                     style={styles.inputText}
+                    editable={isPincodeEditable}
                   />
                 </View>
               </View>
@@ -554,7 +559,7 @@ const AddAddressScreen = () => {
             >
               <TouchableOpacity
                 activeOpacity={0.95}
-                style={[ styles.primaryButton, { opacity: locationFetched ? 1 : 0.5 }]}
+                style={[styles.primaryButton, { opacity: locationFetched ? 1 : 0.5 }]}
                 disabled={!locationFetched}
                 onPress={handleSaveAddress}
               >
@@ -568,7 +573,7 @@ const AddAddressScreen = () => {
                 </LinearGradient>
               </TouchableOpacity>
               <Text style={styles.actionHint}>
-                You can edit this anytime from Address List.
+                You can delete this anytime from Address List.
               </Text>
             </View>
           </KeyboardAvoidingView>

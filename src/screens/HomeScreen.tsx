@@ -265,10 +265,11 @@ const HomeScreen = () => {
   };
 
   const handleEventAction = React.useCallback(
-    (eventItem: HomeEventSlide) => {
+    (eventItem: HomeEventSlide| any) => {
       const productId = eventItem?.item?.product_id || '';
       const variantId = eventItem?.item?.variant_id || '';
       const shopId = eventItem?.item?.shop_id || '';
+      const shopName = eventItem?.item?.shop_name || '';
 
       socketService.logAnalytics({
         action: 'click',
@@ -282,6 +283,7 @@ const HomeScreen = () => {
           product_id: productId,
           variant_id: variantId,
           shop_id: shopId,
+          shop_name: shopName,
           quantity: 1,
         }).then(res => {
           if (res.type === 'different_shop_error') {
@@ -292,6 +294,7 @@ const HomeScreen = () => {
               product_id: productId,
               variant_id: variantId,
               shop_id: shopId,
+              shop_name: shopName,
               quantity: 1,
               isRecreateCart: true,
             });
@@ -632,6 +635,7 @@ const HomeScreen = () => {
                                   product_id: item.product_id,
                                   variant_id: item?.variant_id,
                                   shop_id: item?.shop_id || '',
+                                  shop_name: item?.shop_name || '',
                                   quantity: 1,
                                 });
                               }}
@@ -652,6 +656,7 @@ const HomeScreen = () => {
                                 product_id: item.product_id,
                                 variant_id: item?.variant_id,
                                 shop_id: item?.shop_id || '',
+                                shop_name: item?.shop_name || '',
                                 quantity: 1,
                               }).then(res => {
                                 console.log('ress', res);
@@ -663,6 +668,7 @@ const HomeScreen = () => {
                                     product_id: item.product_id,
                                     variant_id: item?.variant_id,
                                     shop_id: item?.shop_id || '',
+                                    shop_name: item?.shop_name || '',
                                     quantity: 1,
                                     isRecreateCart: true,
                                   });

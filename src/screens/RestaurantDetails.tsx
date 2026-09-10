@@ -50,12 +50,14 @@ import PopupMessage from '../components/PopupMessage';
 import Loader from '../components/Loader';
 import FastImage from 'react-native-fast-image';
 import socketService from '../utils/socket-service';
-import { reset } from '../utils/navigationRef';
+import { navigate, reset } from '../utils/navigationRef';
+import { useNavigation } from '@react-navigation/native';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 const RestaurantDetails = (props: any) => {
   const dispatch = useDispatch();
+  const navigation = useNavigation<any>();
   const shopId = props?.route?.params?.shopId || '';
   const safeAreaInstance = useSafeAreaInsets();
 
@@ -69,6 +71,8 @@ const RestaurantDetails = (props: any) => {
       0,
     );
   }, [cartValue]);
+
+  console.log('cartValue', cartValue);
 
   const prevCountRef = useRef(totalCartCount);
   useEffect(() => {
@@ -274,13 +278,15 @@ const RestaurantDetails = (props: any) => {
     product_id: string;
     variant_id: string;
     shop_id: string;
+    shop_name?: string;
     quantity?: number;
   }) => {
-    let { product_id, variant_id, shop_id, quantity = 1 } = _props;
+    let { product_id, variant_id, shop_id, quantity = 1, shop_name = "" } = _props;
     addProduct({
       product_id,
       variant_id,
       shop_id,
+      shop_name,
       quantity,
     })
       .then(res => {
@@ -733,6 +739,7 @@ const RestaurantDetails = (props: any) => {
                                         variant_id: item.variants[0].variant_id,
                                         shop_id:
                                           shopDetails?.shop?.shop_id || '',
+                                        shop_name: shopDetails?.shop?.name || '',
                                         quantity: 1,
                                       });
                                     } else {
@@ -757,6 +764,7 @@ const RestaurantDetails = (props: any) => {
                                       product_id: item.product_id,
                                       variant_id: item.variants[0].variant_id,
                                       shop_id: shopDetails?.shop?.shop_id || '',
+                                      shop_name: shopDetails?.shop?.name || '',
                                       quantity: 1,
                                     });
                                     socketService.logAnalytics({
@@ -1090,6 +1098,7 @@ const RestaurantDetails = (props: any) => {
                             product_id: selectedItem.product_id,
                             variant_id: selectedTempVariant?.variant_id || '',
                             shop_id: shopDetails?.shop?.shop_id || '',
+                            shop_name: shopDetails?.shop?.name || '',
                             quantity: 1,
                           })
                         }
@@ -1110,6 +1119,7 @@ const RestaurantDetails = (props: any) => {
                           product_id: selectedItem.product_id,
                           variant_id: selectedTempVariant?.variant_id || '',
                           shop_id: shopDetails?.shop?.shop_id || '',
+                          shop_name: shopDetails?.shop?.name || '',
                           quantity: 1,
                         });
                         socketService.logAnalytics({
@@ -1176,9 +1186,8 @@ const RestaurantDetails = (props: any) => {
             style={styles.floatingCartLeftAction}
             activeOpacity={0.88}
             onPress={() => {
-              scrollRef.current?.scrollTo({
-                y: heroHeightRef.current || 300,
-                animated: true,
+              navigation.replace('RestaurantDetails', {
+                shopId: cartValue?.shop_id,
               });
             }}
           >
@@ -1191,7 +1200,7 @@ const RestaurantDetails = (props: any) => {
             </View>
             <View style={styles.floatingCartInfo}>
               <Text style={styles.floatingCartShopName} numberOfLines={1}>
-                {shopDetails?.shop?.name || 'Your Cart'}
+                {cartValue?.shop_name || 'Your Cart'}
               </Text>
               <View style={styles.floatingCartSubtextRow}>
                 <Text style={styles.floatingCartSubtext}>View Menu</Text>

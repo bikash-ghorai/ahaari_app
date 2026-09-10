@@ -8,6 +8,7 @@ import {
 
 interface IAddProduct {
   shop_id: string;
+  shop_name?: string;
   product_id: string;
   variant_id: string;
   quantity: number;
@@ -15,6 +16,7 @@ interface IAddProduct {
 }
 interface IAddMultipleProducts {
   shop_id: string;
+  shop_name?: string;
   products: any;
 }
 
@@ -63,6 +65,7 @@ const useCart = () => {
 
       cart = {
         shop_id: props.shop_id,
+        shop_name: props?.shop_name || '',
         products: props.products,
       };
 
@@ -104,6 +107,7 @@ const useCart = () => {
       if (!cart || props?.isRecreateCart) {
         cart = {
           shop_id: props.shop_id,
+          shop_name: props?.shop_name ||"",
           products: [
             {
               product_id: props.product_id,
