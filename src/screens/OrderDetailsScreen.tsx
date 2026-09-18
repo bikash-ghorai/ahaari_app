@@ -11,19 +11,28 @@ import {
   View,
   Modal,
 } from 'react-native';
-import { RouteProp, useRoute } from '@react-navigation/native';
+import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
-  CheckCircle2,
-  CookingPot,
-  Headset,
-  Phone,
-  Star,
-  UtensilsIcon,
-  MapPin,
   AlertTriangle,
-  InfoIcon,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  CookingPot,
+  Download,
+  Headset,
   IndianRupee,
+  InfoIcon,
   Lock,
+  MapPin,
+  Phone,
+  Receipt,
+  ReceiptText,
+  Star,
+  Store,
+  Truck,
+  UtensilsIcon,
+  XCircle,
 } from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -60,19 +69,55 @@ const refundOptions: Array<{
   title: string;
   description: string;
 }> = [
-  {
-    value: 'wallet',
-    title: 'Wallet',
-    description: 'Instant refund to your wallet.',
-  },
-  {
-    value: 'original',
-    title: 'Original payment method',
-    description: 'Refunds take 5-7 working days.',
-  },
-];
+    {
+      value: 'wallet',
+      title: 'Wallet',
+      description: 'Instant refund to your wallet.',
+    },
+    {
+      value: 'original',
+      title: 'Original payment method',
+      description: 'Refunds take 5-7 working days.',
+    },
+  ];
+
+const getOrderStatusConfig = (status?: string) => {
+  const color = (status && statusColors[status]) || colors.primary;
+  switch (status) {
+    case 'Delivered':
+      return { Icon: CheckCircle2, color, label: 'Delivered' };
+    case 'Cancelled':
+      return { Icon: XCircle, color: '#EF4444', label: 'Cancelled' };
+    case 'Failed':
+    case 'Undelivered':
+      return {
+        Icon: AlertTriangle,
+        color: '#EF4444',
+        label: status || 'Failed',
+      };
+    case 'Preparing':
+    case 'Ready':
+      return {
+        Icon: CookingPot,
+        color: '#3B82F6',
+        label: status || 'Preparing',
+      };
+    case 'On The Way':
+      return { Icon: Truck, color: '#10B981', label: 'On The Way' };
+    case 'Processing':
+    case 'Pending':
+    default:
+      return {
+        Icon: Clock,
+        color: color || '#FBBF24',
+        label: status || 'Processing',
+      };
+  }
+};
 
 const OrderDetailsScreen = () => {
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList, 'OrderDetails'>>();
   const dispatch = useDispatch();
   const route = useRoute<RouteProp<RootStackParamList, 'OrderDetails'>>();
   const orderId = route.params?.orderId ?? '';
@@ -83,9 +128,36 @@ const OrderDetailsScreen = () => {
   const [orderDetails, setOrderDetails] = useState<IOrderDetails | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancellationReason, setCancellationReason] = useState('');
+
+  const statusConfig = getOrderStatusConfig(orderDetails?.status);
+  const StatusIcon = statusConfig.Icon;
   const [refundMode, setRefundMode] = useState<RefundMode>('wallet');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const mapRef = React.useRef<any>(null);
+
+  const handleOpenRating = (initialStar?: number) => {
+    socketService.logAnalytics({
+      action: 'click',
+      name: 'Rate Order',
+      from: 'OrderDetails Screen',
+      params: orderDetails?.order_id || '',
+    });
+    navigation.navigate('RateExperience', {
+      orderId: orderDetails?.order_id || orderId
+    });
+  };
+
+  const handleDownloadInvoice = () => {
+    socketService.logAnalytics({
+      action: 'click',
+      name: 'Download Invoice',
+      from: 'OrderDetails Screen',
+      params: orderDetails?.order_id || orderId,
+    });
+    showToaster(
+      `Invoice for Order #${orderDetails?.order_id || orderId} downloaded`,
+    );
+  };
 
   useEffect(() => {
     fetchOrderDetails(orderId);
@@ -283,7 +355,7 @@ const OrderDetailsScreen = () => {
           ) : orderDetails?.status === 'On The Way' ? (
             <View style={styles.onwayTopCard}>
               {orderDetails?.shop_coordinate &&
-              orderDetails?.delivery_coordinate ? (
+                orderDetails?.delivery_coordinate ? (
                 <View style={styles.mapViewContainer}>
                   <MapView
                     ref={mapRef}
@@ -418,61 +490,139 @@ const OrderDetailsScreen = () => {
             </View>
           ) : (
             <View style={styles.summaryCard}>
-              <View style={styles.summaryTopBlock}>
-                <Text style={styles.orderNumber}>
-                  ORDER #{orderDetails?.order_id_label}
-                </Text>
-                {orderDetails?.status ? (
-                  <View
-                    style={[
-                      styles.arrivedPill,
-                      {
-                        backgroundColor:
-                          statusColors[orderDetails.status] + '22',
-                        borderColor: statusColors[orderDetails.status] + '35',
-                      },
-                    ]}
-                  >
-                    <CheckCircle2
-                      size={12}
-                      color={statusColors[orderDetails.status]}
-                      strokeWidth={2.6}
-                    />
-                    <Text
+              {/* Restaurant Meta Row: Order ID replaces 'ORDERED FROM' */}
+              <View style={styles.restaurantMetaRow}>
+                <View style={styles.restaurantIconWrap}>
+                  <Store size={22} color={colors.primary} strokeWidth={2} />
+                </View>
+                <View style={styles.restaurantTextCol}>
+                  <Text style={styles.orderNumber}>
+                    ORDER #{orderDetails?.order_id_label}
+                  </Text>
+                  <Text style={styles.restaurantName} numberOfLines={1}>
+                    {orderDetails?.shop_name}
+                  </Text>
+                  {orderDetails?.date ? (
+                    <View style={styles.dateMetaRow}>
+                      <Calendar
+                        size={12}
+                        color={colors.textMuted}
+                        strokeWidth={2}
+                      />
+                      <Text style={styles.deliveryTime}>
+                        {orderDetails.date}
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
+              </View>
+
+              {(orderDetails?.message?.title || orderDetails?.message?.description) && (
+                <>
+                  <View style={styles.summaryDivider} />
+
+                  <View style={styles.statusMessageCard}>
+                    <View
                       style={[
-                        styles.arrivedText,
-                        { color: statusColors[orderDetails.status] },
+                        styles.statusMessageIconWrap,
+                        {
+                          backgroundColor: statusConfig.color + '18',
+                          borderColor: statusConfig.color + '35',
+                        },
                       ]}
                     >
-                      {orderDetails.status.toUpperCase()}
-                    </Text>
+                      <UtensilsIcon
+                        size={16}
+                        color={statusConfig.color}
+                        strokeWidth={2.2}
+                      />
+                    </View>
+                    <View style={styles.statusMessageContent}>
+                      {orderDetails?.message?.title ? (
+                        <Text style={styles.statusMessageTitle}>
+                          {orderDetails.message.title}
+                        </Text>
+                      ) : null}
+                      {orderDetails?.message?.description ? (
+                        <Text style={styles.statusMessageSubtitle}>
+                          {orderDetails.message.description}
+                        </Text>
+                      ) : null}
+                    </View>
                   </View>
-                ) : null}
-              </View>
-              <Text style={styles.restaurantName}>
-                {orderDetails?.shop_name}
-              </Text>
-              <Text style={styles.deliveryTime}>{orderDetails?.date}</Text>
+                </>
+              )}
 
-              <View style={styles.summaryDivider} />
+              {/* Rating Given Options / Rate Experience */}
+              {orderDetails?.status == 'Delivered' && (
+                <>
+                  <View style={styles.summaryDivider} />
 
-              <View style={styles.courierRow}>
-                <View style={styles.courierIconWrap}>
-                  <UtensilsIcon
-                    size={18}
-                    color={colors.primary}
-                    strokeWidth={2.2}
-                  />
-                </View>
-                <View style={{ width: '80%' }}>
-                  <Text style={styles.courierTitle}>
-                    {orderDetails?.message?.title}
-                  </Text>
-                  <Text style={styles.courierSubtitle}>
-                    {orderDetails?.message?.description}
-                  </Text>
-                </View>
-              </View>
+                  {(orderDetails as any)?.rating ? (
+                    <View style={styles.ratingGivenCard}>
+                      <View style={styles.ratingGivenLeft}>
+                        <Text style={styles.ratingGivenTitle}>Your Rating</Text>
+                        <View style={styles.starsRow}>
+                          {[1, 2, 3, 4, 5].map(star => (
+                            <Star
+                              key={star}
+                              size={15}
+                              color="#FBBF24"
+                              fill={
+                                star <=
+                                  ((orderDetails as any)?.rating?.star || 5)
+                                  ? '#FBBF24'
+                                  : 'transparent'
+                              }
+                              strokeWidth={1.8}
+                            />
+                          ))}
+                        </View>
+                      </View>
+                      <TouchableOpacity
+                        activeOpacity={0.8}
+                        style={styles.editRatingButton}
+                        onPress={() => handleOpenRating()}
+                      >
+                        <Text style={styles.editRatingText}>Edit Review</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <View style={styles.rateOrderPromptCard}>
+                      <View style={styles.ratePromptHeader}>
+                        <Text style={styles.ratePromptTitle}>
+                          How was your meal?
+                        </Text>
+                        <TouchableOpacity
+                          activeOpacity={0.8}
+                          onPress={() => handleOpenRating()}
+                        >
+                          <Text style={styles.ratePromptAction}>
+                            Rate Order
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                      <View style={styles.starsInteractiveRow}>
+                        {[1, 2, 3, 4, 5].map(star => (
+                          <TouchableOpacity
+                            key={star}
+                            activeOpacity={0.7}
+                            onPress={() => handleOpenRating(star)}
+                            style={styles.starTouchItem}
+                          >
+                            <Star
+                              size={22}
+                              color={colors.primary}
+                              fill={'rgba(255, 176, 0, 0.15)'}
+                              strokeWidth={1.8}
+                            />
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+                </>
+              )}
             </View>
           )}
 
@@ -484,10 +634,10 @@ const OrderDetailsScreen = () => {
                     source={
                       orderDetails?.partner_info?.picture
                         ? {
-                            uri:
-                              Constant.ImageURL +
-                              orderDetails.partner_info.picture,
-                          }
+                          uri:
+                            Constant.ImageURL +
+                            orderDetails.partner_info.picture,
+                        }
                         : ImagePath.noProfile
                     }
                     style={styles.courierAvatar}
@@ -535,48 +685,48 @@ const OrderDetailsScreen = () => {
             <View style={styles.itemsList}>
               {orderDetails?.items && orderDetails?.items.length > 0
                 ? orderDetails.items.map((item, index) => (
-                    <View key={index} style={styles.itemCard}>
-                      <LinearGradient
-                        pointerEvents="none"
-                        colors={[
-                          'rgba(255, 255, 255, 0.01)',
-                          'rgba(255, 255, 255, 0)',
-                        ]}
-                        start={{ x: 0, y: 0.5 }}
-                        end={{ x: 1, y: 0.5 }}
-                        style={styles.itemCardHighlight}
-                      />
+                  <View key={index} style={styles.itemCard}>
+                    <LinearGradient
+                      pointerEvents="none"
+                      colors={[
+                        'rgba(255, 255, 255, 0.01)',
+                        'rgba(255, 255, 255, 0)',
+                      ]}
+                      start={{ x: 0, y: 0.5 }}
+                      end={{ x: 1, y: 0.5 }}
+                      style={styles.itemCardHighlight}
+                    />
 
-                      <View style={styles.itemRow}>
-                        <View style={styles.itemImageWrap}>
-                          <Image
-                            source={
-                              item?.image
-                                ? { uri: Constant?.ImageURL + item.image }
-                                : ImagePath.noProductPlaceholder
-                            }
-                            style={styles.itemImage}
-                          />
-                        </View>
+                    <View style={styles.itemRow}>
+                      <View style={styles.itemImageWrap}>
+                        <Image
+                          source={
+                            item?.image
+                              ? { uri: Constant?.ImageURL + item.image }
+                              : ImagePath.noProductPlaceholder
+                          }
+                          style={styles.itemImage}
+                        />
+                      </View>
 
-                        <View style={styles.itemTextColumn}>
-                          <Text style={styles.itemTitle}>{item?.name}</Text>
-                          <Text style={styles.itemSubtitle} numberOfLines={1}>
-                            {item?.description}
-                          </Text>
-                        </View>
+                      <View style={styles.itemTextColumn}>
+                        <Text style={styles.itemTitle}>{item?.name}</Text>
+                        <Text style={styles.itemSubtitle} numberOfLines={1}>
+                          {item?.description}
+                        </Text>
+                      </View>
 
-                        <View style={styles.itemPriceColumn}>
-                          <Text style={styles.itemPrice}>
-                            {currencyFormate(item?.price, 0)}
-                          </Text>
-                          <Text style={styles.itemQty}>
-                            Qty: {item?.quantity}
-                          </Text>
-                        </View>
+                      <View style={styles.itemPriceColumn}>
+                        <Text style={styles.itemPrice}>
+                          {currencyFormate(item?.price, 0)}
+                        </Text>
+                        <Text style={styles.itemQty}>
+                          Qty: {item?.quantity}
+                        </Text>
                       </View>
                     </View>
-                  ))
+                  </View>
+                ))
                 : null}
             </View>
           </View>
@@ -617,17 +767,17 @@ const OrderDetailsScreen = () => {
             </View>
 
             {orderDetails?.extra_charges &&
-            orderDetails?.extra_charges.length > 0
+              orderDetails?.extra_charges.length > 0
               ? orderDetails?.extra_charges.map((item, index) => {
-                  return (
-                    <View style={styles.breakdownRow} key={index}>
-                      <Text style={styles.breakdownLabel}>{item?.label}</Text>
-                      <Text style={styles.breakdownValue}>
-                        {currencyFormate(item?.amount || 0, 2)}
-                      </Text>
-                    </View>
-                  );
-                })
+                return (
+                  <View style={styles.breakdownRow} key={index}>
+                    <Text style={styles.breakdownLabel}>{item?.label}</Text>
+                    <Text style={styles.breakdownValue}>
+                      {currencyFormate(item?.amount || 0, 2)}
+                    </Text>
+                  </View>
+                );
+              })
               : null}
 
             {orderDetails?.discount ? (
@@ -683,14 +833,7 @@ const OrderDetailsScreen = () => {
             </View>
           ) : null}
 
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 10,
-            }}
-          >
+          <View style={styles.bottomActionsContainer}>
             {isCancelOrPaymentBtnShow ? (
               showPaymentBtnShow ? (
                 <TouchableOpacity
@@ -727,22 +870,43 @@ const OrderDetailsScreen = () => {
               )
             ) : null}
 
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={[
-                styles.supportButton,
-                { width: isCancelOrPaymentBtnShow ? '48%' : '100%' },
-              ]}
-              onPress={() => {
-                handleWhatsapp(
-                  'Hello, I need help with my order id: ' +
+            <View style={styles.bottomActionRow}>
+              <TouchableOpacity
+                activeOpacity={0.9}
+                style={styles.bottomInvoiceButton}
+                onPress={handleDownloadInvoice}
+              >
+                <ReceiptText
+                  size={18}
+                  color={colors.primary}
+                  strokeWidth={2.1}
+                />
+                <Text style={styles.bottomInvoiceText} numberOfLines={1}>
+                  Invoice
+                </Text>
+                <Download
+                  size={15}
+                  color={colors.primary}
+                  strokeWidth={2.1}
+                />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.9}
+                style={styles.supportButton}
+                onPress={() => {
+                  handleWhatsapp(
+                    'Hello, I need help with my order id: ' +
                     orderDetails?.order_id_label,
-                );
-              }}
-            >
-              <Headset size={18} color="#E5E7EB" strokeWidth={2.1} />
-              <Text style={styles.supportButtonText}>Contact Support</Text>
-            </TouchableOpacity>
+                  );
+                }}
+              >
+                <Headset size={18} color="#E5E7EB" strokeWidth={2.1} />
+                <Text style={styles.supportButtonText} numberOfLines={1}>
+                  Contact Support
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </ScrollView>
       ) : null}
@@ -777,7 +941,7 @@ const OrderDetailsScreen = () => {
               />
 
               {orderDetails?.status === 'Processing' ||
-              orderDetails?.status === 'Pending' ? (
+                orderDetails?.status === 'Pending' ? (
                 orderDetails?.payment_type === 'Online' ? (
                   <View style={styles.refundSection}>
                     <View style={styles.refundHeaderRow}>
@@ -960,91 +1124,180 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   summaryCard: {
-    borderRadius: 24,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    padding: 24,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    padding: 20,
     overflow: 'hidden',
+    position: 'relative',
   },
   summaryCardGlow: {
     position: 'absolute',
     right: 0,
     top: 0,
-    width: 220,
-    height: 220,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
   },
-  summaryTopBlock: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  orderNumber: {
-    color: colors.textMuted,
-    fontSize: typography.caption,
-    lineHeight: 15,
-    fontWeight: '600',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-  restaurantName: {
-    marginTop: 4,
-    color: colors.textPrimary,
-    fontSize: typography.displayCard,
-    lineHeight: 48,
-    fontWeight: '700',
-  },
-  deliveryTime: {
-    marginTop: 6,
-    color: colors.textMuted,
-    fontSize: typography.bodyPlus,
-    lineHeight: 22,
-    fontWeight: '400',
-  },
-  arrivedPill: {
-    height: 32,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    borderWidth: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  arrivedText: {
-    color: colors.successTeal,
-    fontSize: typography.caption,
-    lineHeight: 15,
-    fontWeight: '700',
-    letterSpacing: 0.8,
-  },
-  summaryDivider: {
-    marginTop: 20,
-    marginBottom: 16,
+  summaryTopHighlight: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
     height: 1,
-    backgroundColor: 'rgba(255,255,255,0.08)',
   },
-  courierRow: {
+  restaurantMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
   },
-  courierIconWrap: {
-    width: 48,
-    height: 48,
+  restaurantIconWrap: {
+    width: 44,
+    height: 44,
     borderRadius: 14,
+    backgroundColor: 'rgba(255, 176, 0, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 176, 0, 0.25)',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(15, 23, 42, 0.4)',
   },
-  courierTitle: {
+  restaurantTextCol: {
+    flex: 1,
+    gap: 2,
+  },
+  orderNumber: {
+    color: colors.textMuted,
+    fontSize: typography.caption,
+    lineHeight: 14,
+    fontWeight: '700',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  restaurantName: {
     color: colors.textPrimary,
-    fontSize: typography.bodyPlus,
-    lineHeight: 22,
+    fontSize: typography.xl,
+    lineHeight: 26,
+    fontWeight: '700',
+    letterSpacing: -0.3,
+  },
+  dateMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 2,
+  },
+  deliveryTime: {
+    color: colors.textMutedSoft,
+    fontSize: typography.sm,
+    lineHeight: 16,
+    fontWeight: '400',
+  },
+
+  ratingGivenCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+  },
+  ratingGivenLeft: {
+    gap: 4,
+  },
+  ratingGivenTitle: {
+    color: colors.textMuted,
+    fontSize: typography.caption,
+    lineHeight: 13,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
+  starsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  editRatingButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  editRatingText: {
+    color: colors.textSecondary,
+    fontSize: typography.captionPlus,
     fontWeight: '600',
   },
-  courierSubtitle: {
+  rateOrderPromptCard: {
+    gap: 10,
+    paddingHorizontal: 2,
+    paddingVertical: 2,
+  },
+  ratePromptHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  ratePromptTitle: {
+    color: colors.textPrimary,
+    fontSize: typography.body,
+    lineHeight: 18,
+    fontWeight: '600',
+  },
+  ratePromptAction: {
+    color: colors.primary,
+    fontSize: typography.captionPlus,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  starsInteractiveRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 2,
+  },
+  starTouchItem: {
+    padding: 2,
+  },
+  summaryDivider: {
+    marginTop: 16,
+    marginBottom: 14,
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.07)',
+  },
+  statusMessageCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    padding: 12,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
+  },
+  statusMessageIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  statusMessageContent: {
+    flex: 1,
+    gap: 2,
+  },
+  statusMessageTitle: {
+    color: colors.textPrimary,
+    fontSize: typography.body,
+    lineHeight: 18,
+    fontWeight: '600',
+  },
+  statusMessageSubtitle: {
     color: colors.textMuted,
-    fontSize: typography.smPlus,
-    lineHeight: 20,
+    fontSize: typography.captionPlus,
+    lineHeight: 16,
     fontWeight: '400',
   },
   preparingCard: {
@@ -1492,11 +1745,38 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.2,
   },
+  bottomActionsContainer: {
+    gap: 12,
+  },
+  bottomActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  bottomInvoiceButton: {
+    flex: 1,
+    height: 60,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 176, 0, 0.28)',
+    backgroundColor: 'rgba(255, 176, 0, 0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    overflow: 'hidden',
+  },
+  bottomInvoiceText: {
+    color: colors.primary,
+    fontSize: typography.bodyPlus,
+    lineHeight: 24,
+    fontWeight: '600',
+  },
   reorderButton: {
     height: 60,
     borderRadius: 18,
     overflow: 'hidden',
-    width: '48%',
+    width: '100%',
   },
   reorderGradient: {
     flex: 1,
@@ -1512,7 +1792,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   supportButton: {
-    width: '48%',
+    flex: 1,
     height: 60,
     borderRadius: 18,
     borderWidth: 1,
@@ -1521,13 +1801,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
     overflow: 'hidden',
   },
   supportButtonText: {
     color: colors.textSecondary,
     fontSize: typography.bodyPlus,
-    lineHeight: 28,
+    lineHeight: 24,
     fontWeight: '600',
   },
 

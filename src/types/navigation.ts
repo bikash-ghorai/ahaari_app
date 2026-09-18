@@ -20,7 +20,7 @@ export type RootStackParamList = {
   Tabs: NavigatorScreenParams<RootTabParamList> | undefined;
   Search: { initialQuery?: string } | undefined;
   MyCircle: undefined;
-  RateExperience: undefined;
+  RateExperience: { orderId?: string; order?: any } | undefined;
   ReferEarn: undefined;
   RestaurantDetails: undefined | any;
   OrderConfirmed:

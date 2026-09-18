@@ -20,7 +20,10 @@ type SocketEmitNameInterface =
   | 'Reorder'
   | 'Cancel Order'
   | 'Pay Now'
-  | 'Event Button';
+  | 'Event Button'
+  | 'Rate Order'
+  | 'Order Rating Submitted'
+  | 'Download Invoice';
 
 interface SocketEmitDataInterface {
   action: SocketEmitActionType;

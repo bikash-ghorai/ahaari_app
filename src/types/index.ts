@@ -436,3 +436,51 @@ export type IOrderListRes = {
   active_orders: Array<IActiveOrder>;
   past_orders: Array<IPastOrder>;
 };
+
+export type IOrderReviewData = {
+  order_id: string;
+  delivered_at: string;
+  early_delivered: number;
+  shop_info: {
+    shop_id: string | number;
+    shop_name: string;
+    shop_image: string | null;
+    rating?: number | null;
+    feedback?: string | null;
+  };
+  products: Array<{
+    id?: string | number;
+    product_id?: string | number;
+    variant_id?: string | number;
+    name: string;
+    quantity?: number;
+    qty?: number;
+    image?: string;
+    price?: number;
+    is_veg?: number | boolean;
+    [key: string]: any;
+  }>;
+  delivery_partner_info: {
+    partner_id: string | number;
+    name: string;
+    picture: string | null;
+    total_orders: number;
+    rating?: number | null;
+    feedback?: string | null;
+  };
+  is_rated: boolean | number;
+};
+
+export type ISubmitOrderReviewReq = {
+  order_id: string;
+  food_rating: number;
+  food_feedback: string;
+  delivery_rating: number;
+  delivery_feedback: string;
+  items_rating: Array<{
+    variant_id: string;
+    is_liked: boolean;
+  }>;
+};
+
+

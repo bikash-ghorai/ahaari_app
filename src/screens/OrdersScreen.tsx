@@ -24,6 +24,7 @@ import {
   Bell,
   CircleCheck,
   Phone,
+  RotateCcw,
   Search,
   ShoppingBag,
   Star,
@@ -159,9 +160,15 @@ const OrdersScreen = () => {
     navigation.navigate('OrderDetails', { orderId: order.order_id || '' });
   };
 
-  // const openRateExperience = () => {
-  //   navigation.navigate('RateExperience');
-  // };
+  const openRateExperience = (order?: IPastOrder) => {
+    socketService.logAnalytics({
+      action: 'click',
+      name: 'Rate Order',
+      from: 'Orders Screen',
+      params: order?.shop_name || '',
+    });
+    navigation.navigate('RateExperience', { orderId: order?.order_id });
+  };
 
   const { isBadWeather, show } = useWeatherAlert();
 
@@ -305,8 +312,8 @@ const OrdersScreen = () => {
       >
         <View style={styles.mainStack}>
           {orderListData &&
-          orderListData?.active_orders &&
-          orderListData.active_orders.length > 0 ? (
+            orderListData?.active_orders &&
+            orderListData.active_orders.length > 0 ? (
             <View style={styles.activeSection}>
               <View style={styles.activeHeaderRow}>
                 <Text style={styles.sectionTitle}>Active Order</Text>
@@ -330,8 +337,8 @@ const OrdersScreen = () => {
                               source={
                                 order?.shop_image
                                   ? {
-                                      uri: Constant.ImageURL + order.shop_image,
-                                    }
+                                    uri: Constant.ImageURL + order.shop_image,
+                                  }
                                   : ImagePath.noShopPlaceholder
                               }
                               style={styles.activeFoodImage}
@@ -423,10 +430,10 @@ const OrdersScreen = () => {
                               source={
                                 order?.partner_info?.picture
                                   ? {
-                                      uri:
-                                        Constant.ImageURL +
-                                        order.partner_info.picture,
-                                    }
+                                    uri:
+                                      Constant.ImageURL +
+                                      order.partner_info.picture,
+                                  }
                                   : ImagePath.noProfile
                               }
                               style={styles.courierAvatar}
@@ -485,13 +492,13 @@ const OrdersScreen = () => {
           ) : null}
 
           {orderListData &&
-          !(
-            orderListData?.active_orders &&
-            orderListData.active_orders.length > 0
-          ) &&
-          !(
-            orderListData?.past_orders && orderListData.past_orders.length > 0
-          ) ? (
+            !(
+              orderListData?.active_orders &&
+              orderListData.active_orders.length > 0
+            ) &&
+            !(
+              orderListData?.past_orders && orderListData.past_orders.length > 0
+            ) ? (
             <View style={styles.emptyContainer}>
               <View style={styles.emptyContent}>
                 <View style={styles.emptyIconWrapper}>
@@ -511,7 +518,7 @@ const OrdersScreen = () => {
           ) : null}
 
           {orderListData?.past_orders &&
-          orderListData?.past_orders.length > 0 ? (
+            orderListData?.past_orders.length > 0 ? (
             <View style={styles.historySection}>
               <Text style={styles.sectionTitle}>Order History</Text>
 
@@ -579,52 +586,43 @@ const OrdersScreen = () => {
                       </View>
                     </TouchableOpacity>
 
-                    {/* {order.quote ? (
+                    {order?.rating && Number(order.rating.star) > 0 ? (
                       <View style={styles.reviewCard}>
                         <View style={styles.reviewStarsRow}>
-                          <Star
-                            size={14}
-                            color={colors.primary}
-                            fill={colors.primary}
-                            strokeWidth={2.2}
-                          />
-                          <Star
-                            size={14}
-                            color={colors.primary}
-                            fill={colors.primary}
-                            strokeWidth={2.2}
-                          />
-                          <Star
-                            size={14}
-                            color={colors.primary}
-                            fill={colors.primary}
-                            strokeWidth={2.2}
-                          />
-                          <Star
-                            size={14}
-                            color={colors.primary}
-                            fill={colors.primary}
-                            strokeWidth={2.2}
-                          />
-                          <Star
-                            size={14}
-                            color={colors.primary}
-                            fill={colors.primary}
-                            strokeWidth={2.2}
-                          />
+                          {[...Array(Number(order.rating.star))].map((_, i) => (
+                            <Star
+                              key={`filled-${i}`}
+                              size={14}
+                              color={colors.primary}
+                              fill={colors.primary}
+                              strokeWidth={2.2}
+                            />
+                          ))}
+                          {[...Array(Math.max(0, 5 - Number(order.rating.star)))].map((_, i) => (
+                            <Star
+                              key={`empty-${i}`}
+                              size={14}
+                              color={colors.primary}
+                              fill={'transparent'}
+                              strokeWidth={2.2}
+                            />
+                          ))}
                         </View>
-                        <Text style={styles.reviewText}>{order.quote}</Text>
+                        {order?.rating?.feedback ? (
+                          <Text style={styles.reviewText}>{order.rating.feedback}</Text>
+                        ) : null}
                       </View>
-                    ) : null} */}
+                    ) : null}
 
                     <View style={styles.historyActionsRow}>
                       <TouchableOpacity
                         activeOpacity={0.88}
                         style={[
-                          styles.primaryActionButton,
-                          order?.rating
-                            ? styles.primaryActionHalf
-                            : styles.primaryActionFull,
+                          styles.actionButton,
+                          styles.actionButtonSecondary,
+                          !order?.rating && order?.status == 'Delivered'
+                            ? styles.actionButtonHalf
+                            : styles.actionButtonFull,
                         ]}
                         onPress={() =>
                           addMultipleProducts({
@@ -642,32 +640,44 @@ const OrdersScreen = () => {
                           })
                         }
                       >
-                        <LinearGradient
-                          colors={['#FFAD3A', '#F59E0A']}
-                          start={{ x: 0.16, y: -0.4 }}
-                          end={{ x: 0.84, y: 1.42 }}
-                          style={styles.primaryActionGradient}
-                        >
-                          <Text style={styles.primaryActionText}>REORDER</Text>
-                        </LinearGradient>
+                        <RotateCcw
+                          size={14}
+                          color={colors.primary}
+                          strokeWidth={2.2}
+                        />
+                        <Text style={styles.secondaryActionText} numberOfLines={1}>
+                          REORDER
+                        </Text>
                       </TouchableOpacity>
 
-                      {/* {order.showRateButton ? (
+                      {!order?.rating && order?.status == 'Delivered' ? (
                         <TouchableOpacity
                           activeOpacity={0.88}
-                          style={styles.secondaryActionButton}
-                          onPress={openRateExperience}
+                          style={[
+                            styles.actionButton,
+                            styles.actionButtonPrimary,
+                            styles.actionButtonHalf,
+                          ]}
+                          onPress={() => openRateExperience(order)}
                         >
-                          <Star
-                            size={15}
-                            color={colors.primary}
-                            strokeWidth={2.2}
-                          />
-                          <Text style={styles.secondaryActionText}>
-                            RATE ORDER
-                          </Text>
+                          <LinearGradient
+                            colors={['#FFAD3A', '#F59E0A']}
+                            start={{ x: 0.16, y: -0.4 }}
+                            end={{ x: 0.84, y: 1.42 }}
+                            style={styles.actionButtonGradient}
+                          >
+                            <Star
+                              size={14}
+                              color={colors.onPrimaryDark}
+                              fill={colors.onPrimaryDark}
+                              strokeWidth={2}
+                            />
+                            <Text style={styles.primaryActionText} numberOfLines={1}>
+                              RATE ORDER
+                            </Text>
+                          </LinearGradient>
                         </TouchableOpacity>
-                      ) : null} */}
+                      ) : null}
                     </View>
                   </View>
                 ))}
@@ -1073,55 +1083,59 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   historyActionsRow: {
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
   },
-  primaryActionButton: {
-    height: 46,
+  actionButton: {
+    height: 44,
     borderRadius: 999,
-    overflow: 'hidden',
-    shadowColor: '#F59E0B',
-    shadowOpacity: Platform.OS === 'ios' ? 0.25 : 0,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
-  },
-  primaryActionHalf: {
-    flex: 1,
-  },
-  primaryActionFull: {
-    width: '100%',
-  },
-  primaryActionGradient: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  primaryActionText: {
-    color: colors.onPrimaryDark,
-    fontSize: typography.smPlus,
-    lineHeight: 18,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-  },
-  secondaryActionButton: {
-    flex: 1,
-    height: 46,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 173, 58, 0.45)',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
+    paddingHorizontal: 8,
+  },
+  actionButtonHalf: {
+    flex: 1,
+  },
+  actionButtonFull: {
+    width: '100%',
+  },
+  actionButtonSecondary: {
+    borderWidth: 1,
+    borderColor: 'rgba(255, 173, 58, 0.35)',
+    backgroundColor: 'rgba(255, 173, 58, 0.08)',
+  },
+  actionButtonPrimary: {
+    overflow: 'hidden',
+    paddingHorizontal: 0,
+    backgroundColor: '#FFAD3A',
+  },
+  actionButtonGradient: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 8,
+  },
+  primaryActionText: {
+    color: colors.onPrimaryDark,
+    fontSize: typography.sm,
+    lineHeight: 16,
+    fontWeight: '800',
+    letterSpacing: 0.2,
   },
   secondaryActionText: {
     color: colors.primary,
-    fontSize: typography.smPlus,
-    lineHeight: 18,
-    fontWeight: '700',
+    fontSize: typography.sm,
+    lineHeight: 16,
+    fontWeight: '800',
+    letterSpacing: 0.2,
   },
 
   /* -- Estimate Notice -- */

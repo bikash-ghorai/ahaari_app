@@ -9,6 +9,8 @@ import {
   IHomePageData,
   IOrderDetails,
   IOrderListRes,
+  IOrderReviewData,
+  ISubmitOrderReviewReq,
   IRestaurantDetails,
   IRestaurantRes,
 } from '../../types';
@@ -163,6 +165,50 @@ export const getOrderDetails = createAsyncThunk(
       const { data, message }: { data: IOrderDetails; message: string } =
         await axios.get(`user/order/${orderId}`);
       return { data, message };
+    } catch (error: any) {
+      return thunkAPI.rejectWithValue(error);
+    }
+  },
+);
+
+//For getting order reviews
+export const getOrderReviews = createAsyncThunk(
+  'app/getOrderReviews',
+  async (orderId: string, thunkAPI) => {
+    try {
+      try {
+        const { data, message }: { data: IOrderReviewData; message: string } =
+          await axios.get(`user/order/${orderId}/reviews`);
+        return { data, message };
+      } catch (err: any) {
+        const { data, message }: { data: IOrderReviewData; message: string } =
+          await axios.get(`order/${orderId}/reviews`);
+        return { data, message };
+      }
+    } catch (error: any) {
+      return thunkAPI.rejectWithValue(error);
+    }
+  },
+);
+
+//For submitting order reviews
+export const submitOrderReview = createAsyncThunk(
+  'app/submitOrderReview',
+  async (payload: ISubmitOrderReviewReq, thunkAPI) => {
+    try {
+      try {
+        const { data, message }: any = await axios.post(
+          'user/order/submit-reviews',
+          payload,
+        );
+        return { data, message };
+      } catch (err: any) {
+        const { data, message }: any = await axios.post(
+          'submit-reviews',
+          payload,
+        );
+        return { data, message };
+      }
     } catch (error: any) {
       return thunkAPI.rejectWithValue(error);
     }

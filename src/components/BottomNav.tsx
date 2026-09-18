@@ -7,6 +7,7 @@ import {
   Home,
   ReceiptText,
   ShoppingCart,
+  Star,
   User,
   UtensilsCrossed,
 } from 'lucide-react-native';
@@ -21,6 +22,9 @@ const BottomNav = ({ state, navigation }: BottomTabBarProps) => {
   const ordersTabActive = activeRouteName === 'Orders';
   const safeAreaInstance = useSafeAreaInsets();
   const { cartValue } = useCart();
+
+  // Design preview: Set to true to show pending rating indicator (visual only)
+  const hasPendingRating = true;
 
   const cartCount = React.useMemo(() => {
     if (!cartValue?.products || cartValue.products.length === 0) {
@@ -131,10 +135,24 @@ const BottomNav = ({ state, navigation }: BottomTabBarProps) => {
           onPress={() => navigateToTab(3)}
           accessibilityRole="button"
         >
-          <ReceiptText
-            size={24}
-            color={ordersTabActive ? colors.primary : colors.textMuted}
-          />
+          {/* Pending rating callout indicator (Design preview) */}
+          {hasPendingRating && (
+            <View pointerEvents="none" style={styles.ratingCallout}>
+              <View style={styles.ratingCalloutBubble}>
+                <Star size={8} color={colors.primary} fill={colors.primary} />
+                <Text style={styles.ratingCalloutText}>Rate</Text>
+              </View>
+              <View style={styles.ratingCalloutArrow} />
+            </View>
+          )}
+
+          <View style={styles.navIconContainer}>
+            <ReceiptText
+              size={24}
+              color={ordersTabActive ? colors.primary : colors.textMuted}
+            />
+            {hasPendingRating && <View style={styles.ratingPendingDot} />}
+          </View>
           <Text style={ordersTabActive ? styles.navTextActive : styles.navText}>
             Orders
           </Text>
@@ -225,7 +243,62 @@ const styles = StyleSheet.create({
   },
   navItem: {
     alignItems: 'center',
+    position: 'relative',
     gap: 4,
+  },
+  navIconContainer: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ratingCallout: {
+    position: 'absolute',
+    top: -24,
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  ratingCalloutBubble: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#181B22',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 176, 0, 0.45)',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  ratingCalloutText: {
+    color: colors.primary,
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  ratingCalloutArrow: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 3.5,
+    borderRightWidth: 3.5,
+    borderTopWidth: 3.5,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: '#181B22',
+  },
+  ratingPendingDot: {
+    position: 'absolute',
+    top: -1,
+    right: -2,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: colors.primary,
+    borderWidth: 1.5,
+    borderColor: colors.background,
   },
   navText: {
     fontSize: typography.caption,
