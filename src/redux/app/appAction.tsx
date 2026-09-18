@@ -289,3 +289,17 @@ export const toggleWishlist = createAsyncThunk(
     }
   },
 );
+
+//For getting pending ratings
+export const getPendingRatings = createAsyncThunk(
+  'app/getPendingRatings',
+  async (_, thunkAPI) => {
+    try {
+      const { data, message }: any = await axios.get('user/is-pending-rating');
+      return { data, message };
+    } catch (error: any) {
+      return thunkAPI.rejectWithValue(error);
+    }
+  },
+);
+

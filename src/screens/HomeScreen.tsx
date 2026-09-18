@@ -48,7 +48,7 @@ import { useDispatch, useSelector } from '../redux/store';
 import { getAddressList, updateFCM, updateLocation } from '../redux/user/userAction';
 import { Constant } from '../constants/Constant';
 import { ImagePath } from '../constants/ImagePath';
-import { homePageAPI } from '../redux/app/appAction';
+import { getPendingRatings, homePageAPI } from '../redux/app/appAction';
 import { HomeEventSlide, IHomePageData } from '../types';
 import { useCart } from '../hooks';
 import { showToaster } from '../utils/toaster';
@@ -108,6 +108,7 @@ const HomeScreen = () => {
   React.useEffect(() => {
     _handleUpdateFCM();
     handleFetchHomePageData();
+    dispatch(getPendingRatings());
     updateDeviceInfo();
     setTimeout(() => {
       requestNotificationPermission();

@@ -39,10 +39,11 @@ import { Constant } from '../constants/Constant';
 import { ImagePath } from '../constants/ImagePath';
 import { handleCall } from '../utils/helper';
 import { showToaster } from '../utils/toaster';
-import { useDispatch } from '../redux/store';
-import { getOrderReviews, submitOrderReview } from '../redux/app/appAction';
+import { useDispatch, useSelector } from '../redux/store';
+import { getOrderReviews, getPendingRatings, submitOrderReview } from '../redux/app/appAction';
 import { IOrderReviewData, ISubmitOrderReviewReq } from '../types';
 import socketService from '../utils/socket-service';
+import RazorpayCheckout from 'react-native-razorpay';
 
 const GlassLayer = ({
   radius,
@@ -183,6 +184,7 @@ const RatingScreen = () => {
     useNavigation<NativeStackNavigationProp<RootStackParamList, 'RateExperience'>>();
   const route = useRoute<RouteProp<RootStackParamList, 'RateExperience'>>();
   const dispatch = useDispatch();
+  const { userData } = useSelector(state => state.user);
 
   const passedOrderId = route.params?.orderId;
 
@@ -372,6 +374,11 @@ const RatingScreen = () => {
         is_liked: itemRatings[item.id] === 'like',
       }));
 
+    const tipAmount =
+      selectedTip === 'other'
+        ? Number(customTip) || 0
+        : selectedTip || 0;
+
     const payload: ISubmitOrderReviewReq = {
       order_id: String(orderId),
       food_rating: foodRating,
@@ -379,13 +386,15 @@ const RatingScreen = () => {
       delivery_rating: deliveryRating,
       delivery_feedback: concattedDeliveryFeedback,
       items_rating: itemsRatingPayload,
+      tips: tipAmount,
     };
 
     try {
       setIsSubmitting(true);
       console.log('payload', payload);
 
-      await dispatch(submitOrderReview(payload)).unwrap();
+      const res: any = await dispatch(submitOrderReview(payload)).unwrap();
+      dispatch(getPendingRatings());
 
       socketService.logAnalytics({
         action: 'click',
@@ -394,7 +403,52 @@ const RatingScreen = () => {
         params: orderId,
       });
 
-      showToaster('Thank you! Your review has been submitted.');
+      const gatewayData = res?.data;
+
+      if (tipAmount > 0 && gatewayData?.pg_key) {
+        const options = {
+          description: `Tip for Order #${orderId}`,
+          currency: gatewayData?.currency || 'INR',
+          key: gatewayData.pg_key,
+          amount: gatewayData?.amount || tipAmount * 100,
+          name: 'Ahaari',
+          order_id: gatewayData?.pg_order_id,
+          prefill: {
+            email: userData?.first_name || '',
+            contact: userData?.phone || '',
+            name: `${userData?.first_name || ''} ${userData?.last_name || ''}`.trim(),
+          },
+          theme: {
+            color: colors.primary,
+            hide_topbar: true,
+            backdrop_color: '#000',
+          },
+          modal: {
+            escape: false,
+            confirm_close: true,
+          },
+          hidden: {
+            email: true,
+            contact: true,
+          },
+          readonly: {
+            contact: true,
+            email: true,
+            name: true,
+          },
+        };
+
+        try {
+          await RazorpayCheckout.open(options);
+          showToaster('Thank you! Your review and tip have been submitted.');
+        } catch (payError) {
+          console.log('Tip payment error or cancelled:', payError);
+          showToaster('Review submitted. Tip payment was not completed.');
+        }
+      } else {
+        showToaster('Thank you! Your review has been submitted.');
+      }
+
       navigation.navigate('Tabs', { screen: 'Orders' });
     } catch (error: any) {
       const errorMsg =

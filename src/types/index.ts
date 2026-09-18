@@ -481,6 +481,7 @@ export type ISubmitOrderReviewReq = {
     variant_id: string;
     is_liked: boolean;
   }>;
+  tips?: number
 };
 
 

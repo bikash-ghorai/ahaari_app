@@ -16,6 +16,7 @@ import { colors, layout, typography } from '../constants/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import socketService from '../utils/socket-service';
 import { useCart } from '../hooks';
+import { useSelector } from '../redux/store';
 
 const BottomNav = ({ state, navigation }: BottomTabBarProps) => {
   const activeRouteName = state.routes[state.index]?.name;
@@ -23,8 +24,7 @@ const BottomNav = ({ state, navigation }: BottomTabBarProps) => {
   const safeAreaInstance = useSafeAreaInsets();
   const { cartValue } = useCart();
 
-  // Design preview: Set to true to show pending rating indicator (visual only)
-  const hasPendingRating = true;
+  const hasPendingRating = useSelector(state => state.app.hasPendingRating);
 
   const cartCount = React.useMemo(() => {
     if (!cartValue?.products || cartValue.products.length === 0) {

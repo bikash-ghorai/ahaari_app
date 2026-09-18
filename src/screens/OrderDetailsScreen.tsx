@@ -598,7 +598,7 @@ const OrderDetailsScreen = () => {
                           onPress={() => handleOpenRating()}
                         >
                           <Text style={styles.ratePromptAction}>
-                            Rate Order
+                            Rate & Tip Rider
                           </Text>
                         </TouchableOpacity>
                       </View>
