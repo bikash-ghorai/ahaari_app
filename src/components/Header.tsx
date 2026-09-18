@@ -7,8 +7,6 @@ import {
 } from 'lucide-react-native';
 import React from 'react';
 import {
-  Platform,
-  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -36,8 +34,6 @@ const Header = ({
   containerStyle?: any;
 }) => {
   const navigation = useNavigation<any>();
-  const statusBarHeight =
-    Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 44; // Approximate for iOS
   const { isBadWeather } = useWeatherAlert();
   const { getCartQtyCount } = useCart();
 
@@ -47,7 +43,6 @@ const Header = ({
         style={[
           styles.topBar,
           containerStyle,
-          { paddingTop: statusBarHeight, height: 64 + statusBarHeight },
         ]}
       >
         {showBackButton && (
@@ -113,7 +108,6 @@ const Header = ({
           <View style={{ height: 40, width: 40 }} />
         ) : null}
       </View>
-      <View style={{ height: 64 }} />
       {showNotificationButton && <WeatherAlertTooltip />}
     </>
   );
@@ -121,17 +115,12 @@ const Header = ({
 
 const styles = StyleSheet.create({
   topBar: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    // zIndex: 10,
-    height: 64,
+    height: 60,
     paddingHorizontal: layout.screenPadding,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    overflow: 'hidden',
+    zIndex: 10,
   },
   topBarBlur: {
     position: 'absolute',

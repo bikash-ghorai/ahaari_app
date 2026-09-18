@@ -308,7 +308,7 @@ const RestaurantDetails = (props: any) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
       <Header
         title="Restaurant Details"
         showCartButton={true}
@@ -1362,11 +1362,13 @@ const styles = StyleSheet.create({
   },
   stickySection: {
     width: '100%',
+    paddingBottom: 8,
+    zIndex: 10,
   },
   stickyCard: {
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: 'rgba(56, 56, 56, 1)',
     paddingVertical: 16,
     paddingHorizontal: 14,
     overflow: 'hidden',
