@@ -382,6 +382,7 @@ export type IOrderDetails = {
   estimate_delivery_time: number | string;
   instruction: string | null;
   otp: string | null;
+  invoice?: string | null;
 };
 
 export type IActiveOrder = {

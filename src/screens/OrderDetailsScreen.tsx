@@ -9,6 +9,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Linking,
   Modal,
 } from 'react-native';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
@@ -147,16 +148,30 @@ const OrderDetailsScreen = () => {
     });
   };
 
-  const handleDownloadInvoice = () => {
+  const handleDownloadInvoice = async () => {
     socketService.logAnalytics({
       action: 'click',
       name: 'Download Invoice',
       from: 'OrderDetails Screen',
       params: orderDetails?.order_id || orderId,
     });
-    showToaster(
-      `Invoice for Order #${orderDetails?.order_id || orderId} downloaded`,
-    );
+
+    const invoiceUrl = Constant?.ImageURL + orderDetails?.invoice + "?download=1";
+    if (!invoiceUrl) {
+      showToaster('Invoice is not available for this order');
+      return;
+    }
+
+    try {
+      const supported = await Linking.canOpenURL(invoiceUrl);
+      if (supported) {
+        await Linking.openURL(invoiceUrl);
+      } else {
+        showToaster('Unable to open invoice download link');
+      }
+    } catch (error) {
+      showToaster('Failed to open invoice download link');
+    }
   };
 
   useEffect(() => {
@@ -579,13 +594,13 @@ const OrderDetailsScreen = () => {
                           ))}
                         </View>
                       </View>
-                      <TouchableOpacity
+                      {/* <TouchableOpacity
                         activeOpacity={0.8}
                         style={styles.editRatingButton}
                         onPress={() => handleOpenRating()}
                       >
                         <Text style={styles.editRatingText}>Edit Review</Text>
-                      </TouchableOpacity>
+                      </TouchableOpacity> */}
                     </View>
                   ) : (
                     <View style={styles.rateOrderPromptCard}>
@@ -871,25 +886,26 @@ const OrderDetailsScreen = () => {
             ) : null}
 
             <View style={styles.bottomActionRow}>
-              <TouchableOpacity
-                activeOpacity={0.9}
-                style={styles.bottomInvoiceButton}
-                onPress={handleDownloadInvoice}
-              >
-                <ReceiptText
-                  size={18}
-                  color={colors.primary}
-                  strokeWidth={2.1}
-                />
-                <Text style={styles.bottomInvoiceText} numberOfLines={1}>
-                  Invoice
-                </Text>
-                <Download
-                  size={15}
-                  color={colors.primary}
-                  strokeWidth={2.1}
-                />
-              </TouchableOpacity>
+              {orderDetails?.invoice && orderDetails?.status === "Delivered" ?
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  style={styles.bottomInvoiceButton}
+                  onPress={handleDownloadInvoice}
+                >
+                  <ReceiptText
+                    size={18}
+                    color={colors.primary}
+                    strokeWidth={2.1}
+                  />
+                  <Text style={styles.bottomInvoiceText} numberOfLines={1}>
+                    Invoice
+                  </Text>
+                  <Download
+                    size={15}
+                    color={colors.primary}
+                    strokeWidth={2.1}
+                  />
+                </TouchableOpacity> : null}
 
               <TouchableOpacity
                 activeOpacity={0.9}
